@@ -1,0 +1,57 @@
+{
+  "name": "@nphyx/photonomix",
+  "version": "0.0.1",
+  "repository": "https://github.com/nphyx/photonomix",
+  "description": "An artificial photonic life simulation.",
+  "author": "Justen Robertson <nphyxx@gmail.com>",
+  "main": "",
+	"dependencies": {},
+  "devDependencies": {
+    "babel-core": "^6.0.0",
+    "babel-loader": "^6.0.0",
+    "babel-preset-es2015": "^6.0.0",
+    "gulp": "^3.9.0",
+    "gulp-babel": "^6.0.0",
+    "gulp-babel-istanbul": "^1.0.0",
+    "gulp-inject-modules": "^0.1.1",
+    "gulp-mocha": "^2.2.0",
+    "gulp-replace": "^0.5.4",
+    "jsdox": "^0.4.9",
+    "jshint": "*",
+    "mocha": "*",
+    "should": "*"
+  },
+  "jshintConfig": {
+    "curly": false,
+    "latedef": "nofunc",
+    "strict": false,
+    "globalstrict": false,
+    "newcap": true,
+    "quotmark": "double",
+    "undef": true,
+    "unused": true,
+    "asi": true,
+    "esnext": true,
+    "browser": true,
+    "devel": true,
+    "node": true,
+    "worker": true,
+    "globals": {
+      "chai": false,
+      "describe": false,
+      "define": false,
+      "it": false,
+      "xit": false,
+      "before": false,
+      "beforeEach": false,
+      "after": false,
+      "afterEach": false
+    }
+  },
+  "babel": {
+    "presets": [
+      "es2015"
+    ]
+  },
+  "license": "MIT"
+}
