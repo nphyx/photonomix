@@ -19,7 +19,8 @@
     "jsdox": "^0.4.9",
     "jshint": "*",
     "mocha": "*",
-    "should": "*"
+    "should": "*",
+		"pug":"*"
   },
   "jshintConfig": {
     "curly": false,
