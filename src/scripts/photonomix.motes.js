@@ -1,6 +1,6 @@
 "use strict";
 let {abs, max, min, pow, sqrt, E} = Math;
-import {WEIGHT_PRED_R, WEIGHT_PRED_G, WEIGHT_PRED_B} from "./photonix.constants";
+import {WEIGHT_PRED_R, WEIGHT_PRED_G, WEIGHT_PRED_B} from "./photonomix.constants";
 export function Mote() {
 	// "private" properties
 	let photons = new Uint8Array(0,0,0);
