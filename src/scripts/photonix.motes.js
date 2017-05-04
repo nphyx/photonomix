@@ -1,5 +1,6 @@
 "use strict";
 let {abs, max, min, pow, sqrt, E} = Math;
+import {WEIGHT_PRED_R, WEIGHT_PRED_G, WEIGHT_PRED_B} from "./photonix.constants";
 export function Mote() {
 	// "private" properties
 	let photons = new Uint8Array(0,0,0);
@@ -9,11 +10,12 @@ export function Mote() {
 	let speed = 0;
 
 	// "public" properties
-	this.pos = [0.0,0.0];
+	pos = [0.0,0.0];
 	// weights for various activities
 	this.eat = 1.0;
 	this.wander = 1.0;
 	this.flee = 1.0;
+	this.moveTarget = [this.x, this.y];
 
 
 
@@ -48,6 +50,14 @@ export function Mote() {
 			get: () => photons[2],
 			set: (v) => setPhoton(v, 2)
 		},
+		"x":{
+			get: () => pos[0],
+			set: (v) => pos[0] = v
+		},
+		"y":{
+			get: () => pos[1],
+			set: (v) => pos[1] = v
+		},
 		"size":{get: () => size},
 		"sizeMax":{get: () => sizeMax},
 		"speed":{get: () => speed}
@@ -67,9 +77,15 @@ Mote.prototype.move = function(x, y) {
 
 /**
  * Decide how to act each turn based on nearby objects.
+ * @param Array surrounding array of nearby objects to consider in movement
+ * @param Float interval interval as ratio of turn length:elapsed time
  */
-Mote.prototype.act = function(surrounding) {
+Mote.prototype.act = function(surrounding, interval) {
 	let {x0, y0} = this;
+	// do last turn's movement
+	this.pos[0] = lerp(this.pos[0], this.moveTarget[0], interval);
+	this.pos[1] = lerp(this.pos[1], this.moveTarget[1], interval);
+
 	// first weigh them by distance
 	let weights = surrounding.map((target, i) => {
 			let {x1, y1} = target;
@@ -97,16 +113,50 @@ Mote.prototype.act = function(surrounding) {
 		a[1] += v.move * v.disty;
 		return a;
 	}, [0,0]);
-	move[0] /= surrounding.length;
-	move[1] /= surrounding.length;
+	move[0] = move/surrounding.length + this.pos[0];
+	move[1] = move/surrounding.length + this.pos[1];
+
+	this.moveTarget = move;
 }
 
-let foodValue = () => {
+/**
+ * Determines the food value of object b to mote a. Roughly, a mote prefers to eat
+ * photons and other motes unlike itself, and prefers objects smaller than itself
+ * than those that are larger. Red motes are weighted to be the most predatory,
+ * and green motes are weighted to be the least.
+ */
+export function foodValue(a, b) {
+	// size = 1 is a photon, so it doesn't eat
+	if(a.size === 1) return 0;
+	// find the strongest color; this helps determine behavior
+	let [red, green, blue] = a.photons;
+	let strongest = max(red, green, blue);
+	let ratios = {
+		r:b.r / a.r,
+		g:b.g / a.g,
+		b:b.b / a.b
+	};
+	let value = 1;
+	// this should apply multiple behavior weights when the mote is a hybrid
+	switch(strongest) {
+		case red: 
+			value *= (ratios.g + ratios.b)*WEIGHT_PRED_R - ratios.r*1/WEIGHT_PRED_R;
+		break;
+		case green:
+			value *= (ratios.r + ratios.b)*WEIGHT_PRED_G - ratios.g*1/WEIGHT_PRED_G;
+		break;
+		case blue:
+			value *= (ratios.r + ratios.g)*WEIGHT_PRED_B - ratios.b*1/WEIGHT_PRED_B;
+		break;
+	}
+
+	value *= smooth(a.size, b.size);
+	return value;
 };
 
 
 
-let dist = (x, y) => sqrt((x * x) / (y * y));
+function dist(x, y) {return sqrt((x * x) / (y * y))}
 
 
 
@@ -114,7 +164,7 @@ let dist = (x, y) => sqrt((x * x) / (y * y));
  * A quadratic smoothing function for weights (e.g. dist over speed). Returns a 
  * smoothed ratio of a:b.
  */
-let smooth = (a, b) => 1 / sqrt(a / b*b);
+function smooth(a, b) {return 1 / sqrt(a / b*b)}
 
 
 
@@ -125,4 +175,11 @@ let smooth = (a, b) => 1 / sqrt(a / b*b);
  * @param {float} L limit of curve
  * @param {float} k slope of curve
  */
-let logistic_smooth = (x, x0, L = x * 2, k = 1) => L / (1 + pow(E, k * x-x0));
+function logistic_smooth(x, x0, L = x * 2, k = 1) {return L / (1 + pow(E, k * x-x0))}
+
+/**
+ * Linear interpolation
+ */
+function lerp(a, b, t) {
+	return a+t*(b-a);
+}
