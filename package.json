@@ -20,7 +20,8 @@
     "jshint": "*",
     "mocha": "*",
     "should": "*",
-		"pug":"*"
+		"pug":"*",
+		"gulp-pug":"*"
   },
   "jshintConfig": {
     "curly": false,
