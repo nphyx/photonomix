@@ -12,15 +12,12 @@ var exec = require("child_process").exec;
 var mocha = require("gulp-mocha");
 var istanbul = require("gulp-babel-istanbul");
 */
-
-gulp.task("default", ["scripts", "styles", "markup"]);
-
 gulp.task("clean-scripts", function() {
-	return del(["target/scripts", "dist/scripts"]);
+	return del(["target/scripts/*", "dist/scripts/*"]);
 });
 
 gulp.task("clean-styles", function() {
-	return del(["dist/styles"]);
+	return del(["dist/styles/*"]);
 });
 
 gulp.task("clean-markup", function() {
@@ -49,7 +46,7 @@ gulp.task("webpack", ["scripts"], function(callback) {
 	var myConfig = Object.create(webpackConfig);
 	myConfig.plugins = [
 		new webpack.optimize.DedupePlugin(),
-		new webpack.optimize.UglifyJsPlugin()
+		//new webpack.optimize.UglifyJsPlugin()
   ];
 	// run webpack
 	webpack(myConfig, function(err, stats) {
@@ -65,3 +62,5 @@ gulp.task("webpack", ["scripts"], function(callback) {
 		callback();
 	});
 });
+
+gulp.task("default", ["webpack", "styles", "markup"]);
