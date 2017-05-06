@@ -6,13 +6,18 @@ import {TARGET_FPS, WEIGHT_PRED_R, WEIGHT_PRED_G,
 const R = 0, G = 1, B = 2, A = 3, X = 0, Y = 1, FV = 3;
 const POS_C  = [0.5, 0.5];
 const FV_SCRATCH = new Float32Array(4); // saves memory allocations for foodValue
-export function Mote(photons = new Uint8Array(3), pos = new Float32Array(2), speed = 0.0025, sight = 0.1, eat = 1.2, flee = 0.9) {
+let rat_r, rat_g, rat_b;
+export function Mote(photons = new Uint8Array(3), pos = new Float32Array(2), b_speed = 0.0025, b_sight = 0.1, b_eat = 1.0, b_flee = 1.0) {
 	// "private" properties
 	let color = Float32Array.of(0,0,0,0.7);
 	this.pos = pos;
 	this.toPos = Float32Array.of(random(), random());
 	let sizeMax = MOTE_BASE_SIZE*4;
 	let sizeMin = MOTE_BASE_SIZE*0.25;
+	b_speed = b_speed+adjrand(0.0025);
+	b_sight = b_sight+adjrand(0.1); // vision distance
+	b_eat = b_eat+adjrand(0.1);
+	b_flee = b_flee+adjrand(0.1);
 
 	// "public" properties
 	// weights for various activities
@@ -21,20 +26,29 @@ export function Mote(photons = new Uint8Array(3), pos = new Float32Array(2), spe
 	this.stuck = 0;
 	this.scared = 0;
 	this.full = 0;
-	this.speed = speed+adjrand(0.0025);
-	this.sight = sight+adjrand(0.1); // vision distance
-	this.eat = eat+adjrand(0.1);
-	this.flee = flee+adjrand(0.1);
+	this.speed = b_speed;
+	this.sight = b_sight;
+	this.eat = b_eat;
+	this.flee = b_flee;
 	this.wander = 1.0+adjrand(0.1);
 	this.pulse = ~~(TARGET_FPS*random());
 	this.size = MOTE_BASE_SIZE;
 	this.handedness = posneg();
+	this.target = undefined;
 
 
 
 	let updateProperties = () => {
 		let sum = photons[R] + photons[G] + photons[B];
 		this.size = clamp(sum/92*MOTE_BASE_SIZE, sizeMin, sizeMax);
+		rat_r = ratio(photons[R], photons[G]+photons[B]);
+		rat_g = ratio(photons[G], photons[R]+photons[B]);
+		rat_b = ratio(photons[B], photons[G]+photons[R]);
+		this.speed = b_speed*((1+rat_b+rat_r)-this.size);
+		this.sight = b_sight*(1+rat_b);
+		this.eat = b_eat*(1+rat_b);
+		this.flee = b_flee*(1+rat_g);
+
 		if(sum > PREGNANT_THRESHOLD) this.pregnant = true;
 		if(sum < DEATH_THRESHOLD) this.dead = true;
 		
@@ -51,8 +65,6 @@ export function Mote(photons = new Uint8Array(3), pos = new Float32Array(2), spe
 		photons[n] = max(0, min(v, 255));
 		updateProperties();
 	}
-
-
 
 	Object.defineProperties(this, {
 		"color":{get: () => "rgba("+(color[R])+","+color[G]+","+color[B]+","+color[A]+")"},
@@ -100,12 +112,12 @@ export function Mote(photons = new Uint8Array(3), pos = new Float32Array(2), spe
  */
 let x, y, toX, toY, size, sight, speed, eat, flee, sizex2, 
 	newToPos = new Float32Array(2), weightp = new Float32Array(2), weight, mainTarget, 
-	weightCount, highestWeight, mainTargetDist, cx, cy, ctoX, ctoY, dist, food, scary, 
-	a_i, a_len, current, handedness;
+	weightCount, highestWeight, mainTargetDist, ctoX, ctoY, a_dist, food, scary, 
+	a_i, a_len, current, handedness, pos;
 Mote.prototype.act = function(surrounding) {
 	// do last turn's movement
 	this.move();
-	({x, y, toX, toY, size, sight, speed, eat, flee, handedness} = this);
+	({pos, x, y, toX, toY, size, sight, speed, eat, flee, handedness} = this);
 	sizex2 = size*2;
 	// kludge to fix motes stuck on edges
 	if(this.stuck > 60 || this.stuck < 0) {
@@ -126,32 +138,40 @@ Mote.prototype.act = function(surrounding) {
 
 	// basic wandering movement
 	rotate(newToPos, POS_C, speed*handedness);
+	// drop target if too far away, if hungry, or if scared
+	if(this.target && 
+		dist(pos, this.target.pos) > sight*1.5 || 
+		this.hungry || this.scared) this.target = undefined; 
 
 	// hungry or fleeing, so consider targets
 	if(!this.full || this.scared) {
 		// reset scratch memory that may not be initialized
-		weightp[X] = 0; 
+		weightp[X] = 0;
 		weightp[Y] = 0;
 		weightCount = 0; 
 		highestWeight = -Infinity;
 		mainTargetDist = 0;
-		mainTarget = undefined;
+		mainTarget = this.target;
 		for(a_i = 0, a_len = surrounding.length; a_i < a_len && a_i < 20; ++a_i) {
 			current = surrounding[a_i];
-			cx = current.x;
-			cy = current.y;
+			if(current === this) continue;
 			ctoX = current.toX;
 			ctoY = current.toY;
-			dist = hyp(x - cx, y - cx);
-			if(dist  > sight || current === this) continue;
+			a_dist = dist(pos, current.pos);
+			if(a_dist  > sight) continue;
 			food = foodValue(this, current)||0;
 			scary = foodValue(current, this)||0;
 			// move value is the weighted difference between food and flee values
-			weight = dist*(food*eat - scary*flee);
-			if(weight > highestWeight) {
+			weight = a_dist*(food*eat - scary*flee);
+			if(!this.target && weight > highestWeight) {
 				highestWeight = weight;
 				mainTarget = current;
-				mainTargetDist = dist;
+				mainTargetDist = a_dist;
+			}
+			// new target acquired!
+			if(!this.target && mainTarget) {
+				this.target = mainTarget;
+				mainTargetDist = dist(pos, this.target.pos);
 			}
 
 			weightp[X] += weight*ctoX; 
@@ -177,12 +197,13 @@ Mote.prototype.act = function(surrounding) {
 				rotate(newToPos, weightp, speed*handedness);
 				gravitate(newToPos, mainTarget.toPos, highestWeight);
 				if(isNaN(newToPos[X]) || isNaN(newToPos[Y])) throw new Error("invalid movement");
-				rotate(newToPos, mainTarget.pos, speed*handedness);
-				if(mainTargetDist < mainTarget.size+size*1.1) this.bite(mainTarget);
+				rotate(newToPos, mainTarget.toPos, speed*handedness);
+				if(mainTargetDist < mainTarget.size+size*1.2) this.bite(mainTarget);
 				if(isNaN(newToPos[X]) || isNaN(newToPos[Y])) throw new Error("invalid movement");
 			}
 		} // end if weights.length
 	} // end if hungry or scared
+	else {this.target = undefined} // drop target if hungry or scared
 
 	if(this.full > 0) this.full--;
 	
@@ -268,14 +289,13 @@ Mote.prototype.bite = function(mote) {
 			}
 		break;
 	}
-	mote.scared = TARGET_FPS*3;
-	mote.full = TARGET_FPS*5;
+	mote.scared = ~~(TARGET_FPS*2*this.flee);
+	this.full = ~~(TARGET_FPS*2*(1/this.eat));
 }
 
 Mote.random = function() {
 	return new Mote([~~(random()*64), ~~(random()*64), ~~(random()*64)], [random(), random()]);
 }
-
 
 /**
  * Determines the food value of object b to mote a. Roughly, a mote prefers to eat
@@ -315,16 +335,20 @@ export function foodValue(a, b) {
 	return FV_SCRATCH[FV] * ((ratio(asize, bsize)*2)-1);
 }
 
-
 /**
  * Find hypotenuse of triangle with legs x,y
  */
 function hyp(x, y) {
 	return (
+		// small optimization? or dumb?
 		x === 0? y:
 		y === 0? x:
 		sqrt((x * x) + (y * y))
 	)
+}
+
+function dist(a, b) {
+	return hyp(a[X] - b[X], a[Y] - b[Y]);
 }
 
 let grav = 0;
