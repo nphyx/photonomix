@@ -18,9 +18,10 @@ export function Mote(photons = new Uint8Array(3), pos = new Float32Array(2), spe
 	// weights for various activities
 	this.dead = false;
 	this.pregnant = false;
+	this.stuck = 0;
 	this.scared = 0;
 	this.full = 0;
-	this.speed = speed; //+adjrand(0.005);
+	this.speed = speed+adjrand(0.0025);
 	this.sight = sight+adjrand(0.1); // vision distance
 	this.eat = eat+adjrand(0.1);
 	this.flee = flee+adjrand(0.1);
@@ -106,6 +107,18 @@ Mote.prototype.act = function(surrounding) {
 	this.move();
 	({x, y, toX, toY, size, sight, speed, eat, flee, handedness} = this);
 	sizex2 = size*2;
+	// kludge to fix motes stuck on edges
+	if(this.stuck > 60 || this.stuck < 0) {
+		if(this.stuck > 0) this.stuck = -8*TARGET_FPS;
+		this.pos[X] = clamp(this.pos[X], 1e-16, 1-1e-16);
+		this.pos[Y] = clamp(this.pos[Y], 1e-16, 1-1e-16);
+		gravitate(this.toPos, POS_C, 1);
+		rotate(this.toPos, POS_C, speed*handedness);
+		this.stuck++;
+		this.scared = 0;
+		this.full = 0;
+		return;
+	}
 
 	newToPos[X] = this.toPos[X];
 	newToPos[Y] = this.toPos[Y];
@@ -175,7 +188,7 @@ Mote.prototype.act = function(surrounding) {
 	
 
 	// gravitate toward the center
-	gravitate(newToPos, POS_C, 0.0001);
+	gravitate(newToPos, POS_C, 0.0003);
 	if(isNaN(newToPos[X]) || isNaN(newToPos[Y])) throw new Error("invalid movement");
 		
 	// clamp move directions to game space
@@ -199,7 +212,10 @@ Mote.prototype.move = function() {
 	m_newPos[X] = m_pos[X];
 	m_newPos[Y] = m_pos[Y];
 	gravitate(m_newPos, this.toPos, m_speed, m_speedmin, m_speedmax);
-	if(m_newPos[X] < 1e-16 || m_newPos[X] > 1-1e-16 || m_newPos[Y] < 1e-16 || m_newPos[Y] > 1-1e-16) return;
+	if(m_newPos[X] < 0 || m_newPos[X] > 1 || m_newPos[Y] < 0 || m_newPos[Y] > 1) {
+		this.stuck++;
+	}
+	clamp(this.stuck, -70, 70);
 	m_newPos[X] = clamp(m_newPos[X], 1e-16, 1-1e-16);
 	m_newPos[Y] = clamp(m_newPos[Y], 1e-16, 1-1e-16);
 	m_pos[X] = m_newPos[X];
