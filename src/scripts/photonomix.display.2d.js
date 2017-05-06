@@ -153,7 +153,7 @@ function animate() {
 		lastFrame = now - (elapsed % interval);
 		frameCount++;
 		game.tick(0);
-		drawFill(screenCtx, W, H, "rgba(0,0,0,.2)");
+		drawFill(screenCtx, W, H, "rgba(0,0,0,.3)");
 		drawMotes();
 	}
 }

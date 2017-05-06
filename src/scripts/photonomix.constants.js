@@ -1,6 +1,9 @@
-export const TARGET_FPS = 120;
+export const TARGET_FPS = 60;
 export const WEIGHT_PRED_R = 1.3;
 export const WEIGHT_PRED_G = 0.7;
 export const WEIGHT_PRED_B = 1;
-export const START_COUNT = 100;
+export const START_POP = 10;
+export const MAX_POP = 200;
 export const MOTE_BASE_SIZE = 0.02;
+export const PREGNANT_THRESHOLD = 192;
+export const DEATH_THRESHOLD = 16;
