@@ -1,4 +1,4 @@
-export const TARGET_FPS = 60;
+export const TARGET_FPS = 30;
 export const WEIGHT_PRED_R = 1.3;
 export const WEIGHT_PRED_G = 0.7;
 export const WEIGHT_PRED_B = 1;
