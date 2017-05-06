@@ -8,7 +8,7 @@ const POS_C  = [0.5, 0.5];
 const FV_SCRATCH = new Float32Array(4); // saves memory allocations for foodValue
 export function Mote(photons = new Uint8Array(3), pos = new Float32Array(2), speed = 0.0025, sight = 0.1, eat = 1.2, flee = 0.9) {
 	// "private" properties
-	let color = Float32Array.of(0,0,0,0.5);
+	let color = Float32Array.of(0,0,0,0.7);
 	this.pos = pos;
 	this.toPos = Float32Array.of(random(), random());
 	let sizeMax = MOTE_BASE_SIZE*4;
@@ -178,7 +178,7 @@ Mote.prototype.act = function(surrounding) {
 				gravitate(newToPos, mainTarget.toPos, highestWeight);
 				if(isNaN(newToPos[X]) || isNaN(newToPos[Y])) throw new Error("invalid movement");
 				rotate(newToPos, mainTarget.pos, speed*handedness);
-				if(mainTargetDist < size*2) this.bite(mainTarget);
+				if(mainTargetDist < mainTarget.size+size*1.1) this.bite(mainTarget);
 				if(isNaN(newToPos[X]) || isNaN(newToPos[Y])) throw new Error("invalid movement");
 			}
 		} // end if weights.length

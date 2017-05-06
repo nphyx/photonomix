@@ -1,6 +1,6 @@
 "use strict";
 import * as constants from "./photonomix.constants";
-let {abs} = Math;
+let {abs, max, min} = Math;
 //const {floor, random, max} = Math;
 const AUTO_FULLSCREEN = false;
 //const FPS = 60;
@@ -22,6 +22,10 @@ let PX = 1; // pixel size
 let W = 0; // screen width
 let H = 0; // screen height
 let OR = 0; // orientation (0 = landscape, 1 = portrait)
+
+export function clamp(v, minv, maxv) {
+	return max(min(v, maxv), minv);
+}
 
 // from MDN
 /**
@@ -117,24 +121,27 @@ function pressEnter(event) {
 	}
 }
 
+let d_m_i, d_m_l, mote, px, py, size, tf, pw, g, cs_r;
 function drawMotes() {
-	for(let i in game.motes) {
-		let mote = game.motes[i];
-		let px = mote.x * W;
-		let py = mote.y * H;
-		let size = mote.size * W;
-		let tf = constants.TARGET_FPS;
-		let pw = abs((((frameCount+mote.pulse) % tf)-(tf/2)) / tf);
+	for(d_m_i = 0, d_m_l = game.motes.length; d_m_i < d_m_l; ++d_m_i) {
+		mote = game.motes[d_m_i];
+		px = mote.x * W;
+		py = mote.y * H;
+		size = mote.size * clamp(min(W, H), 300, 1200);
+		tf = constants.TARGET_FPS;
+		pw = abs((((frameCount+mote.pulse) % tf)-(tf/2)) / tf);
+		cs_r = 0.015+(0.15*pw);
 
-		let g = screenCtx.createRadialGradient(
+		g = screenCtx.createRadialGradient(
 			px, py, 3*pw,
 			px, py, size*2
 		);
-		g.addColorStop(0, "white");
-		g.addColorStop(0.1+(0.2*pw), mote.color);
-		g.addColorStop(0.3+(0.6*pw), "rgba(0,0,0,-1)");
+
+		g.addColorStop(0, "rgba(255,255,255,0.9)");
+		g.addColorStop(cs_r, mote.color);
+		g.addColorStop(3*cs_r, "rgba(0,0,0,-1)");
 		screenCtx.fillStyle = g;
-		screenCtx.fillRect(px-size*1.5, py-size*1.5, size*3, size*3); 
+		screenCtx.fillRect(px-size, py-size, size*2, size*2); 
 
 		/*
 		screenCtx.fillStyle = mote.color;
