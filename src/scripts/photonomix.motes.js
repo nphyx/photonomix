@@ -2,16 +2,21 @@
 let {random, abs, max, min, sqrt, pow, sin, cos} = Math;
 import {TARGET_FPS, WEIGHT_PRED_R, WEIGHT_PRED_G, 
 	WEIGHT_PRED_B, MOTE_BASE_SIZE, PREGNANT_THRESHOLD, DEATH_THRESHOLD} from "./photonomix.constants";
+import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
+const {vec2, vec3, vec4, mut_times, mut_clamp, mut_copy, magnitude} = vectrix.vectors;
+const {plus, minus} = vectrix.matrices;
+const clamp = mut_clamp;
 
 const R = 0, G = 1, B = 2, A = 3, X = 0, Y = 1, FV = 3;
-const POS_C  = [0.5, 0.5];
+const POS_C  = vec2(0.5, 0.5);
 const FV_SCRATCH = new Float32Array(4); // saves memory allocations for foodValue
 let rat_r, rat_g, rat_b;
 export function Mote(photons = new Uint8Array(3), pos = new Float32Array(2), b_speed = 0.0025, b_sight = 0.1, b_eat = 1.0, b_flee = 1.0) {
 	// "private" properties
-	let color = Float32Array.of(0,0,0,0.7);
-	this.pos = pos;
-	this.toPos = Float32Array.of(random(), random());
+	photons = vec3(photons);
+	let color = vec4(0,0,0,0.7);
+	this.pos = vec2(pos);
+	this.toPos = vec2(random(), random());
 	let sizeMax = MOTE_BASE_SIZE*4;
 	let sizeMin = MOTE_BASE_SIZE*0.25;
 	b_speed = b_speed+adjrand(0.0025);
@@ -51,7 +56,7 @@ export function Mote(photons = new Uint8Array(3), pos = new Float32Array(2), b_s
 
 		if(sum > PREGNANT_THRESHOLD) this.pregnant = true;
 		if(sum < DEATH_THRESHOLD) this.dead = true;
-		
+
 		color[R] = ~~(photons[R]/sum*255);
 		color[G] = ~~(photons[G]/sum*255);
 		color[B] = ~~(photons[B]/sum*255);
@@ -110,20 +115,19 @@ export function Mote(photons = new Uint8Array(3), pos = new Float32Array(2), b_s
  * @param Array surrounding array of nearby objects to consider in movement
  * @param Float interval interval as ratio of turn length:elapsed time in seconds
  */
-let x, y, toX, toY, size, sight, speed, eat, flee, sizex2, 
-	newToPos = new Float32Array(2), weightp = new Float32Array(2), weight, mainTarget, 
+let toPos, size, sight, speed, eat, flee, sizex2, 
+	newToPos = vec2(), weightp = vec2(), weight, mainTarget, 
 	weightCount, highestWeight, mainTargetDist, ctoX, ctoY, a_dist, food, scary, 
 	a_i, a_len, current, handedness, pos;
 Mote.prototype.act = function(surrounding) {
 	// do last turn's movement
 	this.move();
-	({pos, x, y, toX, toY, size, sight, speed, eat, flee, handedness} = this);
+	({pos, toPos, size, sight, speed, eat, flee, handedness} = this);
 	sizex2 = size*2;
 	// kludge to fix motes stuck on edges
 	if(this.stuck > 60 || this.stuck < 0) {
 		if(this.stuck > 0) this.stuck = -8*TARGET_FPS;
-		this.pos[X] = clamp(this.pos[X], 1e-16, 1-1e-16);
-		this.pos[Y] = clamp(this.pos[Y], 1e-16, 1-1e-16);
+		mut_clamp(this.pos, 1e-16, 1-1e-16);
 		gravitate(this.toPos, POS_C, 1);
 		rotate(this.toPos, POS_C, speed*handedness);
 		this.stuck++;
@@ -132,9 +136,8 @@ Mote.prototype.act = function(surrounding) {
 		return;
 	}
 
-	newToPos[X] = this.toPos[X];
-	newToPos[Y] = this.toPos[Y];
-	if(isNaN(newToPos[X]) || isNaN(newToPos[Y])) throw new Error("invalid movement");
+	mut_copy(newToPos, toPos);
+	validate(newToPos);
 
 	// basic wandering movement
 	rotate(newToPos, POS_C, speed*handedness);
@@ -179,27 +182,31 @@ Mote.prototype.act = function(surrounding) {
 			weightCount++;
 		}
 
+
+/*
 		weightp[X] = clamp(weightp[X]/weightCount, -2, 2);
 		weightp[Y] = clamp(weightp[Y]/weightCount, -2, 2);
+		*/
 
 		if(weightCount) {
+			mut_clamp(mut_times(weightp, 1/weightCount), -2, 2);
 			if(this.scared) {
 				gravitate(newToPos, weightp, speed, null, null, true);
 				rotate(newToPos, weightp, speed*handedness);
-				if(isNaN(newToPos[X]) || isNaN(newToPos[Y])) throw new Error("invalid movement");
+				validate(newToPos);
 				this.scared--;
 			}
 
 			// if there are appropriate targets and hungry
 			else if(!this.full && mainTarget) {
 				gravitate(newToPos, weightp, speed);
-				if(isNaN(newToPos[X]) || isNaN(newToPos[Y])) throw new Error("invalid movement");
+				validate(newToPos);
 				rotate(newToPos, weightp, speed*handedness);
 				gravitate(newToPos, mainTarget.toPos, highestWeight);
-				if(isNaN(newToPos[X]) || isNaN(newToPos[Y])) throw new Error("invalid movement");
+				validate(newToPos);
 				rotate(newToPos, mainTarget.toPos, speed*handedness);
 				if(mainTargetDist < mainTarget.size+size*1.2) this.bite(mainTarget);
-				if(isNaN(newToPos[X]) || isNaN(newToPos[Y])) throw new Error("invalid movement");
+				validate(newToPos);
 			}
 		} // end if weights.length
 	} // end if hungry or scared
@@ -210,14 +217,12 @@ Mote.prototype.act = function(surrounding) {
 
 	// gravitate toward the center
 	gravitate(newToPos, POS_C, 0.0003);
-	if(isNaN(newToPos[X]) || isNaN(newToPos[Y])) throw new Error("invalid movement");
+	validate(newToPos);
 		
 	// clamp move directions to game space
-	newToPos[X] = clamp(newToPos[X], sizex2, 1-sizex2);
-	newToPos[Y] = clamp(newToPos[Y], sizex2, 1-sizex2);
+	mut_clamp(newToPos, sizex2, 1-sizex2);
 
-	this.toPos[X] = newToPos[X];
-	this.toPos[Y] = newToPos[Y];
+	mut_copy(this.toPos, newToPos);
 }
 
 
@@ -227,20 +232,17 @@ Mote.prototype.move = function() {
 	m_speedmin = this.speed / 2;
 	m_speedmax  = this.speed * 1.5;
 	m_pos = this.pos;
+	mut_copy(m_newPos, m_pos);
 	// for some reason this bugs out sometimes and sticks them
 	// in the corner, so we just abort
 	// FIXME
-	m_newPos[X] = m_pos[X];
-	m_newPos[Y] = m_pos[Y];
 	gravitate(m_newPos, this.toPos, m_speed, m_speedmin, m_speedmax);
 	if(m_newPos[X] < 0 || m_newPos[X] > 1 || m_newPos[Y] < 0 || m_newPos[Y] > 1) {
 		this.stuck++;
 	}
 	clamp(this.stuck, -70, 70);
-	m_newPos[X] = clamp(m_newPos[X], 1e-16, 1-1e-16);
-	m_newPos[Y] = clamp(m_newPos[Y], 1e-16, 1-1e-16);
-	m_pos[X] = m_newPos[X];
-	m_pos[Y] = m_newPos[Y];
+	mut_clamp(m_newPos, 1e-16, 1-1e-16);
+	mut_copy(m_pos, m_newPos);
 }
 
 Mote.prototype.bite = function(mote) {
@@ -348,29 +350,26 @@ function hyp(x, y) {
 }
 
 function dist(a, b) {
-	return hyp(a[X] - b[X], a[Y] - b[Y]);
+	return magnitude(minus(a, b));
 }
 
 let grav = 0;
-let g_dx = 0;
-let g_dy = 0;
-let g_x = 0;
-let g_y = 0;
+let g_d = vec2(0.0, 0.0);
+let g = vec2(0.0, 0.0);
 /**
  * Shitty approximation of gravitation.
  * "Gravitates" p0 toward p1 by strength. Mutates p0.
  * TODO: better approach
  */
 function gravitate(p0, p1, strength, min = 0, max = Infinity, away = false) {
-	g_dx = abs(twiddle(p0[X] - p1[X]));
-	g_dy = abs(twiddle(p0[Y] - p1[Y]));
-	//movedist = clamp(halfspeed+speed*hyp(toDistX, toDistY), halfspeed, maxspeed);
-	grav = clamp(1/pow(hyp(g_dx, g_dy), 2)*strength, min, max);
-	g_x = grav * ratio(g_dx, g_dy)*(away?-1:1);
-	g_y = grav * ratio(g_dy, g_dx)*(away?-1:1);
+	g_d[X] = abs(twiddle(p0[X] - p1[X]));
+	g_d[Y] = abs(twiddle(p0[Y] - p1[Y]));
+	grav = clamp(1/pow(magnitude(g_d), 2)*strength, min, max);
+	g[X] = grav * ratio(g_d[X], g_d[Y])*(away?-1:1);
+	g[Y] = grav * ratio(g_d[Y], g_d[X])*(away?-1:1);
 
-	p0[X] += (p0[X] < p1[X])?g_x:-g_x;
-	p0[Y] += (p0[Y] < p1[Y])?g_y:-g_y;
+	p0[X] += (p0[X] < p1[X])?g[X]:-g[X];
+	p0[Y] += (p0[Y] < p1[Y])?g[Y]:-g[Y];
 }
 
 /**
@@ -435,9 +434,18 @@ export function rotate(p, c, r) {
 function posneg() {
 	return random() > 0.5?1:-1;
 }
-
+/*
 export function clamp(v, minv, maxv) {
 	return max(min(v, maxv), minv);
 }
+*/
 
 export function ratio(a, b) { return a/(abs(a)+abs(b)) }
+export function rat_vec2(v) { return ratio(v[X], v[Y]) }
+
+let v_i, v_l;
+export function validate(v) {
+	for(v_i = 0, v_l = v.length; v_i < v_l; v_i++) {
+		if(isNaN(v[v_i])) throw new Error("invalid vector");
+	}
+}
