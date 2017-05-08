@@ -1,51 +1,81 @@
 "use strict";
-let {random, abs, max, min, sqrt, pow, sin, cos} = Math;
+let {random, abs, max, min, pow, sin, cos} = Math;
 import {TARGET_FPS, WEIGHT_PRED_R, WEIGHT_PRED_G, 
 	WEIGHT_PRED_B, MOTE_BASE_SIZE, PREGNANT_THRESHOLD, DEATH_THRESHOLD} from "./photonomix.constants";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
-const {vec2, vec3, vec4, mut_times, mut_clamp, mut_copy, magnitude} = vectrix.vectors;
-const {plus, minus} = vectrix.matrices;
+const {vec2, vec4, mut_times, mut_clamp, mut_copy, magnitude} = vectrix.vectors;
+const {minus} = vectrix.matrices;
 const clamp = mut_clamp;
 
 const R = 0, G = 1, B = 2, A = 3, X = 0, Y = 1, FV = 3;
 const POS_C  = vec2(0.5, 0.5);
 const FV_SCRATCH = new Float32Array(4); // saves memory allocations for foodValue
 let rat_r, rat_g, rat_b;
-export function Mote(photons = new Uint8Array(3), pos = new Float32Array(2), b_speed = 0.0025, b_sight = 0.1, b_eat = 1.0, b_flee = 1.0) {
+
+const I8 = 1;
+const F32 = 4;
+
+// int8 values = photons[3], dead, pregnant, stuck, scared, full, handedness, pulse
+const O_PHO = 0, 
+	O_DEAD = O_PHO + I8*3,
+	O_PREG = O_DEAD + I8,
+	O_STUCK = O_PREG + I8,
+	O_SCARED = O_STUCK + I8,
+	O_FULL = O_SCARED + I8,
+	O_HAND = O_FULL + I8,
+	O_PULSE = O_HAND + I8;
+
+const I8_VAL_LENGTH = O_PULSE + I8;
+
+// float32 values = p[3], v[3], color[4], size, sizeMin, sizeMax, speed, sight, eat, flee
+const O_VECS_BYTE_OFFSET = I8_VAL_LENGTH + (I8_VAL_LENGTH % 4), // float32 offsets must be multiples of 4
+	// from here on, increments of value * 4
+	// vectors
+	O_POS = 0,
+	O_VEL = O_POS + 2,
+	O_COL = O_VEL + 2;
+const O_VEC_VAL_LENGTH = O_COL + 4,
+	O_FLOATS_BYTE_OFFSET = O_VECS_BYTE_OFFSET + O_VEC_VAL_LENGTH*F32,
+	// scalars
+	O_SIZE = 0,
+	O_SIZE_MIN = O_SIZE + 1,
+	O_SIZE_MAX = O_SIZE_MIN + 1,
+	O_SPEED = O_SIZE_MAX + 1,
+	O_SIGHT = O_SPEED + 1,
+	O_EAT = O_SIGHT + 1,
+	O_FLEE = O_EAT + 1;
+
+const FLOAT_VAL_LENGTH = O_FLEE - O_SIZE + 1;
+const B_LENGTH = O_FLOATS_BYTE_OFFSET + (O_FLEE + 1)*F32;
+
+
+
+export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_speed = 0.0025, b_sight = 0.1, b_eat = 1.0, b_flee = 1.0) {
 	// "private" properties
-	photons = vec3(photons);
-	let color = vec4(0,0,0,0.7);
-	this.pos = vec2(pos);
-	this.toPos = vec2(random(), random());
-	let sizeMax = MOTE_BASE_SIZE*4;
-	let sizeMin = MOTE_BASE_SIZE*0.25;
+	// use a single buffer for properties so that they're guaranteed to be contiguous
+	// in memory and typed
+	let buffer = new ArrayBuffer(B_LENGTH);
+	let photons = new Uint8Array(buffer, O_PHO, I8*3);
+	photons[R] = _photons[R];
+	photons[G] = _photons[G];
+	photons[B] = _photons[B];
+	let intVals = new Int8Array(buffer, O_DEAD, I8_VAL_LENGTH - O_PHO);
+	let floatVals = new Float32Array(buffer, O_FLOATS_BYTE_OFFSET, FLOAT_VAL_LENGTH);
+	let color = vec4(0,0,0,0.7, buffer, O_COL*F32+O_VECS_BYTE_OFFSET); // color is precalculated so it doesn't have to be calculated each frame, since it only changes when photons change
+	this.pos = vec2(pos, buffer, O_POS*F32+O_VECS_BYTE_OFFSET);
+	this.toPos = vec2(random(), random(), buffer, O_VEL*F32+O_VECS_BYTE_OFFSET);
+	this.target = undefined;
+
+	floatVals[O_SIZE_MAX] = MOTE_BASE_SIZE*4;
+	floatVals[O_SIZE_MIN] = MOTE_BASE_SIZE*0.25;
 	b_speed = b_speed+adjrand(0.0025);
 	b_sight = b_sight+adjrand(0.1); // vision distance
 	b_eat = b_eat+adjrand(0.1);
 	b_flee = b_flee+adjrand(0.1);
 
-	// "public" properties
-	// weights for various activities
-	this.dead = false;
-	this.pregnant = false;
-	this.stuck = 0;
-	this.scared = 0;
-	this.full = 0;
-	this.speed = b_speed;
-	this.sight = b_sight;
-	this.eat = b_eat;
-	this.flee = b_flee;
-	this.wander = 1.0+adjrand(0.1);
-	this.pulse = ~~(TARGET_FPS*random());
-	this.size = MOTE_BASE_SIZE;
-	this.handedness = posneg();
-	this.target = undefined;
-
-
-
-	let updateProperties = () => {
+	var updateProperties = () => {
 		let sum = photons[R] + photons[G] + photons[B];
-		this.size = clamp(sum/92*MOTE_BASE_SIZE, sizeMin, sizeMax);
+		floatVals[O_SIZE] = clamp(sum/92*MOTE_BASE_SIZE, floatVals[O_SIZE_MIN], floatVals[O_SIZE_MAX]);
 		rat_r = ratio(photons[R], photons[G]+photons[B]);
 		rat_g = ratio(photons[G], photons[R]+photons[B]);
 		rat_b = ratio(photons[B], photons[G]+photons[R]);
@@ -62,51 +92,57 @@ export function Mote(photons = new Uint8Array(3), pos = new Float32Array(2), b_s
 		color[B] = ~~(photons[B]/sum*255);
 	}
 
-	updateProperties();
-	
-	
-
-	let setPhoton = (v, n) => {
+	var setPhoton = (v, n) => {
 		photons[n] = max(0, min(v, 255));
 		updateProperties();
 	}
 
 	Object.defineProperties(this, {
+		"x":{get: () => this.pos[X], set: (v) => this.pos[X] = v},
+		"y":{get: () => this.pos[Y], set: (v) => this.pos[Y] = v},
+		"toX":{get: () => this.toPos[X], set: (v) => this.toPos[X] = v},
+		"toY": {get: () => this.toPos[Y], set: (v) => this.toPos[Y] = v},
+		"photons":{get: () => photons},
 		"color":{get: () => "rgba("+(color[R])+","+color[G]+","+color[B]+","+color[A]+")"},
-		"r":{
-			get: () => photons[R],
-			set: (v) => setPhoton(v, R)
-		},
-		"g":{
-			get: () => photons[G],
-			set: (v) => setPhoton(v, G)
-		},
-		"b":{
-			get: () => photons[B],
-			set: (v) => setPhoton(v, B)
-		},
-		"x":{
-			get: () => this.pos[X],
-			set: (v) => this.pos[X] = v
-		},
-		"y":{
-			get: () => this.pos[Y],
-			set: (v) => this.pos[Y] = v
-		},
-		"toX":{
-			get: () => this.toPos[X],
-			set: (v) => this.toPos[X] = v
-		},
-		"toY": {
-			get: () => this.toPos[Y],
-			set: (v) => this.toPos[Y] = v
-		},
-		"photons":{
-			get: () => photons
-		},
-		"sizeMax":{get: () => sizeMax},
+		"r":{get: () => photons[R], set: (v) => setPhoton(v, R)},
+		"g":{get: () => photons[G], set: (v) => setPhoton(v, G)},
+		"b":{get: () => photons[B], set: (v) => setPhoton(v, B)},
+		"dead":{get: () => intVals[O_DEAD], set: (v) => intVals[O_DEAD] = v},
+		"pregnant":{get: () => intVals[O_PREG], set: (v) => intVals[O_PREG] = v},
+		"stuck":{get: () => intVals[O_STUCK], set: (v) => intVals[O_STUCK] = v},
+		"scared":{get: () => intVals[O_SCARED], set: (v) => intVals[O_SCARED] = v},
+		"full":{get: () => intVals[O_FULL], set: (v) => intVals[O_FULL] = v},
+		"pulse":{get: () => intVals[O_PULSE], set: (v) => intVals[O_PULSE] = v},
+		"handedness":{get: () => intVals[O_HAND], set: (v) => intVals[O_HAND] = v},
+		"speed":{get: () => floatVals[O_SPEED], set: (v) => floatVals[O_SPEED] = v},
+		"sight":{get: () => floatVals[O_SIGHT], set: (v) => floatVals[O_SIGHT] = v},
+		"eat":{get: () => floatVals[O_EAT], set: (v) => floatVals[O_EAT] = v},
+		"flee":{get: () => floatVals[O_FLEE], set: (v) => floatVals[O_FLEE] = v},
+		"size":{get: () => floatVals[O_SIZE]},
+		"sizeMin":{get: () => floatVals[O_SIZE_MIN]},
+		"sizeMax":{get: () => floatVals[O_SIZE_MAX]},
+		/*
+		 * DEBUG USE
+		 */
+		"intVals":{get: () => intVals},
+		"floatVals":{get: () => floatVals},
 	});
 
+	// initialize weights for various activities
+	this.dead = false;
+	this.pregnant = false;
+	this.stuck = 0;
+	this.scared = 0;
+	this.full = 0;
+	this.speed = b_speed;
+	this.sight = b_sight;
+	this.eat = b_eat;
+	this.flee = b_flee;
+	this.pulse = ~~(TARGET_FPS*random());
+	this.handedness = posneg();
+	floatVals[O_SIZE] = MOTE_BASE_SIZE;
+
+	updateProperties();
 	return this;
 }
 
@@ -337,20 +373,9 @@ export function foodValue(a, b) {
 	return FV_SCRATCH[FV] * ((ratio(asize, bsize)*2)-1);
 }
 
-/**
- * Find hypotenuse of triangle with legs x,y
- */
-function hyp(x, y) {
-	return (
-		// small optimization? or dumb?
-		x === 0? y:
-		y === 0? x:
-		sqrt((x * x) + (y * y))
-	)
-}
-
+let dist_diff = vec2();
 function dist(a, b) {
-	return magnitude(minus(a, b));
+	return magnitude(minus(a, b, dist_diff));
 }
 
 let grav = 0;
