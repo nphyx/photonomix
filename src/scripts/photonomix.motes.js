@@ -1,14 +1,15 @@
 "use strict";
-let {random, abs, max, min, pow, sin, cos} = Math;
-import {TARGET_FPS, WEIGHT_PRED_R, WEIGHT_PRED_G, 
-	WEIGHT_PRED_B, MOTE_BASE_SIZE, PREGNANT_THRESHOLD, DEATH_THRESHOLD} from "./photonomix.constants";
+let {random, abs, max, min, sin, cos, atan2} = Math;
+import {TARGET_FPS, WEIGHT_PRED_R, WEIGHT_PRED_G, MOTE_BASE_SPEED, GRAVITY,
+	WEIGHT_PRED_B, MOTE_BASE_SIZE, MOTE_BASE_ALPHA, PREGNANT_THRESHOLD, DEATH_THRESHOLD} from "./photonomix.constants";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
-const {vec2, vec4, mut_times, mut_clamp, mut_copy, magnitude} = vectrix.vectors;
-const {minus} = vectrix.matrices;
+const {vec2, vec4, times, mut_times, mut_clamp, normalize, mut_normalize, 
+			magnitude, distance, mut_lerp, mut_copy, mut_cubic, cross} = vectrix.vectors;
+const {minus, plus, mut_plus, mut_minus} = vectrix.matrices;
 const clamp = mut_clamp;
 
 const R = 0, G = 1, B = 2, A = 3, X = 0, Y = 1, FV = 3;
-const POS_C  = vec2(0.5, 0.5);
+const POS_C  = vec2(0.0, 0.0); //vec2(0.5, 0.5);
 const FV_SCRATCH = new Float32Array(4); // saves memory allocations for foodValue
 let rat_r, rat_g, rat_b;
 
@@ -47,10 +48,12 @@ const O_VEC_VAL_LENGTH = O_COL + 4,
 
 const FLOAT_VAL_LENGTH = O_FLEE - O_SIZE + 1;
 const B_LENGTH = O_FLOATS_BYTE_OFFSET + (O_FLEE + 1)*F32;
+twiddle_vec(POS_C);
+console.log(POS_C);
 
 
 
-export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_speed = 0.0025, b_sight = 0.1, b_eat = 1.0, b_flee = 1.0) {
+export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_speed = MOTE_BASE_SPEED, b_sight = 0.1, b_eat = 1.0, b_flee = 1.0) {
 	// "private" properties
 	// use a single buffer for properties so that they're guaranteed to be contiguous
 	// in memory and typed
@@ -61,21 +64,23 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 	photons[B] = _photons[B];
 	let intVals = new Int8Array(buffer, O_DEAD, I8_VAL_LENGTH - O_PHO);
 	let floatVals = new Float32Array(buffer, O_FLOATS_BYTE_OFFSET, FLOAT_VAL_LENGTH);
-	let color = vec4(0,0,0,0.7, buffer, O_COL*F32+O_VECS_BYTE_OFFSET); // color is precalculated so it doesn't have to be calculated each frame, since it only changes when photons change
+	let color = vec4(0,0,0,MOTE_BASE_ALPHA, buffer, O_COL*F32+O_VECS_BYTE_OFFSET); // color is precalculated so it doesn't have to be calculated each frame, since it only changes when photons change
 	this.pos = vec2(pos, buffer, O_POS*F32+O_VECS_BYTE_OFFSET);
-	this.toPos = vec2(random(), random(), buffer, O_VEL*F32+O_VECS_BYTE_OFFSET);
+	this.vel = vec2(0.0, 0.0, buffer, O_VEL*F32+O_VECS_BYTE_OFFSET);
 	this.target = undefined;
+	this.color_string = "";
+	this.transparent_string = "";
 
-	floatVals[O_SIZE_MAX] = MOTE_BASE_SIZE*4;
+	floatVals[O_SIZE_MAX] = MOTE_BASE_SIZE*3;
 	floatVals[O_SIZE_MIN] = MOTE_BASE_SIZE*0.25;
-	b_speed = b_speed+adjrand(0.0025);
-	b_sight = b_sight+adjrand(0.1); // vision distance
-	b_eat = b_eat+adjrand(0.1);
-	b_flee = b_flee+adjrand(0.1);
+	b_speed = b_speed+adjrand(0.0005);
+	b_sight = b_sight+adjrand(0.001); // vision distance
+	b_eat = b_eat+adjrand(0.001);
+	b_flee = b_flee+adjrand(0.001);
 
 	var updateProperties = () => {
 		let sum = photons[R] + photons[G] + photons[B];
-		floatVals[O_SIZE] = clamp(sum/92*MOTE_BASE_SIZE, floatVals[O_SIZE_MIN], floatVals[O_SIZE_MAX]);
+		floatVals[O_SIZE] = clamp(sum/64*MOTE_BASE_SIZE, floatVals[O_SIZE_MIN], floatVals[O_SIZE_MAX]);
 		rat_r = ratio(photons[R], photons[G]+photons[B]);
 		rat_g = ratio(photons[G], photons[R]+photons[B]);
 		rat_b = ratio(photons[B], photons[G]+photons[R]);
@@ -89,7 +94,9 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 
 		color[R] = ~~(photons[R]/sum*255);
 		color[G] = ~~(photons[G]/sum*255);
-		color[B] = ~~(photons[B]/sum*255);
+		color[B] = ~~(photons[B]/sum*128);
+		this.color_string = "rgba("+(color[R])+","+color[G]+","+color[B]+","+color[A]+")";
+		this.transparent_string = "rgba("+(color[R])+","+color[G]+","+color[B]+",0.0)";
 	}
 
 	var setPhoton = (v, n) => {
@@ -100,10 +107,9 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 	Object.defineProperties(this, {
 		"x":{get: () => this.pos[X], set: (v) => this.pos[X] = v},
 		"y":{get: () => this.pos[Y], set: (v) => this.pos[Y] = v},
-		"toX":{get: () => this.toPos[X], set: (v) => this.toPos[X] = v},
-		"toY": {get: () => this.toPos[Y], set: (v) => this.toPos[Y] = v},
+		"velX":{get: () => this.vel[X], set: (v) => this.vel[X] = v},
+		"velY": {get: () => this.vel[Y], set: (v) => this.vel[Y] = v},
 		"photons":{get: () => photons},
-		"color":{get: () => "rgba("+(color[R])+","+color[G]+","+color[B]+","+color[A]+")"},
 		"r":{get: () => photons[R], set: (v) => setPhoton(v, R)},
 		"g":{get: () => photons[G], set: (v) => setPhoton(v, G)},
 		"b":{get: () => photons[B], set: (v) => setPhoton(v, B)},
@@ -118,6 +124,10 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 		"sight":{get: () => floatVals[O_SIGHT], set: (v) => floatVals[O_SIGHT] = v},
 		"eat":{get: () => floatVals[O_EAT], set: (v) => floatVals[O_EAT] = v},
 		"flee":{get: () => floatVals[O_FLEE], set: (v) => floatVals[O_FLEE] = v},
+		"base_speed":{get: () => b_speed},
+		"base_sight":{get: () => b_sight},
+		"base_eat":{get: () => b_eat},
+		"base_flee":{get: () => b_flee},
 		"size":{get: () => floatVals[O_SIZE]},
 		"sizeMin":{get: () => floatVals[O_SIZE_MIN]},
 		"sizeMax":{get: () => floatVals[O_SIZE_MAX]},
@@ -149,190 +159,138 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 /**
  * Decide how to act each turn based on nearby objects.
  * @param Array surrounding array of nearby objects to consider in movement
- * @param Float interval interval as ratio of turn length:elapsed time in seconds
+ * @param Float delta time delta
  */
-let toPos, size, sight, speed, eat, flee, sizex2, 
-	newToPos = vec2(), weightp = vec2(), weight, mainTarget, 
-	weightCount, highestWeight, mainTargetDist, ctoX, ctoY, a_dist, food, scary, 
-	a_i, a_len, current, handedness, pos;
-Mote.prototype.act = function(surrounding) {
-	// do last turn's movement
-	this.move();
-	({pos, toPos, size, sight, speed, eat, flee, handedness} = this);
-	sizex2 = size*2;
-	// kludge to fix motes stuck on edges
-	if(this.stuck > 60 || this.stuck < 0) {
-		if(this.stuck > 0) this.stuck = -8*TARGET_FPS;
-		mut_clamp(this.pos, 1e-16, 1-1e-16);
-		gravitate(this.toPos, POS_C, 1);
-		rotate(this.toPos, POS_C, speed*handedness);
-		this.stuck++;
-		this.scared = 0;
-		this.full = 0;
-		return;
-	}
+let vel, size, sight, speed, eat, flee, tmp2 = vec2(),
+	tmpvec = vec2(), weight, mainTarget, predicted = vec2(), 
+	weightCount, highestWeight, mainTargetDist, a_dist, food, scary, 
+	a_i, a_len, current, handedness, pos, handling;
+Mote.prototype.act = function(surrounding, delta) {
+	({pos, vel, size, sight, speed, eat, flee, handedness} = this);
+	// decrement counters
+	if(this.full > 0) this.full--;
+	if(this.scared > 0) this.scared--;
+	handling = (1/size)*sight*speed;
 
-	mut_copy(newToPos, toPos);
-	validate(newToPos);
+	// last turn's move, has to happen first to avoid prediction inaccuracy
+	// during chases
+	mut_plus(pos, times(vel, delta, tmpvec));
 
-	// basic wandering movement
-	rotate(newToPos, POS_C, speed*handedness);
+	// apply basic forces
+	mut_plus(vel, avoid_edge(vel, pos, speed, handling, tmpvec)); // don't go off the screen
+	// apply drag
+	mut_plus(vel, drag(vel, 0.1));
+	// gravitate toward center
+	mut_plus(vel, gravitate(pos, POS_C, GRAVITY, tmpvec));
+	// put an absolute limit on velocity
+	mut_limit_vec(vel, 0, 1);
+	//check_bounds(pos);
+	mainTarget = this.target;
+
 	// drop target if too far away, if hungry, or if scared
-	if(this.target && 
-		dist(pos, this.target.pos) > sight*1.5 || 
-		this.hungry || this.scared) this.target = undefined; 
-
-	// hungry or fleeing, so consider targets
-	if(!this.full || this.scared) {
+	if(mainTarget && (distance(pos, mainTarget.pos) > sight)) this.target = mainTarget = undefined; 
+	if(!mainTarget && !this.full && !this.scared) { // select a new target
 		// reset scratch memory that may not be initialized
-		weightp[X] = 0;
-		weightp[Y] = 0;
-		weightCount = 0; 
+		//weightCount = 0; 
 		highestWeight = -Infinity;
 		mainTargetDist = 0;
-		mainTarget = this.target;
 		for(a_i = 0, a_len = surrounding.length; a_i < a_len && a_i < 20; ++a_i) {
 			current = surrounding[a_i];
 			if(current === this) continue;
-			ctoX = current.toX;
-			ctoY = current.toY;
 			a_dist = dist(pos, current.pos);
 			if(a_dist  > sight) continue;
 			food = foodValue(this, current)||0;
 			scary = foodValue(current, this)||0;
 			// move value is the weighted difference between food and flee values
 			weight = a_dist*(food*eat - scary*flee);
-			if(!this.target && weight > highestWeight) {
+			if(weight > highestWeight) {
 				highestWeight = weight;
 				mainTarget = current;
 				mainTargetDist = a_dist;
 			}
-			// new target acquired!
-			if(!this.target && mainTarget) {
-				this.target = mainTarget;
-				mainTargetDist = dist(pos, this.target.pos);
-			}
-
-			weightp[X] += weight*ctoX; 
-			weightp[Y] += weight*ctoY; 
-			weightCount++;
+			//weightCount++;
 		}
-
-
-/*
-		weightp[X] = clamp(weightp[X]/weightCount, -2, 2);
-		weightp[Y] = clamp(weightp[Y]/weightCount, -2, 2);
-		*/
-
-		if(weightCount) {
-			mut_clamp(mut_times(weightp, 1/weightCount), -2, 2);
-			if(this.scared) {
-				gravitate(newToPos, weightp, speed, null, null, true);
-				rotate(newToPos, weightp, speed*handedness);
-				validate(newToPos);
-				this.scared--;
-			}
-
-			// if there are appropriate targets and hungry
-			else if(!this.full && mainTarget) {
-				gravitate(newToPos, weightp, speed);
-				validate(newToPos);
-				rotate(newToPos, weightp, speed*handedness);
-				gravitate(newToPos, mainTarget.toPos, highestWeight);
-				validate(newToPos);
-				rotate(newToPos, mainTarget.toPos, speed*handedness);
-				if(mainTargetDist < mainTarget.size+size*1.2) this.bite(mainTarget);
-				validate(newToPos);
-			}
-		} // end if weights.length
-	} // end if hungry or scared
-	else {this.target = undefined} // drop target if hungry or scared
-
-	if(this.full > 0) this.full--;
-	
-
-	// gravitate toward the center
-	gravitate(newToPos, POS_C, 0.0003);
-	validate(newToPos);
-		
-	// clamp move directions to game space
-	mut_clamp(newToPos, sizex2, 1-sizex2);
-
-	mut_copy(this.toPos, newToPos);
-}
-
-
-let m_speed, m_speedmin, m_speedmax, m_pos, m_newPos = Array(2);
-Mote.prototype.move = function() {
-	m_speed = this.speed;
-	m_speedmin = this.speed / 2;
-	m_speedmax  = this.speed * 1.5;
-	m_pos = this.pos;
-	mut_copy(m_newPos, m_pos);
-	// for some reason this bugs out sometimes and sticks them
-	// in the corner, so we just abort
-	// FIXME
-	gravitate(m_newPos, this.toPos, m_speed, m_speedmin, m_speedmax);
-	if(m_newPos[X] < 0 || m_newPos[X] > 1 || m_newPos[Y] < 0 || m_newPos[Y] > 1) {
-		this.stuck++;
 	}
-	clamp(this.stuck, -70, 70);
-	mut_clamp(m_newPos, 1e-16, 1-1e-16);
-	mut_copy(m_pos, m_newPos);
+	// new target acquired?
+	this.target = mainTarget;
+	if(mainTarget) {
+		plus(mainTarget.pos, times(mainTarget.vel, delta, tmpvec), predicted);
+		if(this.scared) { // run away
+			mut_plus(vel, accelerate(predicted, pos, handling, tmpvec));
+			mut_plus(vel, accelerate(pos, predicted, -speed, tmpvec));
+		}
+		else if(!this.full) { // chase target
+			mut_plus(vel, accelerate(predicted, pos, -handling, tmpvec));
+			mut_plus(vel, accelerate(pos, predicted, speed, tmpvec));
+			if(distance(pos, mainTarget.pos) < size+mainTarget.size) this.bite(mainTarget);
+		}
+	}
+	else { // wander
+		tmpvec[0] = ((random()*2)-1);
+		tmpvec[1] = ((random()*2)-1);
+		mut_plus(vel, accelerate(pos, tmpvec, speed, tmp2));
+	}
 }
 
+let b_i = 0, b_m = 5, bite_strongest;
 Mote.prototype.bite = function(mote) {
-	let strongest = max(this.r, this.g, this.b);
-	switch(strongest) {
-		case this.r: 
-			if(mote.g > mote.b && mote.g) {
-				mote.g--;
-				this.g++;
-			}
-			else if(mote.b > mote.g && mote.b) {
-				mote.b--;
-				this.b++;
-			}
-			else if(mote.r) {
-				mote.r--;
-				this.r++;
-			}
-		break;
-		case this.b: 
-			if(mote.g > mote.r && mote.g) {
-				mote.g--;
-				this.g++;
-			}
-			else if(mote.r > mote.g && mote.r) {
-				mote.r--;
-				this.r++;
-			}
-			else if(mote.b) {
-				mote.b--;
-				this.b++;
-			}
-		break;
-		case this.g: 
-			if(mote.r > mote.b && mote.r) {
-				mote.r--;
-				this.r++;
-			}
-			else if(mote.b > mote.r && mote.b) {
-				mote.b--;
-				this.b++;
-			}
-			else if(mote.g) {
-				mote.g--;
-				this.g++;
-			}
-		break;
+	for(b_i = 0; b_i < b_m; ++b_i) {
+		bite_strongest = max(this.r, this.g, this.b);
+		switch(bite_strongest) {
+			case this.r: 
+				if(mote.g > mote.b && mote.g) {
+					mote.g--;
+					this.g++;
+				}
+				else if(mote.b > mote.g && mote.b) {
+					mote.b--;
+					this.b++;
+				}
+				else if(mote.r) {
+					mote.r--;
+					this.r++;
+				}
+			break;
+			case this.b: 
+				if(mote.g > mote.r && mote.g) {
+					mote.g--;
+					this.g++;
+				}
+				else if(mote.r > mote.g && mote.r) {
+					mote.r--;
+					this.r++;
+				}
+				else if(mote.b) {
+					mote.b--;
+					this.b++;
+				}
+			break;
+			case this.g: 
+				if(mote.r > mote.b && mote.r) {
+					mote.r--;
+					this.r++;
+				}
+				else if(mote.b > mote.r && mote.b) {
+					mote.b--;
+					this.b++;
+				}
+				else if(mote.g) {
+					mote.g--;
+					this.g++;
+				}
+			break;
+		}
 	}
-	mote.scared = ~~(TARGET_FPS*2*this.flee);
+	mote.scared = ~~(TARGET_FPS*2*(1/mote.flee));
 	this.full = ~~(TARGET_FPS*2*(1/this.eat));
+	this.target = undefined;
+	mote.target = this;
 }
 
 Mote.random = function() {
-	return new Mote([~~(random()*64), ~~(random()*64), ~~(random()*64)], [random(), random()]);
+	let pos = [random()*posneg(), random()*posneg()];
+	while(magnitude(pos) > 0.8) pos = [random()*posneg(), random()*posneg()];
+	return new Mote([~~(random()*64), ~~(random()*64), ~~(random()*64)], pos);
 }
 
 /**
@@ -378,43 +336,163 @@ function dist(a, b) {
 	return magnitude(minus(a, b, dist_diff));
 }
 
-let grav = 0;
-let g_d = vec2(0.0, 0.0);
-let g = vec2(0.0, 0.0);
-/**
- * Shitty approximation of gravitation.
- * "Gravitates" p0 toward p1 by strength. Mutates p0.
- * TODO: better approach
- */
-function gravitate(p0, p1, strength, min = 0, max = Infinity, away = false) {
-	g_d[X] = abs(twiddle(p0[X] - p1[X]));
-	g_d[Y] = abs(twiddle(p0[Y] - p1[Y]));
-	grav = clamp(1/pow(magnitude(g_d), 2)*strength, min, max);
-	g[X] = grav * ratio(g_d[X], g_d[Y])*(away?-1:1);
-	g[Y] = grav * ratio(g_d[Y], g_d[X])*(away?-1:1);
+let g_v = vec2();
 
-	p0[X] += (p0[X] < p1[X])?g[X]:-g[X];
-	p0[Y] += (p0[Y] < p1[Y])?g[Y]:-g[Y];
+/**
+ * Gravitate toward target.
+ */
+function gravitate(p1, p2, strength, out) {
+	out = out||g_v;
+	minus(p1, p2, out);
+	mut_limit_vec(out, 0.00001, 10); // put a cap on it to avoid infinite acceleration
+	let mag = magnitude(out);
+	mut_normalize(out);
+	mut_times(out, -strength/(mag*mag));
+	try {
+		validate(out);
+	}
+	catch(e) {
+		console.log("gravitation error", e);
+		console.log(strength);
+		minus(p1, p2, out);
+		console.log("minus", out);
+		mut_limit_vec(out, 0.00001, 10); // put a cap on it to avoid infinite acceleration
+		console.log("limit", out);
+		let mag = magnitude(out);
+		console.log("magnitude", mag);
+		mut_normalize(out);
+		console.log("normalize", out);
+		mut_times(out, -strength/(mag*mag));
+		console.log("scale", out);
+		out.fill(0.0);
+	}
+	return out;
+}
+
+let a_v = vec2();
+/**
+ * Accelerate toward a target.
+ */
+function accelerate(p1, p2, strength, out) {
+	out = out||a_v;	
+	minus(p1, p2, out);
+	mut_normalize(out);
+	mut_times(out, -strength);
+	try {
+		validate(out);
+	}
+	catch(e) {
+		console.log("acceleration error", e);
+		console.log(strength);
+		minus(p1, p2, out);
+		console.log("minus", out);
+		mut_normalize(out);
+		console.log("normalize", out);
+		mut_times(out, -strength);
+		console.log("scale", out);
+		out.fill(0.0);
+	}
+	return out;
+}
+
+/**
+ * Limits absolute values of vectors within a range.
+ */
+function mut_limit_vec(v, min_v = 0, max_v = Infinity) {	
+	for(let i = 0, len = v.length; i < len; ++i) {
+		v[i] = limit(v[i], min_v, max_v);
+	}
+}
+
+function limit(v, min_v = 0, max_v = Infinity) {
+	if(abs(v) < abs(min_v)) {
+		if(v < 0) v = -min_v;
+		else v = min_v;
+	}
+	else if(abs(v) > abs(max_v)) {
+		if(v < 0) v = -max_v;
+		else v = max_v;
+	}
+	return v;
+}
+
+let drag_v = vec2();
+/**
+ * Apply drag.
+ */
+function drag(vel, c, out) {
+	out = out||drag_v;
+	let speed = magnitude(vel);
+	if(speed < 1e-11) return out.fill(0.0);
+	speed = limit(speed, 0, 1e+11); // avoid infinite speeds
+	let dragStrength = c * speed * speed;
+	mut_copy(out, vel);
+	mut_normalize(out);
+	mut_times(out, -1);
+	mut_times(out, dragStrength);
+	try {
+		validate(out);
+	}
+	catch(e) {
+		console.log(c, speed, dragStrength);
+		console.log("magnitude", magnitude(vel));
+		mut_copy(out, vel);
+		console.log("copied", out);
+		mut_normalize(out);
+		console.log("normalized", out);
+		mut_times(out, -1);
+		console.log("inverted", out);
+		mut_times(out, dragStrength);
+		console.log("scaled", out);
+		out.fill(0.0);
+	}
+	return out;
+}
+
+let ae_v = vec2();
+function avoid_edge(vel, pos, speed, handling, out) {
+	let dist = distance(pos, POS_C)*1.3;
+	out = out||ae_v;
+	ae_v.fill(0.0);
+	if(dist > 1) {
+		accelerate(POS_C, pos, -handling, out);
+		accelerate(pos, POS_C, speed*dist, out);
+	}
+	return out;
 }
 
 /**
  * Twiddles a value by a small amount to avoid zeroes
  */
 function twiddle(x) {
-	return x + (1e-16*posneg());
+	return x + (1e-11*posneg());
 }
 
-
-
+let t_i = 0|0, t_l = 0|0;
+function twiddle_vec(v) {
+	for(t_i = 0, t_l = v.length; t_i < t_l; ++t_i) {
+		v[t_i] = twiddle(v[t_i]);
+	}
+	return v;
+}
 
 /**
- * A quadratic smoothing function for weights (e.g. dist over speed). Returns a 
- * smoothed ratio of a:b.
- *
-function smooth(a, b) {return b === 0?b:(1 / sqrt(a / b*b))}
-*/
+ * absolute value of vector
+ */
+let abs_i = 0|0, abs_l = 0|0;
+function abs_vec(v) {
+	for(abs_i = 0, abs_l = v.length; abs_i < abs_l; ++abs_i) {
+		v[abs_i] = abs(v[abs_i]);
+	}
+	return v;
+}
 
-
+function check_bounds(v) {
+	let x = v[0];	
+	let y = v[1];	
+	if(x > 1 || x < -1) console.log("out of x bounds", x);
+	if(y > 1 || y < -1) console.log("out of y bounds", y);
+}
 
 /**
  * Smoothing using a sigmoid (logistic function) curve.
@@ -424,14 +502,6 @@ function smooth(a, b) {return b === 0?b:(1 / sqrt(a / b*b))}
  * @param {float} k slope of curve
  *
 function logistic_smooth(x, x0, L = x * 2, k = 1) {return L / (1 + pow(E, k * x-x0))}
-
-/**
- * Linear interpolation
- *
-function lerp(a, b, t) {
-	return a+t*(b-a);
-}
-*/
 
 /**
  * A random function adjusted to a range of -1 to 1 and multiplied by a
@@ -471,6 +541,8 @@ export function rat_vec2(v) { return ratio(v[X], v[Y]) }
 let v_i, v_l;
 export function validate(v) {
 	for(v_i = 0, v_l = v.length; v_i < v_l; v_i++) {
-		if(isNaN(v[v_i])) throw new Error("invalid vector");
+		if(isNaN(v[v_i])) throw new Error("NaN vector");
+		if(v[v_i] === Infinity) throw new Error("Infinite vector");
+		if(v[v_i] === -Infinity) throw new Error("-Infinite vector");
 	}
 }

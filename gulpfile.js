@@ -57,7 +57,7 @@ gulp.task("styles", ["clean:styles"], function() {
 });
 
 /* jshint unused:false */
-gulp.task("webpack", ["scripts"], function(callback) {
+gulp.task("webpack", ["scripts", "markup", "styles"], function(callback) {
 	webpack(webpackConfig, function(err, stats) {
 		if(err) console.log(err);
 		/*
