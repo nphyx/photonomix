@@ -222,7 +222,7 @@ Mote.prototype.act = function(surrounding, delta) {
 		else if(!this.full) { // chase target
 			mut_plus(vel, accelerate(predicted, pos, -handling, tmpvec));
 			mut_plus(vel, accelerate(pos, predicted, speed, tmpvec));
-			if(distance(pos, mainTarget.pos) < size+mainTarget.size) this.bite(mainTarget);
+			if(distance(pos, mainTarget.pos) < (size+mainTarget.size)/2) this.bite(mainTarget);
 		}
 	}
 	else { // wander
