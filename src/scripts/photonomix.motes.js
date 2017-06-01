@@ -16,9 +16,12 @@ let rat_r, rat_g, rat_b;
 const I8 = 1;
 const F32 = 4;
 
-// int8 values = photons[3], dead, pregnant, stuck, scared, full, handedness, pulse
-const O_PHO = 0, 
-	O_DEAD = O_PHO + I8*3,
+// uint8 values = photons[3]
+const O_PHO = 0; 
+const U8_VAL_LENGTH = O_PHO + I8*3;
+const I8_BYTE_OFFSET = U8_VAL_LENGTH;
+// int8 values =  dead, pregnant, stuck, scared, full, handedness, pulse
+const	O_DEAD = 0,
 	O_PREG = O_DEAD + I8,
 	O_STUCK = O_PREG + I8,
 	O_SCARED = O_STUCK + I8,
@@ -29,14 +32,14 @@ const O_PHO = 0,
 const I8_VAL_LENGTH = O_PULSE + I8;
 
 // float32 values = p[3], v[3], color[4], size, sizeMin, sizeMax, speed, sight, eat, flee
-const O_VECS_BYTE_OFFSET = I8_VAL_LENGTH + (I8_VAL_LENGTH % 4), // float32 offsets must be multiples of 4
+const VECS_BYTE_OFFSET = U8_VAL_LENGTH + I8_VAL_LENGTH + ((U8_VAL_LENGTH + I8_VAL_LENGTH) % 4), // float32 offsets must be multiples of 4
 	// from here on, increments of value * 4
 	// vectors
 	O_POS = 0,
 	O_VEL = O_POS + 2,
 	O_COL = O_VEL + 2;
-const O_VEC_VAL_LENGTH = O_COL + 4,
-	O_FLOATS_BYTE_OFFSET = O_VECS_BYTE_OFFSET + O_VEC_VAL_LENGTH*F32,
+const VEC_VAL_LENGTH = O_COL + 4,
+	O_FLOATS_BYTE_OFFSET = VECS_BYTE_OFFSET + VEC_VAL_LENGTH*F32,
 	// scalars
 	O_SIZE = 0,
 	O_SIZE_MIN = O_SIZE + 1,
@@ -62,11 +65,11 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 	photons[R] = _photons[R];
 	photons[G] = _photons[G];
 	photons[B] = _photons[B];
-	let intVals = new Int8Array(buffer, O_DEAD, I8_VAL_LENGTH - O_PHO);
+	let intVals = new Int8Array(buffer, I8_BYTE_OFFSET, I8_VAL_LENGTH - O_PHO);
 	let floatVals = new Float32Array(buffer, O_FLOATS_BYTE_OFFSET, FLOAT_VAL_LENGTH);
-	let color = vec4(0,0,0,MOTE_BASE_ALPHA, buffer, O_COL*F32+O_VECS_BYTE_OFFSET); // color is precalculated so it doesn't have to be calculated each frame, since it only changes when photons change
-	this.pos = vec2(pos, buffer, O_POS*F32+O_VECS_BYTE_OFFSET);
-	this.vel = vec2(0.0, 0.0, buffer, O_VEL*F32+O_VECS_BYTE_OFFSET);
+	let color = vec4(0,0,0,MOTE_BASE_ALPHA, buffer, O_COL*F32+VECS_BYTE_OFFSET); // color is precalculated so it doesn't have to be calculated each frame, since it only changes when photons change
+	this.pos = vec2(pos, buffer, O_POS*F32+VECS_BYTE_OFFSET);
+	this.vel = vec2(0.0, 0.0, buffer, O_VEL*F32+VECS_BYTE_OFFSET);
 	this.target = undefined;
 	this.color_string = "";
 	this.transparent_string = "";
@@ -148,8 +151,8 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 	this.sight = b_sight;
 	this.eat = b_eat;
 	this.flee = b_flee;
-	this.pulse = ~~(TARGET_FPS*random());
 	this.handedness = posneg();
+	this.pulse = ~~(TARGET_FPS*random());
 	floatVals[O_SIZE] = MOTE_BASE_SIZE;
 
 	updateProperties();
