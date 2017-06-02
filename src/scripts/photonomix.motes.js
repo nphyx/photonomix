@@ -11,11 +11,52 @@ const clamp = mut_clamp;
 
 const R = 0, G = 1, B = 2, A = 3, X = 0, Y = 1, FV = 3;
 const POS_C  = vec2(0.0, 0.0); //vec2(0.5, 0.5);
-const FV_SCRATCH = new Float32Array(4); // saves memory allocations for foodValue
-let rat_r, rat_g, rat_b;
+let rat_r = 0.0, rat_g = 0.0, rat_b = 0.0;
 
 const I8 = 1;
 const F32 = 4;
+
+/**
+ * Determines the food value of object b to mote a. Roughly, a mote prefers to eat
+ * photons and other motes unlike itself, and prefers objects smaller than itself
+ * than those that are larger. Red motes are weighted to be the most predatory,
+ * and green motes are weighted to be the least.
+ */
+const foodValue = (function() {
+	let fv_strongest = 0.0, pa, pb, asize = 0.0, bsize = 0.0;
+	const FV_SCRATCH = new Float32Array(4);
+	return function foodValue(a, b) {
+		pa = a.photons;
+		pb = b.photons;
+		asize = a.size;
+		bsize = b.size;
+
+		// size = 1 is a photon, so it doesn't eat
+		if(asize === 1) return 0;
+		// photons always have weight = 1
+		if(bsize === 1) return 1;
+		// find the strongest color; this helps determine behavior
+		fv_strongest = max(pa[R], pa[G], pa[B]);
+		FV_SCRATCH[R] = ratio(pb[R], pa[R]);
+		FV_SCRATCH[G] = ratio(pb[G], pa[G]);
+		FV_SCRATCH[B] = ratio(pb[B], pa[B]);
+		FV_SCRATCH[FV] = 1;
+		// this should apply multiple behavior weights when the mote is a hybrid
+		switch(fv_strongest) {
+			case a.r: 
+				FV_SCRATCH[FV] *= (FV_SCRATCH[G] + FV_SCRATCH[B])*WEIGHT_PRED_R - FV_SCRATCH[R]*(1/WEIGHT_PRED_R);
+			break;
+			case a.g:
+				FV_SCRATCH[FV] *= (FV_SCRATCH[R] + FV_SCRATCH[B])*WEIGHT_PRED_G - FV_SCRATCH[G]*(1/WEIGHT_PRED_G);
+			break;
+			case a.b:
+				FV_SCRATCH[FV] *= (FV_SCRATCH[R] + FV_SCRATCH[G])*WEIGHT_PRED_B - FV_SCRATCH[B]*(1/WEIGHT_PRED_B);
+			break;
+		}
+
+		return FV_SCRATCH[FV] * ((ratio(asize, bsize)*2)-1);
+	}
+})();
 
 // uint8 values = photons[3]
 const O_PHO = 0; 
@@ -82,9 +123,8 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 	b_sight = b_sight+adjRand(0.001); // vision distance
 	b_eat = b_eat+adjRand(0.001);
 	b_flee = b_flee+adjRand(0.001);
-	var that = this;
 
-	function updateProperties() {
+	function updateProperties(that) {
 		ud_sum = photons[R] + photons[G] + photons[B];
 		floatVals[O_SIZE] = clamp(ud_sum/64*MOTE_BASE_SIZE, floatVals[O_SIZE_MIN], floatVals[O_SIZE_MAX]);
 		rat_r = ratio(photons[R], photons[G]+photons[B]);
@@ -105,9 +145,9 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 		that.transparent_string = "rgba("+(color[R])+","+color[G]+","+color[B]+",0.0)";
 	}
 
-	function setPhoton(v, n) {
+	function setPhoton(v, n, that) {
 		photons[n] = max(0, min(v, 255));
-		updateProperties();
+		updateProperties(that);
 	}
 
 	Object.defineProperties(this, {
@@ -116,9 +156,9 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 		"velX":{get: () => this.vel[X], set: (v) => this.vel[X] = v},
 		"velY": {get: () => this.vel[Y], set: (v) => this.vel[Y] = v},
 		"photons":{get: () => photons},
-		"r":{get: () => photons[R], set: (v) => setPhoton(v, R)},
-		"g":{get: () => photons[G], set: (v) => setPhoton(v, G)},
-		"b":{get: () => photons[B], set: (v) => setPhoton(v, B)},
+		"r":{get: () => photons[R], set: (v) => setPhoton(v, R, this)},
+		"g":{get: () => photons[G], set: (v) => setPhoton(v, G, this)},
+		"b":{get: () => photons[B], set: (v) => setPhoton(v, B, this)},
 		"dead":{get: () => intVals[O_DEAD], set: (v) => intVals[O_DEAD] = v},
 		"pregnant":{get: () => intVals[O_PREG], set: (v) => intVals[O_PREG] = v},
 		"stuck":{get: () => intVals[O_STUCK], set: (v) => intVals[O_STUCK] = v},
@@ -158,7 +198,7 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 	this.pulse = ~~(TARGET_FPS*random());
 	floatVals[O_SIZE] = MOTE_BASE_SIZE;
 
-	updateProperties();
+	updateProperties(this);
 	return this;
 }
 
@@ -194,7 +234,7 @@ Mote.prototype.act = function(surrounding, delta) {
 	mainTarget = this.target;
 
 	// drop target if too far away, if hungry, or if scared
-	if(mainTarget && (distance(pos, mainTarget.pos) > sight)) this.target = mainTarget = undefined; 
+	if(mainTarget && (distance(pos, mainTarget.pos) > sight)) this.target = mainTarget = null; 
 	if(!mainTarget && !this.full && !this.scared) { // select a new target
 		// reset scratch memory that may not be initialized
 		//weightCount = 0; 
@@ -238,60 +278,62 @@ Mote.prototype.act = function(surrounding, delta) {
 	}
 }
 
-let b_i = 0, b_m = 5, bite_strongest;
-Mote.prototype.bite = function(mote) {
-	for(b_i = 0; b_i < b_m; ++b_i) {
-		bite_strongest = max(this.r, this.g, this.b);
-		switch(bite_strongest) {
-			case this.r: 
-				if(mote.g > mote.b && mote.g) {
-					mote.g--;
-					this.g++;
-				}
-				else if(mote.b > mote.g && mote.b) {
-					mote.b--;
-					this.b++;
-				}
-				else if(mote.r) {
-					mote.r--;
-					this.r++;
-				}
-			break;
-			case this.b: 
-				if(mote.g > mote.r && mote.g) {
-					mote.g--;
-					this.g++;
-				}
-				else if(mote.r > mote.g && mote.r) {
-					mote.r--;
-					this.r++;
-				}
-				else if(mote.b) {
-					mote.b--;
-					this.b++;
-				}
-			break;
-			case this.g: 
-				if(mote.r > mote.b && mote.r) {
-					mote.r--;
-					this.r++;
-				}
-				else if(mote.b > mote.r && mote.b) {
-					mote.b--;
-					this.b++;
-				}
-				else if(mote.g) {
-					mote.g--;
-					this.g++;
-				}
-			break;
+Mote.prototype.bite = (function() {
+	let i = 0, m = 5, bite_strongest;
+	return function bite(mote) {
+		for(i = 0; i < m; ++i) {
+			bite_strongest = max(this.r, this.g, this.b);
+			switch(bite_strongest) {
+				case this.r: 
+					if(mote.g > mote.b && mote.g) {
+						mote.g--;
+						this.g++;
+					}
+					else if(mote.b > mote.g && mote.b) {
+						mote.b--;
+						this.b++;
+					}
+					else if(mote.r) {
+						mote.r--;
+						this.r++;
+					}
+				break;
+				case this.b: 
+					if(mote.g > mote.r && mote.g) {
+						mote.g--;
+						this.g++;
+					}
+					else if(mote.r > mote.g && mote.r) {
+						mote.r--;
+						this.r++;
+					}
+					else if(mote.b) {
+						mote.b--;
+						this.b++;
+					}
+				break;
+				case this.g: 
+					if(mote.r > mote.b && mote.r) {
+						mote.r--;
+						this.r++;
+					}
+					else if(mote.b > mote.r && mote.b) {
+						mote.b--;
+						this.b++;
+					}
+					else if(mote.g) {
+						mote.g--;
+						this.g++;
+					}
+				break;
+			}
 		}
+		mote.scared = ~~(TARGET_FPS*2*(1/mote.flee));
+		this.full = ~~(TARGET_FPS*2*(1/this.eat));
+		this.target = undefined;
+		mote.target = this;
 	}
-	mote.scared = ~~(TARGET_FPS*2*(1/mote.flee));
-	this.full = ~~(TARGET_FPS*2*(1/this.eat));
-	this.target = undefined;
-	mote.target = this;
-}
+})();
 
 Mote.random = function() {
 	let pos = [random()*posneg(), random()*posneg()];
@@ -299,42 +341,4 @@ Mote.random = function() {
 	return new Mote([~~(random()*64), ~~(random()*64), ~~(random()*64)], pos);
 }
 
-let fv_strongest = 0.0;
 
-/**
- * Determines the food value of object b to mote a. Roughly, a mote prefers to eat
- * photons and other motes unlike itself, and prefers objects smaller than itself
- * than those that are larger. Red motes are weighted to be the most predatory,
- * and green motes are weighted to be the least.
- */
-export function foodValue(a, b) {
-	const pa = a.photons;
-	const pb = b.photons;
-	const asize = a.size;
-	const bsize = b.size;
-
-	// size = 1 is a photon, so it doesn't eat
-	if(asize === 1) return 0;
-	// photons always have weight = 1
-	if(bsize === 1) return 1;
-	// find the strongest color; this helps determine behavior
-	fv_strongest = max(pa[R], pa[G], pa[B]);
-	FV_SCRATCH[R] = ratio(pb[R], pa[R]);
-	FV_SCRATCH[G] = ratio(pb[G], pa[G]);
-	FV_SCRATCH[B] = ratio(pb[B], pa[B]);
-	FV_SCRATCH[FV] = 1;
-	// this should apply multiple behavior weights when the mote is a hybrid
-	switch(fv_strongest) {
-		case a.r: 
-			FV_SCRATCH[FV] *= (FV_SCRATCH[G] + FV_SCRATCH[B])*WEIGHT_PRED_R - FV_SCRATCH[R]*(1/WEIGHT_PRED_R);
-		break;
-		case a.g:
-			FV_SCRATCH[FV] *= (FV_SCRATCH[R] + FV_SCRATCH[B])*WEIGHT_PRED_G - FV_SCRATCH[G]*(1/WEIGHT_PRED_G);
-		break;
-		case a.b:
-			FV_SCRATCH[FV] *= (FV_SCRATCH[R] + FV_SCRATCH[G])*WEIGHT_PRED_B - FV_SCRATCH[B]*(1/WEIGHT_PRED_B);
-		break;
-	}
-
-	return FV_SCRATCH[FV] * ((ratio(asize, bsize)*2)-1);
-}

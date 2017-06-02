@@ -53,13 +53,19 @@ export const limitVecMut = (function() {
  */
 export const gravitate = (function() {
 	let g_v = vec2();
-	let mag = 0.0;
+	let mag = 0.0, x = 0.0, y = 0.0, scale = 0.0;
 	return function gravitate(p1, p2, strength, out) {
 		out = out||g_v;
 		minus(p1, p2, out);
 		limitVecMut(out, 0.00001, 10); // put a cap on it to avoid infinite acceleration
 		mag = magnitude(out);
-		mut_normalize(out);
+		// inline normalize for speed, since this happens a lot
+		x = out[0];
+		y = out[1];
+		scale = 1/sqrt((x*x)+(y*y));
+		out[0] = x*scale;
+		out[1] = y*scale;
+		//mut_normalize(out);
 		mut_times(out, -strength/(mag*mag));
 		if(VALIDATE_VECTORS) {
 			try {
@@ -94,9 +100,9 @@ export const accelerate = (function() {
 	return function accelerate(p1, p2, strength, out) {
 		out = out||v;	
 		minus(p1, p2, out);
+		// inline normalize for speed, since this happens a lot
 		x = out[0];
 		y = out[1];
-		// inline normalize for speed, since this happens a lot
 		scale = 1/sqrt((x*x)+(y*y));
 		out[0] = x*scale;
 		out[1] = y*scale;
@@ -125,17 +131,29 @@ export const accelerate = (function() {
 
 export const drag = (function() {
 	let delta = vec2(), dragStrength = 0.0, dragSpeed = 0.0;
+	let scale = 0.0, x = 0.0, y = 0.0;
 	/**
 	 * Apply drag.
 	 */
 	return function drag(vel, c, out) {
 		out = out||delta;
 		dragSpeed = magnitude(vel);
-		if(dragSpeed < 1e-11) return out.fill(0.0);
+		// null small values
+		if(dragSpeed < 1e-11) {
+			out[0] = 0.0;
+			out[1] = 0.0;
+			return out;
+		}
 		dragSpeed = limit(dragSpeed, 0, 1e+11); // avoid infinite dragSpeeds
 		dragStrength = c * dragSpeed * dragSpeed;
 		mut_copy(out, vel);
-		mut_normalize(out);
+		// inline normalize for speed, since this happens a lot
+		x = out[0];
+		y = out[1];
+		scale = 1/sqrt((x*x)+(y*y));
+		out[0] = x*scale;
+		out[1] = y*scale;
+		// mut_normalize(out)
 		mut_times(out, -1);
 		mut_times(out, dragStrength);
 		if(VALIDATE_VECTORS) {
@@ -165,7 +183,8 @@ export const avoid = (function() {
 	return function avoid(vel, pos, opposite, speed, handling, out) {
 		dist = distance(pos, opposite)*1.3;
 		out = out||aev;
-		out.fill(0.0);
+		out[0] = 0.0;
+		out[1] = 0.0;
 		if(dist > 1) {
 			accelerate(opposite, pos, -handling, out);
 			accelerate(pos, opposite, speed*dist*dist, out);
