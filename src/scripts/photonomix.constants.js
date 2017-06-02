@@ -10,3 +10,7 @@ export const MOTE_BASE_SPEED = 0.0005;
 export const PREGNANT_THRESHOLD = 172;
 export const DEATH_THRESHOLD = 24;
 export const GRAVITY = 6.67408e-11;
+// toggles vector validation in various functions that tend to produce
+// infinite or NaN results; when enabled, vectors are checked and if invalid
+// the function is rerun step by step and logged to identify trouble spots
+export const VALIDATE_VECTORS = false; 

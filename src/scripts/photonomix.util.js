@@ -1,5 +1,6 @@
 "use strict";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
+import {VALIDATE_VECTORS} from "./photonomix.constants";
 const {vec2, magnitude, mut_normalize, distance, mut_times, mut_copy} = vectrix.vectors;
 const {minus} = vectrix.matrices;
 const {sqrt, abs, E, pow, cos, sin, random} = Math;
@@ -60,23 +61,25 @@ export const gravitate = (function() {
 		mag = magnitude(out);
 		mut_normalize(out);
 		mut_times(out, -strength/(mag*mag));
-		try {
-			validate(out);
-		}
-		catch(e) {
-			console.log("gravitation error", e);
-			console.log(strength);
-			minus(p1, p2, out);
-			console.log("minus", out);
-			limitVecMut(out, 0.00001, 10); // put a cap on it to avoid infinite acceleration
-			console.log("limit", out);
-			mag = magnitude(out);
-			console.log("magnitude", mag);
-			mut_normalize(out);
-			console.log("normalize", out);
-			mut_times(out, -strength/(mag*mag));
-			console.log("scale", out);
-			out.fill(0.0);
+		if(VALIDATE_VECTORS) {
+			try {
+				validate(out);
+			}
+			catch(e) {
+				console.log("gravitation error", e);
+				console.log(strength);
+				minus(p1, p2, out);
+				console.log("minus", out);
+				limitVecMut(out, 0.00001, 10); // put a cap on it to avoid infinite acceleration
+				console.log("limit", out);
+				mag = magnitude(out);
+				console.log("magnitude", mag);
+				mut_normalize(out);
+				console.log("normalize", out);
+				mut_times(out, -strength/(mag*mag));
+				console.log("scale", out);
+				out.fill(0.0);
+			}
 		}
 		return out;
 	}
@@ -99,19 +102,21 @@ export const accelerate = (function() {
 		out[1] = y*scale;
 		//mut_normalize(out);
 		mut_times(out, -strength);
-		try {
-			validate(out);
-		}
-		catch(e) {
-			console.log("acceleration error", e);
-			console.log(strength);
-			minus(p1, p2, out);
-			console.log("minus", out);
-			mut_normalize(out);
-			console.log("normalize", out);
-			mut_times(out, -strength);
-			console.log("scale", out);
-			out.fill(0.0);
+		if(VALIDATE_VECTORS) {
+			try {
+				validate(out);
+			}
+			catch(e) {
+				console.log("acceleration error", e);
+				console.log(strength);
+				minus(p1, p2, out);
+				console.log("minus", out);
+				mut_normalize(out);
+				console.log("normalize", out);
+				mut_times(out, -strength);
+				console.log("scale", out);
+				out.fill(0.0);
+			}
 		}
 		return out;
 	}
@@ -133,21 +138,23 @@ export const drag = (function() {
 		mut_normalize(out);
 		mut_times(out, -1);
 		mut_times(out, dragStrength);
-		try {
-			validate(out);
-		}
-		catch(e) {
-			console.log(c, dragSpeed, dragStrength);
-			console.log("magnitude", magnitude(vel));
-			mut_copy(out, vel);
-			console.log("copied", out);
-			mut_normalize(out);
-			console.log("normalized", out);
-			mut_times(out, -1);
-			console.log("inverted", out);
-			mut_times(out, dragStrength);
-			console.log("scaled", out);
-			out.fill(0.0);
+		if(VALIDATE_VECTORS) {
+			try {
+				validate(out);
+			}
+			catch(e) {
+				console.log(c, dragSpeed, dragStrength);
+				console.log("magnitude", magnitude(vel));
+				mut_copy(out, vel);
+				console.log("copied", out);
+				mut_normalize(out);
+				console.log("normalized", out);
+				mut_times(out, -1);
+				console.log("inverted", out);
+				mut_times(out, dragStrength);
+				console.log("scaled", out);
+				out.fill(0.0);
+			}
 		}
 		return out;
 	}
