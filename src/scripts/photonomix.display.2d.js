@@ -101,21 +101,6 @@ function updateRatio() {
 	moteSprite = sprites.createMoteSprite(min(W, H), constants.MOTE_BASE_SIZE*4);
 }
 
-const fade = (function() {
-	let imgData, pixels, a;
-	return function fade(ctx, w, h, alpha) {
-		imgData = ctx.getImageData(0,0,w, h);
-		pixels = imgData.data;
-		a = ~~(alpha*255);
-		for(let i = 0, len = pixels.length; i < len; i+=4) {
-			pixels[i+3] = pixels[i+3]-a;
-		}
-		ctx.putImageData(imgData, 0, 0);
-		imgData = null;
-		pixels = null;
-	}
-})();
-
 /**
  * Fills a buffer with the given style.
  * @param CanvasRenderingContext2D ctx framebuffer being drawn to
@@ -141,8 +126,12 @@ function screenSpace(x) {
 	return (x+1)/2;
 }
 
-let d_m_i, d_m_l, mote, px, py, tx, ty, size, frameScale, speed, tf = constants.TARGET_FPS, sc, sch, sw, swh, fr, crg, x, y, pulse;
+let d_m_i, d_m_l, mote, px, py, tx, ty, size, speed, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, pulse;
 function drawMotes(ctx) {
+	ctx.globalCompositeOperation = "source-atop";
+	ctx.fillStyle = "rgba(0,0,0,.3)";
+	ctx.fillRect(0, 0, W, H);
+
 	ctx.globalCompositeOperation = "lighter";
 	for(d_m_i = 0, d_m_l = game.motes.length; d_m_i < d_m_l; ++d_m_i) {
 		mote = game.motes[d_m_i];
@@ -209,7 +198,6 @@ function animate() {
 		lastFrame = now - (elapsed % interval);
 		frameCount++;
 		game.tick(interval/elapsed);
-		fade(gameCtx, W, H, 0.3);
 		bokeh.draw();
 		if(DEBUG_DRAW) debugMarkers(bokehCtx);
 		drawMotes(gameCtx);
@@ -230,7 +218,7 @@ export function initCtx(id, container) {
 	canvas.id = id;
 	canvas.width = W;
 	canvas.height = H;
-	let context = canvas.getContext("2d");
+	let context = canvas.getContext("2d", {alpha:false});
 	if(container) container.appendChild(canvas);
 	return {
 		id:id,
