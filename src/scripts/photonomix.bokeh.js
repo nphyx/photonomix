@@ -2,6 +2,7 @@
  * Derived from bokeh generator by Jack Rugile at [CodePen](http://codepen.io/jackrugile/pen/gaFub)
  */
 "use strict";
+import * as sprites from "./photonomix.display.2d.sprites";
 let c1, c2, ctx1, ctx2,
 	tau = Math.PI * 2,
 	parts = [],

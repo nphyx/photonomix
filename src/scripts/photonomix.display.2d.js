@@ -2,10 +2,11 @@
 import * as constants from "./photonomix.constants";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
 import * as bokeh from "./photonomix.bokeh";
-let {abs, min} = Math;
+import * as sprites from "./photonomix.display.2d.sprites";
+let {min, cos, sin} = Math;
 const clamp = vectrix.vectors.mut_clamp;
 const AUTO_FULLSCREEN = false;
-const DEBUG_DRAW = true;
+const DEBUG_DRAW = false;
 
 let GAME_STARTED = false; //  whether the game has started
 let startTime; // time game started
@@ -19,6 +20,7 @@ let game; // game environment object
 let lastFrame = 0;
 let bgCtx, bokehCtx, gameCtx, displayCtx;
 let bgCanvas, bokehCanvas, gameCanvas, displayCanvas;
+let moteSprite;
 
 
 let PX = 1; // pixel size
@@ -96,6 +98,7 @@ function updateRatio() {
 		buffers[i].canvas.width = W;
 		buffers[i].canvas.height = H;
 	}
+	moteSprite = sprites.createMoteSprite(min(W, H), constants.MOTE_BASE_SIZE*4);
 }
 
 const fade = (function() {
@@ -138,29 +141,23 @@ function screenSpace(x) {
 	return (x+1)/2;
 }
 
-let d_m_i, d_m_l, mote, px, py, tx, ty, size, pw, cs_r, speed, tf = constants.TARGET_FPS;
-let mote_center = "rgba(255,255,255,0.7)", fr, crg; 
+let d_m_i, d_m_l, mote, px, py, tx, ty, size, frameScale, speed, tf = constants.TARGET_FPS, sc, sch, sw, swh, fr, crg, x, y, pulse;
 function drawMotes(ctx) {
-	fr = ctx.fillRect.bind(ctx);
-	crg = ctx.createRadialGradient.bind(ctx);
 	ctx.globalCompositeOperation = "lighter";
 	for(d_m_i = 0, d_m_l = game.motes.length; d_m_i < d_m_l; ++d_m_i) {
 		mote = game.motes[d_m_i];
-		px = screenSpace(mote.x) * W;
-		py = screenSpace(mote.y) * H;
+		x = mote.x;
+		y = mote.y;
+		pulse = mote.pulse;
+		px = screenSpace(x) * W;
+		py = screenSpace(y) * H;
 		size = mote.size * clamp(min(W, H), 300, 1200);
-		pw = abs((((frameCount+mote.pulse) % tf)-(tf/2)) / tf);
-		cs_r = 0.015+(0.05*pw);
-
-		let g = crg(px, py, 3*pw,
-						px, py, size*2);
-
-		g.addColorStop(0, mote_center);
-		g.addColorStop(cs_r, mote.color_string);
-		g.addColorStop(5*cs_r, mote.transparent_string);
-		ctx.fillStyle = g;
-		fr(px-size, py-size, size*2, size*2); 
-		g = null;
+		sc = size * cos((frameCount+pulse) * 0.2);
+		sch = sc*0.5;
+		sw = size * sin((frameCount+pulse+tf) * 0.2)*0.25;
+		swh = sw*0.5;
+		ctx.drawImage(sprites.recolor(moteSprite, mote.color_string).canvas, px-sch, py-sch, sc, sc);
+		ctx.drawImage(sprites.recolor(moteSprite, "white").canvas, px-swh, py-swh, sw, sw);
 		if(DEBUG_DRAW && mote.target) {
 			speed = mote.speed;
 			tx = screenSpace(mote.target.x) * W;
@@ -186,8 +183,7 @@ function drawCircle(ctx, x, y, size, color) {
 }
 
 function composite() {
-	displayCtx.fillStyle = "#000000";
-	displayCtx.fillRect(0, 0, W, H);
+	displayCtx.clearRect(0, 0, W, H);
 	displayCtx.globalCompositeOperation = "source-over";
 	displayCtx.drawImage(bgCanvas, 0, 0);
 	displayCtx.globalCompositeOperation = "lighter";
@@ -234,7 +230,6 @@ export function initCtx(id, container) {
 	canvas.id = id;
 	canvas.width = W;
 	canvas.height = H;
-	canvas.style.display = "none";
 	let context = canvas.getContext("2d");
 	if(container) container.appendChild(canvas);
 	return {
@@ -248,7 +243,7 @@ export function init(env) {
 	game = env;
 	body = document.getElementsByTagName("body")[0];
 	body.classList.add("2d");
-	buffers[0] = initCtx("background"); 
+	buffers[0] = initCtx("background");
 	buffers[1] = initCtx("bokeh"); 
 	buffers[2] = initCtx("game"); 
 	buffers[3] = initCtx("display", body); 

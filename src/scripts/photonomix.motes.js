@@ -1,5 +1,5 @@
 "use strict";
-let {random, abs, max, min, sin, cos, atan2} = Math;
+let {random, abs, max, min, sin, cos, atan2, sqrt} = Math;
 import {TARGET_FPS, WEIGHT_PRED_R, WEIGHT_PRED_G, MOTE_BASE_SPEED, GRAVITY,
 	WEIGHT_PRED_B, MOTE_BASE_SIZE, MOTE_BASE_ALPHA, PREGNANT_THRESHOLD, DEATH_THRESHOLD} from "./photonomix.constants";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
@@ -53,6 +53,7 @@ const FLOAT_VAL_LENGTH = O_FLEE - O_SIZE + 1;
 const B_LENGTH = O_FLOATS_BYTE_OFFSET + (O_FLEE + 1)*F32;
 twiddle_vec(POS_C);
 console.log(POS_C);
+let ud_sum = 0.0;
 
 
 
@@ -80,29 +81,30 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 	b_sight = b_sight+adjrand(0.001); // vision distance
 	b_eat = b_eat+adjrand(0.001);
 	b_flee = b_flee+adjrand(0.001);
+	var that = this;
 
-	var updateProperties = () => {
-		let sum = photons[R] + photons[G] + photons[B];
-		floatVals[O_SIZE] = clamp(sum/64*MOTE_BASE_SIZE, floatVals[O_SIZE_MIN], floatVals[O_SIZE_MAX]);
+	function updateProperties() {
+		ud_sum = photons[R] + photons[G] + photons[B];
+		floatVals[O_SIZE] = clamp(ud_sum/64*MOTE_BASE_SIZE, floatVals[O_SIZE_MIN], floatVals[O_SIZE_MAX]);
 		rat_r = ratio(photons[R], photons[G]+photons[B]);
 		rat_g = ratio(photons[G], photons[R]+photons[B]);
 		rat_b = ratio(photons[B], photons[G]+photons[R]);
-		this.speed = b_speed*((1+rat_b+rat_r)-this.size);
-		this.sight = b_sight*(1+rat_b);
-		this.eat = b_eat*(1+rat_b);
-		this.flee = b_flee*(1+rat_g);
+		that.speed = b_speed*((1+rat_b+rat_r)-that.size);
+		that.sight = b_sight*(1+rat_b);
+		that.eat = b_eat*(1+rat_b);
+		that.flee = b_flee*(1+rat_g);
 
-		if(sum > PREGNANT_THRESHOLD) this.pregnant = true;
-		if(sum < DEATH_THRESHOLD) this.dead = true;
+		if(ud_sum > PREGNANT_THRESHOLD) that.pregnant = true;
+		if(ud_sum < DEATH_THRESHOLD) that.dead = true;
 
-		color[R] = ~~(photons[R]/sum*255);
-		color[G] = ~~(photons[G]/sum*255);
-		color[B] = ~~(photons[B]/sum*128);
-		this.color_string = "rgba("+(color[R])+","+color[G]+","+color[B]+","+color[A]+")";
-		this.transparent_string = "rgba("+(color[R])+","+color[G]+","+color[B]+",0.0)";
+		color[R] = ~~(photons[R]/ud_sum*255);
+		color[G] = ~~(photons[G]/ud_sum*255);
+		color[B] = ~~(photons[B]/ud_sum*128);
+		that.color_string = "rgba("+(color[R])+","+color[G]+","+color[B]+","+color[A]+")";
+		that.transparent_string = "rgba("+(color[R])+","+color[G]+","+color[B]+",0.0)";
 	}
 
-	var setPhoton = (v, n) => {
+	function setPhoton(v, n) {
 		photons[n] = max(0, min(v, 255));
 		updateProperties();
 	}
@@ -184,7 +186,7 @@ Mote.prototype.act = function(surrounding, delta) {
 	// apply drag
 	mut_plus(vel, drag(vel, 0.1));
 	// gravitate toward center
-	mut_plus(vel, gravitate(pos, POS_C, GRAVITY, tmpvec));
+	//mut_plus(vel, gravitate(pos, POS_C, GRAVITY, tmpvec));
 	// put an absolute limit on velocity
 	mut_limit_vec(vel, 0, 1);
 	//check_bounds(pos);
@@ -296,6 +298,8 @@ Mote.random = function() {
 	return new Mote([~~(random()*64), ~~(random()*64), ~~(random()*64)], pos);
 }
 
+let fv_strongest = 0.0;
+
 /**
  * Determines the food value of object b to mote a. Roughly, a mote prefers to eat
  * photons and other motes unlike itself, and prefers objects smaller than itself
@@ -313,13 +317,13 @@ export function foodValue(a, b) {
 	// photons always have weight = 1
 	if(bsize === 1) return 1;
 	// find the strongest color; this helps determine behavior
-	let strongest = max(pa[R], pa[G], pa[B]);
+	fv_strongest = max(pa[R], pa[G], pa[B]);
 	FV_SCRATCH[R] = ratio(pb[R], pa[R]);
 	FV_SCRATCH[G] = ratio(pb[G], pa[G]);
 	FV_SCRATCH[B] = ratio(pb[B], pa[B]);
 	FV_SCRATCH[FV] = 1;
 	// this should apply multiple behavior weights when the mote is a hybrid
-	switch(strongest) {
+	switch(fv_strongest) {
 		case a.r: 
 			FV_SCRATCH[FV] *= (FV_SCRATCH[G] + FV_SCRATCH[B])*WEIGHT_PRED_R - FV_SCRATCH[R]*(1/WEIGHT_PRED_R);
 		break;
@@ -340,6 +344,7 @@ function dist(a, b) {
 }
 
 let g_v = vec2();
+let mag = 0.0;
 
 /**
  * Gravitate toward target.
@@ -348,7 +353,7 @@ function gravitate(p1, p2, strength, out) {
 	out = out||g_v;
 	minus(p1, p2, out);
 	mut_limit_vec(out, 0.00001, 10); // put a cap on it to avoid infinite acceleration
-	let mag = magnitude(out);
+	mag = magnitude(out);
 	mut_normalize(out);
 	mut_times(out, -strength/(mag*mag));
 	try {
@@ -361,7 +366,7 @@ function gravitate(p1, p2, strength, out) {
 		console.log("minus", out);
 		mut_limit_vec(out, 0.00001, 10); // put a cap on it to avoid infinite acceleration
 		console.log("limit", out);
-		let mag = magnitude(out);
+		mag = magnitude(out);
 		console.log("magnitude", mag);
 		mut_normalize(out);
 		console.log("normalize", out);
@@ -373,13 +378,20 @@ function gravitate(p1, p2, strength, out) {
 }
 
 let a_v = vec2();
+let a_scale = 0.0, a_x = 0.0, a_y = 0.0;
 /**
  * Accelerate toward a target.
  */
 function accelerate(p1, p2, strength, out) {
 	out = out||a_v;	
 	minus(p1, p2, out);
-	mut_normalize(out);
+	a_x = out[0];
+	a_y = out[1];
+	// inline normalize for speed, since this happens a lot
+	a_scale = 1/sqrt((a_x*a_x)+(a_y*a_y));
+	out[0] = a_x*a_scale;
+	out[1] = a_y*a_scale;
+	//mut_normalize(out);
 	mut_times(out, -strength);
 	try {
 		validate(out);
@@ -398,12 +410,13 @@ function accelerate(p1, p2, strength, out) {
 	return out;
 }
 
+let lim_i = 0|0, lim_l = 0|0;
 /**
  * Limits absolute values of vectors within a range.
  */
 function mut_limit_vec(v, min_v = 0, max_v = Infinity) {	
-	for(let i = 0, len = v.length; i < len; ++i) {
-		v[i] = limit(v[i], min_v, max_v);
+	for(lim_i = 0, lim_l = v.length; lim_i < lim_l; ++lim_i) {
+		v[lim_i] = limit(v[lim_i], min_v, max_v);
 	}
 }
 
@@ -419,16 +432,16 @@ function limit(v, min_v = 0, max_v = Infinity) {
 	return v;
 }
 
-let drag_v = vec2();
+let drag_v = vec2(), dragStrength = 0.0, dragSpeed = 0.0;
 /**
  * Apply drag.
  */
 function drag(vel, c, out) {
 	out = out||drag_v;
-	let speed = magnitude(vel);
-	if(speed < 1e-11) return out.fill(0.0);
-	speed = limit(speed, 0, 1e+11); // avoid infinite speeds
-	let dragStrength = c * speed * speed;
+	dragSpeed = magnitude(vel);
+	if(dragSpeed < 1e-11) return out.fill(0.0);
+	dragSpeed = limit(dragSpeed, 0, 1e+11); // avoid infinite dragSpeeds
+	dragStrength = c * dragSpeed * dragSpeed;
 	mut_copy(out, vel);
 	mut_normalize(out);
 	mut_times(out, -1);
@@ -437,7 +450,7 @@ function drag(vel, c, out) {
 		validate(out);
 	}
 	catch(e) {
-		console.log(c, speed, dragStrength);
+		console.log(c, dragSpeed, dragStrength);
 		console.log("magnitude", magnitude(vel));
 		mut_copy(out, vel);
 		console.log("copied", out);
@@ -452,14 +465,14 @@ function drag(vel, c, out) {
 	return out;
 }
 
-let ae_v = vec2();
+let ae_v = vec2(), av_dist = 0.0;
 function avoid_edge(vel, pos, speed, handling, out) {
-	let dist = distance(pos, POS_C)*1.3;
+	av_dist = distance(pos, POS_C)*1.4;
 	out = out||ae_v;
 	ae_v.fill(0.0);
-	if(dist > 1) {
+	if(a_dist > 1) {
 		accelerate(POS_C, pos, -handling, out);
-		accelerate(pos, POS_C, speed*dist, out);
+		accelerate(pos, POS_C, speed*av_dist*av_dist, out);
 	}
 	return out;
 }
