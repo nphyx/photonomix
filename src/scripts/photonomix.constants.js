@@ -8,8 +8,11 @@ export const MOTE_BASE_SIZE = 0.02;
 export const MOTE_BASE_ALPHA = 1;
 export const MOTE_BASE_SPEED = 0.0005;
 export const PREGNANT_THRESHOLD = 172;
+export const PREGNANT_TIME = 30;
 export const DEATH_THRESHOLD = 24;
 export const GRAVITY = 6.67408e-11;
+export const GLOBAL_DRAG = 0.1;
+export const PHOTON_BASE_SIZE = 0.01;
 // toggles vector validation in various functions that tend to produce
 // infinite or NaN results; when enabled, vectors are checked and if invalid
 // the function is rerun step by step and logged to identify trouble spots

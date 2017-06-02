@@ -2,11 +2,12 @@
 let {random, max, min} = Math;
 import {TARGET_FPS, WEIGHT_PRED_R, WEIGHT_PRED_G, MOTE_BASE_SPEED,
 				WEIGHT_PRED_B, MOTE_BASE_SIZE, MOTE_BASE_ALPHA, PREGNANT_THRESHOLD, 
-				DEATH_THRESHOLD} from "./photonomix.constants";
+				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME} from "./photonomix.constants";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
 import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, limitVecMut} from "./photonomix.util";
 const {vec2, vec4, times, mut_clamp, magnitude, distance} = vectrix.vectors;
 const {plus, mut_plus} = vectrix.matrices;
+import {Photon, COLOR_R, COLOR_B, COLOR_G} from "./photonomix.photons";
 const clamp = mut_clamp;
 
 const R = 0, G = 1, B = 2, A = 3, X = 0, Y = 1, FV = 3;
@@ -135,7 +136,7 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 		that.eat = b_eat*(1+rat_b);
 		that.flee = b_flee*(1+rat_g);
 
-		if(ud_sum > PREGNANT_THRESHOLD) that.pregnant = true;
+		if(ud_sum > PREGNANT_THRESHOLD) that.pregnant = PREGNANT_TIME;
 		if(ud_sum < DEATH_THRESHOLD) that.dead = true;
 
 		color[R] = ~~(photons[R]/ud_sum*255);
@@ -186,7 +187,7 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 
 	// initialize weights for various activities
 	this.dead = false;
-	this.pregnant = false;
+	this.pregnant = 0;
 	this.stuck = 0;
 	this.scared = 0;
 	this.full = 0;
@@ -216,6 +217,7 @@ Mote.prototype.tick = function(surrounding, delta) {
 	// decrement counters
 	if(this.full > 0) this.full--;
 	if(this.scared > 0) this.scared--;
+	if(this.pregnant > 0) this.pregnant--;
 	handling = (1/size)*sight*speed;
 
 	// last turn's move, has to happen first to avoid prediction inaccuracy
@@ -225,16 +227,16 @@ Mote.prototype.tick = function(surrounding, delta) {
 	// apply basic forces
 	mut_plus(vel, avoid(vel, pos, POS_C, speed, handling, tmpvec)); // don't go off the screen
 	// apply drag
-	mut_plus(vel, drag(vel, 0.1));
+	mut_plus(vel, drag(vel, GLOBAL_DRAG));
 	// gravitate toward center
 	//mut_plus(vel, gravitate(pos, POS_C, GRAVITY, tmpvec));
 	// put an absolute limit on velocity
 	limitVecMut(vel, 0, 1);
 	//check_bounds(pos);
 	mainTarget = this.target;
-
 	// drop target if too far away, if hungry, or if scared
-	if(mainTarget && (distance(pos, mainTarget.pos) > sight)) this.target = mainTarget = null; 
+	if(mainTarget && ((distance(pos, mainTarget.pos) > sight) ||
+		(mainTarget instanceof Photon && (mainTarget.lifetime < 2)))) this.target = mainTarget = null; 
 	if(!mainTarget && !this.full && !this.scared) { // select a new target
 		// reset scratch memory that may not be initialized
 		//weightCount = 0; 
@@ -244,17 +246,26 @@ Mote.prototype.tick = function(surrounding, delta) {
 			current = surrounding[a_i];
 			if(current === this) continue;
 			a_dist = distance(pos, current.pos);
-			if(a_dist  > sight) continue;
-			food = foodValue(this, current)||0;
-			scary = foodValue(current, this)||0;
-			// move value is the weighted difference between food and flee values
-			weight = a_dist*(food*eat - scary*flee);
-			if(weight > highestWeight) {
-				highestWeight = weight;
-				mainTarget = current;
-				mainTargetDist = a_dist;
+			if(current instanceof Photon) {
+				if(a_dist > sight) continue;
+				else {
+					mainTarget = current;
+					break; // photons are always preferred target
+				}
 			}
-			//weightCount++;
+			else if(current instanceof Mote) {
+				if(a_dist  > sight) continue;
+				food = foodValue(this, current)||0;
+				scary = foodValue(current, this)||0;
+				// move value is the weighted difference between food and flee values
+				weight = a_dist*(food*eat - scary*flee);
+				if(weight > highestWeight) {
+					highestWeight = weight;
+					mainTarget = current;
+					mainTargetDist = a_dist;
+				}
+				//weightCount++;
+			}
 		}
 	}
 	// new target acquired?
@@ -268,7 +279,14 @@ Mote.prototype.tick = function(surrounding, delta) {
 		else if(!this.full) { // chase target
 			mut_plus(vel, accelerate(predicted, pos, -handling, tmpvec));
 			mut_plus(vel, accelerate(pos, predicted, speed, tmpvec));
-			if(distance(pos, mainTarget.pos) < (size+mainTarget.size)/2) this.bite(mainTarget);
+			if(mainTarget instanceof Photon) {
+				// multiplied by flee to give greens an advantage in eating
+				if(a_dist < size*flee) this.eatPhoton(current);
+				//else mut_plus(mainTarget.vel, accelerate(mainTarget.pos, pos, handling*flee, tmpvec)); 
+			}
+			else if(mainTarget instanceof Mote) {
+				if(distance(pos, mainTarget.pos) < (size+mainTarget.size)/2) this.bite(mainTarget);
+			}
 		}
 	}
 	else { // wander
@@ -334,6 +352,17 @@ Mote.prototype.bite = (function() {
 		mote.target = this;
 	}
 })();
+
+Mote.prototype.eatPhoton = function(photon) {
+	photon.lifetime = 0;
+	switch(photon.color) {
+		case COLOR_R: this.r+=1; break;
+		case COLOR_G: this.g+=1; break;
+		case COLOR_B: this.b+=1; break;
+	}
+	this.full = ~~((TARGET_FPS/10)*(1/this.eat));
+	this.target = undefined;
+}
 
 Mote.random = function() {
 	let pos = [random()*posneg(), random()*posneg()];

@@ -35,3 +35,25 @@ export function recolor(sprite, color) {
 	context.fillRect(0, 0, w, h);
 	return sprite;
 }
+
+export function createPhotonSprite(scale, photonSize, color) {
+	let pixelSize = ~~(scale*photonSize);
+	let canvas = document.createElement("canvas");
+	canvas.width = canvas.height = pixelSize;
+	let context = canvas.getContext("2d");
+	let g = context.createRadialGradient(
+		pixelSize/2, pixelSize/2, pixelSize/2,
+		pixelSize/2, pixelSize/2, 0
+	);
+	g.addColorStop(1, color);
+	g.addColorStop(0.3, "rgba(0,0,0,0.0)");
+	context.fillStyle = g;
+	context.fillRect(0, 0, pixelSize, pixelSize);
+	return {
+		canvas:canvas,
+		context:context,
+		pixelSize:pixelSize,
+		w:pixelSize,
+		h:pixelSize
+	}
+}

@@ -3,7 +3,9 @@ import * as constants from "./photonomix.constants";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
 import * as bokeh from "./photonomix.bokeh";
 import * as sprites from "./photonomix.display.2d.sprites";
-let {min, cos, sin} = Math;
+import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.photons";
+import {Mote} from "./photonomix.motes";
+let {min, cos, sin, sqrt} = Math;
 const clamp = vectrix.vectors.mut_clamp;
 const AUTO_FULLSCREEN = false;
 const DEBUG_DRAW = false;
@@ -21,6 +23,7 @@ let lastFrame = 0;
 let bgCtx, bokehCtx, gameCtx, displayCtx;
 let bgCanvas, bokehCanvas, gameCanvas, displayCanvas;
 let moteSprite;
+let photonSprites = Array(3);
 
 
 let PX = 1; // pixel size
@@ -98,7 +101,10 @@ function updateRatio() {
 		buffers[i].canvas.width = W;
 		buffers[i].canvas.height = H;
 	}
-	moteSprite = sprites.createMoteSprite(min(W, H), constants.MOTE_BASE_SIZE*4);
+	moteSprite = sprites.createMoteSprite(min(W,H), constants.MOTE_BASE_SIZE*4);
+	photonSprites[COLOR_R] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "red");
+	photonSprites[COLOR_G] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "green");
+	photonSprites[COLOR_B] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "blue");
 }
 
 /**
@@ -127,7 +133,7 @@ function screenSpace(x) {
 }
 
 const drawEntities = (function() {
-	let i, l, mote, px, py, tx, ty, size, speed, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, pulse;
+	let i, l, entity, px, py, tx, ty, size, speed, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, pulse, sprite, pregnant;
 	let fadeFillStyle = "rgba(0,0,0,0.3)";
 	let moteCenterFillStyle = "rgba(255,255,255,0.7)";
 	return function drawEntities(ctx) {
@@ -137,30 +143,45 @@ const drawEntities = (function() {
 
 		ctx.globalCompositeOperation = "lighter";
 		for(i = 0, l = game.entities.length; i < l; ++i) {
-			mote = game.entities[i];
-			x = mote.x;
-			y = mote.y;
-			pulse = mote.pulse;
+			entity = game.entities[i];
+			x = entity.x;
+			y = entity.y;
 			px = screenSpace(x) * W;
 			py = screenSpace(y) * H;
-			size = mote.size * clamp(min(W, H), 300, 1200);
-			sc = size * cos((frameCount+pulse) * 0.2);
-			sch = sc*0.5;
-			sw = size * sin((frameCount+pulse+tf) * 0.2)*0.25;
-			swh = sw*0.5;
-			ctx.drawImage(sprites.recolor(moteSprite, mote.color_string).canvas, px-sch, py-sch, sc, sc);
-			ctx.drawImage(sprites.recolor(moteSprite, moteCenterFillStyle).canvas, px-swh, py-swh, sw, sw);
-			if(DEBUG_DRAW && mote.target) {
-				speed = mote.speed;
-				tx = screenSpace(mote.target.x) * W;
-				ty = screenSpace(mote.target.y) * H;
-				ctx.beginPath();
-				ctx.moveTo(px, py);
-				ctx.strokeStyle = (mote.scared?"white":mote.full?"red":mote.color_string);
-				ctx.strokeWidth = 1;
-				ctx.lineTo(tx, ty);
-				ctx.stroke();
-			}
+			if(entity instanceof Mote) {
+				pulse = entity.pulse;
+				pregnant = entity.pregnant;
+				size = entity.size * clamp(min(W, H), 300, 1200);
+				if(pregnant) {
+					sc = size * cos((frameCount+pulse) * 0.2) * (sqrt(pregnant)+1);
+					sw = size * sin((frameCount+pulse+tf) * 0.2) * (sqrt(pregnant)+1)*0.25;
+				}
+				else {
+					sc = size * cos((frameCount+pulse) * 0.2);
+					sw = size * sin((frameCount+pulse+tf) * 0.2)*0.25;
+				}
+				sch = sc*0.5;
+				swh = sw*0.5;
+				ctx.drawImage(sprites.recolor(moteSprite, entity.color_string).canvas, px-sch, py-sch, sc, sc);
+				ctx.drawImage(sprites.recolor(moteSprite, moteCenterFillStyle).canvas, px-swh, py-swh, sw, sw);
+				if(DEBUG_DRAW && entity.target) {
+					speed = entity.speed;
+					tx = screenSpace(entity.target.x) * W;
+					ty = screenSpace(entity.target.y) * H;
+					ctx.beginPath();
+					ctx.moveTo(px, py);
+					ctx.strokeStyle = (entity.scared?"white":entity.full?"red":entity.color_string);
+					ctx.strokeWidth = 1;
+					ctx.lineTo(tx, ty);
+					ctx.stroke();
+				}
+			} // end mote draw
+			else if(entity instanceof Photon) {
+				sprite = photonSprites[entity.color];
+				sc = sprite.pixelSize;
+				sch = ~~(sc*0.5);
+				ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
+			} // end photon draw
 		}
 		ctx.globalCompositeOperation = "source-over";
 	}
@@ -201,7 +222,7 @@ function animate() {
 	if(elapsed > interval) {
 		lastFrame = now - (elapsed % interval);
 		frameCount++;
-		game.tick(interval/elapsed);
+		if(GAME_STARTED) game.tick(interval/elapsed, frameCount);
 		bokeh.draw();
 		if(DEBUG_DRAW) debugMarkers(bokehCtx);
 		drawEntities(gameCtx);
