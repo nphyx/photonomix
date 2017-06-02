@@ -1,11 +1,12 @@
 "use strict";
-let {random, abs, max, min, sin, cos, atan2, sqrt} = Math;
-import {TARGET_FPS, WEIGHT_PRED_R, WEIGHT_PRED_G, MOTE_BASE_SPEED, GRAVITY,
-	WEIGHT_PRED_B, MOTE_BASE_SIZE, MOTE_BASE_ALPHA, PREGNANT_THRESHOLD, DEATH_THRESHOLD} from "./photonomix.constants";
+let {random, max, min} = Math;
+import {TARGET_FPS, WEIGHT_PRED_R, WEIGHT_PRED_G, MOTE_BASE_SPEED,
+				WEIGHT_PRED_B, MOTE_BASE_SIZE, MOTE_BASE_ALPHA, PREGNANT_THRESHOLD, 
+				DEATH_THRESHOLD} from "./photonomix.constants";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
-const {vec2, vec4, times, mut_times, mut_clamp, normalize, mut_normalize, 
-			magnitude, distance, mut_lerp, mut_copy, mut_cubic, cross} = vectrix.vectors;
-const {minus, plus, mut_plus, mut_minus} = vectrix.matrices;
+import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, limitVecMut} from "./photonomix.util";
+const {vec2, vec4, times, mut_clamp, magnitude, distance} = vectrix.vectors;
+const {plus, mut_plus} = vectrix.matrices;
 const clamp = mut_clamp;
 
 const R = 0, G = 1, B = 2, A = 3, X = 0, Y = 1, FV = 3;
@@ -51,7 +52,7 @@ const VEC_VAL_LENGTH = O_COL + 4,
 
 const FLOAT_VAL_LENGTH = O_FLEE - O_SIZE + 1;
 const B_LENGTH = O_FLOATS_BYTE_OFFSET + (O_FLEE + 1)*F32;
-twiddle_vec(POS_C);
+twiddleVec(POS_C);
 console.log(POS_C);
 let ud_sum = 0.0;
 
@@ -77,10 +78,10 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 
 	floatVals[O_SIZE_MAX] = MOTE_BASE_SIZE*3;
 	floatVals[O_SIZE_MIN] = MOTE_BASE_SIZE*0.25;
-	b_speed = b_speed+adjrand(0.0005);
-	b_sight = b_sight+adjrand(0.001); // vision distance
-	b_eat = b_eat+adjrand(0.001);
-	b_flee = b_flee+adjrand(0.001);
+	b_speed = b_speed+adjRand(0.0005);
+	b_sight = b_sight+adjRand(0.001); // vision distance
+	b_eat = b_eat+adjRand(0.001);
+	b_flee = b_flee+adjRand(0.001);
 	var that = this;
 
 	function updateProperties() {
@@ -168,7 +169,7 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
  */
 let vel, size, sight, speed, eat, flee, tmp2 = vec2(),
 	tmpvec = vec2(), weight, mainTarget, predicted = vec2(), 
-	weightCount, highestWeight, mainTargetDist, a_dist, food, scary, 
+	highestWeight, mainTargetDist, a_dist, food, scary, 
 	a_i, a_len, current, handedness, pos, handling;
 Mote.prototype.act = function(surrounding, delta) {
 	({pos, vel, size, sight, speed, eat, flee, handedness} = this);
@@ -182,13 +183,13 @@ Mote.prototype.act = function(surrounding, delta) {
 	mut_plus(pos, times(vel, delta, tmpvec));
 
 	// apply basic forces
-	mut_plus(vel, avoid_edge(vel, pos, speed, handling, tmpvec)); // don't go off the screen
+	mut_plus(vel, avoid(vel, pos, POS_C, speed, handling, tmpvec)); // don't go off the screen
 	// apply drag
 	mut_plus(vel, drag(vel, 0.1));
 	// gravitate toward center
 	//mut_plus(vel, gravitate(pos, POS_C, GRAVITY, tmpvec));
 	// put an absolute limit on velocity
-	mut_limit_vec(vel, 0, 1);
+	limitVecMut(vel, 0, 1);
 	//check_bounds(pos);
 	mainTarget = this.target;
 
@@ -202,7 +203,7 @@ Mote.prototype.act = function(surrounding, delta) {
 		for(a_i = 0, a_len = surrounding.length; a_i < a_len && a_i < 20; ++a_i) {
 			current = surrounding[a_i];
 			if(current === this) continue;
-			a_dist = dist(pos, current.pos);
+			a_dist = distance(pos, current.pos);
 			if(a_dist  > sight) continue;
 			food = foodValue(this, current)||0;
 			scary = foodValue(current, this)||0;
@@ -336,229 +337,4 @@ export function foodValue(a, b) {
 	}
 
 	return FV_SCRATCH[FV] * ((ratio(asize, bsize)*2)-1);
-}
-
-let dist_diff = vec2();
-function dist(a, b) {
-	return magnitude(minus(a, b, dist_diff));
-}
-
-let g_v = vec2();
-let mag = 0.0;
-
-/**
- * Gravitate toward target.
- */
-function gravitate(p1, p2, strength, out) {
-	out = out||g_v;
-	minus(p1, p2, out);
-	mut_limit_vec(out, 0.00001, 10); // put a cap on it to avoid infinite acceleration
-	mag = magnitude(out);
-	mut_normalize(out);
-	mut_times(out, -strength/(mag*mag));
-	try {
-		validate(out);
-	}
-	catch(e) {
-		console.log("gravitation error", e);
-		console.log(strength);
-		minus(p1, p2, out);
-		console.log("minus", out);
-		mut_limit_vec(out, 0.00001, 10); // put a cap on it to avoid infinite acceleration
-		console.log("limit", out);
-		mag = magnitude(out);
-		console.log("magnitude", mag);
-		mut_normalize(out);
-		console.log("normalize", out);
-		mut_times(out, -strength/(mag*mag));
-		console.log("scale", out);
-		out.fill(0.0);
-	}
-	return out;
-}
-
-let a_v = vec2();
-let a_scale = 0.0, a_x = 0.0, a_y = 0.0;
-/**
- * Accelerate toward a target.
- */
-function accelerate(p1, p2, strength, out) {
-	out = out||a_v;	
-	minus(p1, p2, out);
-	a_x = out[0];
-	a_y = out[1];
-	// inline normalize for speed, since this happens a lot
-	a_scale = 1/sqrt((a_x*a_x)+(a_y*a_y));
-	out[0] = a_x*a_scale;
-	out[1] = a_y*a_scale;
-	//mut_normalize(out);
-	mut_times(out, -strength);
-	try {
-		validate(out);
-	}
-	catch(e) {
-		console.log("acceleration error", e);
-		console.log(strength);
-		minus(p1, p2, out);
-		console.log("minus", out);
-		mut_normalize(out);
-		console.log("normalize", out);
-		mut_times(out, -strength);
-		console.log("scale", out);
-		out.fill(0.0);
-	}
-	return out;
-}
-
-let lim_i = 0|0, lim_l = 0|0;
-/**
- * Limits absolute values of vectors within a range.
- */
-function mut_limit_vec(v, min_v = 0, max_v = Infinity) {	
-	for(lim_i = 0, lim_l = v.length; lim_i < lim_l; ++lim_i) {
-		v[lim_i] = limit(v[lim_i], min_v, max_v);
-	}
-}
-
-function limit(v, min_v = 0, max_v = Infinity) {
-	if(abs(v) < abs(min_v)) {
-		if(v < 0) v = -min_v;
-		else v = min_v;
-	}
-	else if(abs(v) > abs(max_v)) {
-		if(v < 0) v = -max_v;
-		else v = max_v;
-	}
-	return v;
-}
-
-let drag_v = vec2(), dragStrength = 0.0, dragSpeed = 0.0;
-/**
- * Apply drag.
- */
-function drag(vel, c, out) {
-	out = out||drag_v;
-	dragSpeed = magnitude(vel);
-	if(dragSpeed < 1e-11) return out.fill(0.0);
-	dragSpeed = limit(dragSpeed, 0, 1e+11); // avoid infinite dragSpeeds
-	dragStrength = c * dragSpeed * dragSpeed;
-	mut_copy(out, vel);
-	mut_normalize(out);
-	mut_times(out, -1);
-	mut_times(out, dragStrength);
-	try {
-		validate(out);
-	}
-	catch(e) {
-		console.log(c, dragSpeed, dragStrength);
-		console.log("magnitude", magnitude(vel));
-		mut_copy(out, vel);
-		console.log("copied", out);
-		mut_normalize(out);
-		console.log("normalized", out);
-		mut_times(out, -1);
-		console.log("inverted", out);
-		mut_times(out, dragStrength);
-		console.log("scaled", out);
-		out.fill(0.0);
-	}
-	return out;
-}
-
-let ae_v = vec2(), av_dist = 0.0;
-function avoid_edge(vel, pos, speed, handling, out) {
-	av_dist = distance(pos, POS_C)*1.4;
-	out = out||ae_v;
-	ae_v.fill(0.0);
-	if(a_dist > 1) {
-		accelerate(POS_C, pos, -handling, out);
-		accelerate(pos, POS_C, speed*av_dist*av_dist, out);
-	}
-	return out;
-}
-
-/**
- * Twiddles a value by a small amount to avoid zeroes
- */
-function twiddle(x) {
-	return x + (1e-11*posneg());
-}
-
-let t_i = 0|0, t_l = 0|0;
-function twiddle_vec(v) {
-	for(t_i = 0, t_l = v.length; t_i < t_l; ++t_i) {
-		v[t_i] = twiddle(v[t_i]);
-	}
-	return v;
-}
-
-/**
- * absolute value of vector
- */
-let abs_i = 0|0, abs_l = 0|0;
-function abs_vec(v) {
-	for(abs_i = 0, abs_l = v.length; abs_i < abs_l; ++abs_i) {
-		v[abs_i] = abs(v[abs_i]);
-	}
-	return v;
-}
-
-function check_bounds(v) {
-	let x = v[0];	
-	let y = v[1];	
-	if(x > 1 || x < -1) console.log("out of x bounds", x);
-	if(y > 1 || y < -1) console.log("out of y bounds", y);
-}
-
-/**
- * Smoothing using a sigmoid (logistic function) curve.
- * @param {float} x input value
- * @param {float} x0 midpoint of curve
- * @param {float} L limit of curve
- * @param {float} k slope of curve
- *
-function logistic_smooth(x, x0, L = x * 2, k = 1) {return L / (1 + pow(E, k * x-x0))}
-
-/**
- * A random function adjusted to a range of -1 to 1 and multiplied by a
- * scaling value
- */
-function adjrand(scale = 1) {
-	return ((random()*2)-1)*scale
-}
-
-let r_c, r_s, r_pxt, r_pyt; 
-/**
- * Rotate point p around center c by r radians. Mutates p.
- */
-export function rotate(p, c, r) {
-	r_c = cos(r);
-	r_s = sin(r);
-	p[X] -= c[X];
-	p[Y] -= c[Y];
-	r_pxt = (p[X] * r_c - p[Y] * r_s);
-	r_pyt = (p[X] * r_s + p[Y] * r_c);
-	p[X] = r_pxt + c[X];
-	p[Y] = r_pyt + c[Y];
-}
-
-function posneg() {
-	return random() > 0.5?1:-1;
-}
-/*
-export function clamp(v, minv, maxv) {
-	return max(min(v, maxv), minv);
-}
-*/
-
-export function ratio(a, b) { return a/(abs(a)+abs(b)) }
-export function rat_vec2(v) { return ratio(v[X], v[Y]) }
-
-let v_i, v_l;
-export function validate(v) {
-	for(v_i = 0, v_l = v.length; v_i < v_l; v_i++) {
-		if(isNaN(v[v_i])) throw new Error("NaN vector");
-		if(v[v_i] === Infinity) throw new Error("Infinite vector");
-		if(v[v_i] === -Infinity) throw new Error("-Infinite vector");
-	}
 }
