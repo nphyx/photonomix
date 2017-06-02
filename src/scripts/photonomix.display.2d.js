@@ -126,41 +126,45 @@ function screenSpace(x) {
 	return (x+1)/2;
 }
 
-let d_m_i, d_m_l, mote, px, py, tx, ty, size, speed, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, pulse;
-function drawMotes(ctx) {
-	ctx.globalCompositeOperation = "source-atop";
-	ctx.fillStyle = "rgba(0,0,0,.3)";
-	ctx.fillRect(0, 0, W, H);
+const drawEntities = (function() {
+	let i, l, mote, px, py, tx, ty, size, speed, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, pulse;
+	let fadeFillStyle = "rgba(0,0,0,0.3)";
+	let moteCenterFillStyle = "rgba(255,255,255,0.7)";
+	return function drawEntities(ctx) {
+		ctx.globalCompositeOperation = "source-atop";
+		ctx.fillStyle = fadeFillStyle;
+		ctx.fillRect(0, 0, W, H);
 
-	ctx.globalCompositeOperation = "lighter";
-	for(d_m_i = 0, d_m_l = game.motes.length; d_m_i < d_m_l; ++d_m_i) {
-		mote = game.motes[d_m_i];
-		x = mote.x;
-		y = mote.y;
-		pulse = mote.pulse;
-		px = screenSpace(x) * W;
-		py = screenSpace(y) * H;
-		size = mote.size * clamp(min(W, H), 300, 1200);
-		sc = size * cos((frameCount+pulse) * 0.2);
-		sch = sc*0.5;
-		sw = size * sin((frameCount+pulse+tf) * 0.2)*0.25;
-		swh = sw*0.5;
-		ctx.drawImage(sprites.recolor(moteSprite, mote.color_string).canvas, px-sch, py-sch, sc, sc);
-		ctx.drawImage(sprites.recolor(moteSprite, "white").canvas, px-swh, py-swh, sw, sw);
-		if(DEBUG_DRAW && mote.target) {
-			speed = mote.speed;
-			tx = screenSpace(mote.target.x) * W;
-			ty = screenSpace(mote.target.y) * H;
-			ctx.beginPath();
-			ctx.moveTo(px, py);
-			ctx.strokeStyle = (mote.scared?"white":mote.full?"red":mote.color_string);
-			ctx.strokeWidth = 1;
-			ctx.lineTo(tx, ty);
-			ctx.stroke();
+		ctx.globalCompositeOperation = "lighter";
+		for(i = 0, l = game.entities.length; i < l; ++i) {
+			mote = game.entities[i];
+			x = mote.x;
+			y = mote.y;
+			pulse = mote.pulse;
+			px = screenSpace(x) * W;
+			py = screenSpace(y) * H;
+			size = mote.size * clamp(min(W, H), 300, 1200);
+			sc = size * cos((frameCount+pulse) * 0.2);
+			sch = sc*0.5;
+			sw = size * sin((frameCount+pulse+tf) * 0.2)*0.25;
+			swh = sw*0.5;
+			ctx.drawImage(sprites.recolor(moteSprite, mote.color_string).canvas, px-sch, py-sch, sc, sc);
+			ctx.drawImage(sprites.recolor(moteSprite, moteCenterFillStyle).canvas, px-swh, py-swh, sw, sw);
+			if(DEBUG_DRAW && mote.target) {
+				speed = mote.speed;
+				tx = screenSpace(mote.target.x) * W;
+				ty = screenSpace(mote.target.y) * H;
+				ctx.beginPath();
+				ctx.moveTo(px, py);
+				ctx.strokeStyle = (mote.scared?"white":mote.full?"red":mote.color_string);
+				ctx.strokeWidth = 1;
+				ctx.lineTo(tx, ty);
+				ctx.stroke();
+			}
 		}
+		ctx.globalCompositeOperation = "source-over";
 	}
-	ctx.globalCompositeOperation = "source-over";
-}
+})();
 
 function drawCircle(ctx, x, y, size, color) {
 	ctx.globalCompositeOperation = "source-over";
@@ -200,7 +204,7 @@ function animate() {
 		game.tick(interval/elapsed);
 		bokeh.draw();
 		if(DEBUG_DRAW) debugMarkers(bokehCtx);
-		drawMotes(gameCtx);
+		drawEntities(gameCtx);
 		composite();
 	}
 }

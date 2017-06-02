@@ -203,7 +203,7 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 }
 
 /**
- * Decide how to act each turn based on nearby objects.
+ * Decide how to act each tick based on nearby objects.
  * @param Array surrounding array of nearby objects to consider in movement
  * @param Float delta time delta
  */
@@ -211,7 +211,7 @@ let vel, size, sight, speed, eat, flee, tmp2 = vec2(),
 	tmpvec = vec2(), weight, mainTarget, predicted = vec2(), 
 	highestWeight, mainTargetDist, a_dist, food, scary, 
 	a_i, a_len, current, handedness, pos, handling;
-Mote.prototype.act = function(surrounding, delta) {
+Mote.prototype.tick = function(surrounding, delta) {
 	({pos, vel, size, sight, speed, eat, flee, handedness} = this);
 	// decrement counters
 	if(this.full > 0) this.full--;
