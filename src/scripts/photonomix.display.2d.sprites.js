@@ -38,15 +38,27 @@ export function recolor(sprite, color) {
 
 export function createPhotonSprite(scale, photonSize, color) {
 	let pixelSize = ~~(scale*photonSize);
+	let hps = ~~(pixelSize/2);
 	let canvas = document.createElement("canvas");
 	canvas.width = canvas.height = pixelSize;
 	let context = canvas.getContext("2d");
-	let g = context.createRadialGradient(
-		pixelSize/2, pixelSize/2, pixelSize/2,
-		pixelSize/2, pixelSize/2, 0
-	);
-	g.addColorStop(1, color);
-	g.addColorStop(0.3, "rgba(0,0,0,0.0)");
+	let mask = document.createElement("canvas");
+	mask.width = mask.height = pixelSize; 
+	let maskCtx = mask.getContext("2d");
+	let g;
+	g = maskCtx.createRadialGradient(hps, hps, hps, hps, hps, 0);
+	g.addColorStop(0.0, "rgba(255,255,255,0.0)");
+	g.addColorStop(0.09, "rgba(255,255,255,1.0)");
+	maskCtx.fillStyle = g;
+	maskCtx.fillRect(0, 0, pixelSize, pixelSize);
+	context.drawImage(mask, -hps, -hps, pixelSize, pixelSize);
+	context.drawImage(mask, hps, hps, pixelSize, pixelSize);
+	context.drawImage(mask, hps, -hps, pixelSize, pixelSize);
+	context.drawImage(mask, -hps, hps, pixelSize, pixelSize);
+	g = context.createRadialGradient(hps, hps, hps, hps, hps, 0);
+	g.addColorStop(0.7, color);
+	g.addColorStop(1.0, "white");
+	context.globalCompositeOperation = "source-out";
 	context.fillStyle = g;
 	context.fillRect(0, 0, pixelSize, pixelSize);
 	return {

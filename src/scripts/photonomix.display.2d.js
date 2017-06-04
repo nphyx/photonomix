@@ -1,11 +1,11 @@
 "use strict";
 import * as constants from "./photonomix.constants";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
-import * as bokeh from "./photonomix.bokeh";
+import * as bokeh from "./photonomix.display.2d.bokeh";
 import * as sprites from "./photonomix.display.2d.sprites";
 import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.photons";
 import {Mote} from "./photonomix.motes";
-let {min, cos, sin, sqrt} = Math;
+let {min, max, cos, sin, sqrt} = Math;
 const clamp = vectrix.vectors.mut_clamp;
 const AUTO_FULLSCREEN = false;
 const DEBUG_DRAW = false;
@@ -25,15 +25,14 @@ let bgCanvas, bokehCanvas, gameCanvas, displayCanvas;
 let moteSprite;
 let photonSprites = Array(3);
 
-
 let PX = 1; // pixel size
 let W = 0; // screen width
 let H = 0; // screen height
 let OR = 0; // orientation (0 = landscape, 1 = portrait)
 
-// from MDN
 /**
  * Toggles fullscreen on.
+ * Code from Mozilla Developer Network.
  */
 function toggleFullScreen() {
 	if(fullscreen) return;
@@ -73,15 +72,6 @@ function fullscreenOff(ev) {
 }
 
 /**
- * Calculates FPS.
- *
-function calcFPS() {
-	var now = Date.now();
-	return ((now - startTime)/frameCount).toPrecision(2);
-}
-*/
-
-/**
  * Round to nearest even number.
  */
 function evenNumber(n) {
@@ -101,6 +91,7 @@ function updateRatio() {
 		buffers[i].canvas.width = W;
 		buffers[i].canvas.height = H;
 	}
+	bokeh.create(buffers[0], buffers[1], W, H);
 	moteSprite = sprites.createMoteSprite(min(W,H), constants.MOTE_BASE_SIZE*4);
 	photonSprites[COLOR_R] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "red");
 	photonSprites[COLOR_G] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "green");
@@ -108,19 +99,9 @@ function updateRatio() {
 }
 
 /**
- * Fills a buffer with the given style.
- * @param CanvasRenderingContext2D ctx framebuffer being drawn to
- * @param {int} w width of framebuffer
- * @param {int} h height of framebuffer
- * @param {string} operation composite operation type (default source-over)
- *
-function drawFill(ctx, w, h, style, operation="source-over") {
-	ctx.globalCompositeOperation = operation;
-	ctx.fillStyle = style;
-	ctx.fillRect(0, 0, w, h);
-}
-*/
-
+ * Event handler for starting the game by pressing the enter key. Removes its own
+ * binding after firing.
+ */
 function pressEnter(event) {
 	if(event.keyCode === 13) {
 		document.removeEventListener("keyup", pressEnter);
@@ -128,14 +109,26 @@ function pressEnter(event) {
 	}
 }
 
+/**
+ * Calculates the screenspace pixel offset of a coordinate from the [-1,1] coordinate
+ * range used in game position vectors.
+ */
 function screenSpace(x) {
 	return (x+1)/2;
 }
 
+/**
+ * Draw call for all entities. Loops through game entities and draws them according
+ * to kind and properties.
+ */
 const drawEntities = (function() {
-	let i, l, entity, px, py, tx, ty, size, speed, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, pulse, sprite, pregnant;
+	let i, l, entity, px, py, tx, ty, size, speed, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, mind = 0|0, hmaxd = 0|0, sprite;
+	let pulse = 0|0, pregnant = 0|0, injured = 0|0, full = 0|0, lastMeal = 0|0; 
 	let fadeFillStyle = "rgba(0,0,0,0.3)";
 	let moteCenterFillStyle = "rgba(255,255,255,0.7)";
+	let moteCenterRedFillStyle = "rgba(255,8,8,0.5)";
+	let moteCenterBlueFillStyle = "rgba(8,255,8,0.5)";
+	let moteCenterGreenFillStyle = "rgba(8,8,255,0.5)";
 	return function drawEntities(ctx) {
 		ctx.globalCompositeOperation = "source-atop";
 		ctx.fillStyle = fadeFillStyle;
@@ -144,17 +137,24 @@ const drawEntities = (function() {
 		ctx.globalCompositeOperation = "lighter";
 		for(i = 0, l = game.entities.length; i < l; ++i) {
 			entity = game.entities[i];
-			x = entity.x;
-			y = entity.y;
-			px = screenSpace(x) * W;
-			py = screenSpace(y) * H;
+			x = entity.pos[0];
+			y = entity.pos[1];
+			mind = min(W, H);
+			hmaxd = ~~((max(W, H)-mind)/2);
+			px = screenSpace(x) * mind;
+			py = screenSpace(y) * mind;
+			if(W > H) px = px + hmaxd;
+			else py = py + hmaxd;
 			if(entity instanceof Mote) {
-				pulse = entity.pulse;
-				pregnant = entity.pregnant;
-				size = entity.size * clamp(min(W, H), 300, 1200);
+				({pulse, pregnant, injured, full, lastMeal} = entity);
+				size = entity.size * clamp(mind, 300, 1200);
 				if(pregnant) {
 					sc = size * cos((frameCount+pulse) * 0.2) * (sqrt(pregnant)+1);
 					sw = size * sin((frameCount+pulse+tf) * 0.2) * (sqrt(pregnant)+1)*0.25;
+				}
+				else if(injured) {
+					sc = size * cos((frameCount+pulse) * (0.2+(1/injured)));
+					sw = size * sin((frameCount+pulse+tf) * (0.2+(1/injured)))*0.25;
 				}
 				else {
 					sc = size * cos((frameCount+pulse) * 0.2);
@@ -162,8 +162,32 @@ const drawEntities = (function() {
 				}
 				sch = sc*0.5;
 				swh = sw*0.5;
-				ctx.drawImage(sprites.recolor(moteSprite, entity.color_string).canvas, px-sch, py-sch, sc, sc);
-				ctx.drawImage(sprites.recolor(moteSprite, moteCenterFillStyle).canvas, px-swh, py-swh, sw, sw);
+				sc = ~~(sc);
+				sw = ~~(sw);
+				sch = ~~(sch);
+				swh = ~~(swh);
+				ctx.drawImage(sprites.recolor(moteSprite, entity.color_string).canvas, 
+					px-sch, py-sch, sc, sc);
+				if(full) {
+					ctx.globalCompositeOperation = "overlay";
+					switch(lastMeal) {
+						case 0:
+							ctx.drawImage(sprites.recolor(moteSprite, moteCenterRedFillStyle).canvas, 
+								px-sch, py-sch, sc, sc);
+						break;
+						case 1:
+							ctx.drawImage(sprites.recolor(moteSprite, moteCenterGreenFillStyle).canvas, 
+								px-sch, py-sch, sc, sc);
+						break;
+						case 2:
+							ctx.drawImage(sprites.recolor(moteSprite, moteCenterBlueFillStyle).canvas, 
+								px-sch, py-sch, sc, sc);
+						break;
+					}
+					ctx.globalCompositeOperation = "lighter";
+				}
+				ctx.drawImage(sprites.recolor(moteSprite, moteCenterFillStyle).canvas, 
+					px-swh, py-swh, sw, sw);
 				if(DEBUG_DRAW && entity.target) {
 					speed = entity.speed;
 					tx = screenSpace(entity.target.x) * W;
@@ -178,8 +202,10 @@ const drawEntities = (function() {
 			} // end mote draw
 			else if(entity instanceof Photon) {
 				sprite = photonSprites[entity.color];
-				sc = sprite.pixelSize;
-				sch = ~~(sc*0.5);
+				sc = sprite.pixelSize * cos(frameCount*0.2);
+				sch = sc*0.5;
+				sc = ~~(sc);
+				sch = ~~(sch);
 				ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
 			} // end photon draw
 		}
@@ -187,6 +213,9 @@ const drawEntities = (function() {
 	}
 })();
 
+/**
+ * Draws a colored circle.
+ */
 function drawCircle(ctx, x, y, size, color) {
 	ctx.globalCompositeOperation = "source-over";
 	ctx.beginPath();
@@ -196,15 +225,22 @@ function drawCircle(ctx, x, y, size, color) {
 	ctx.closePath();
 }
 
+/**
+ * Composites game layers onto the display canvas.
+ */
 function composite() {
 	displayCtx.clearRect(0, 0, W, H);
 	displayCtx.globalCompositeOperation = "source-over";
-	displayCtx.drawImage(bgCanvas, 0, 0);
+	displayCtx.drawImage(bgCanvas, 0, 0, W, H);
 	displayCtx.globalCompositeOperation = "lighter";
 	displayCtx.drawImage(bokehCanvas, 0, 0);
 	displayCtx.drawImage(gameCanvas, 0, 0);
 }
 
+/**
+ * Creates debug markers on screen to show the center, top, left, bottom, right, topleft
+ * and topright extremes of the main game area.
+ */
 function debugMarkers(ctx) {
 	drawCircle(ctx, 0.0, 0.0, 10, "gray");
 	drawCircle(ctx, -1.0, 0.0, 10, "green");
@@ -215,6 +251,9 @@ function debugMarkers(ctx) {
 	drawCircle(ctx, -1.0, -1.0, 10, "brown");
 }
 
+/**
+ * Main animation loop.
+ */
 function animate() {
 	requestAnimationFrame(animate);
 	let now = Date.now();
@@ -230,6 +269,9 @@ function animate() {
 	}
 }
 
+/**
+ * Initializes a game session and starts animation.
+ */
 export function setup() {
 	startTime = Date.now();
 	lastFrame = startTime;
@@ -238,6 +280,9 @@ export function setup() {
 	animating = true;
 }
 
+/**
+ * Sets up a canvas draw buffer Defaults to offscreen unless a container is supplied.
+ */
 export function initCtx(id, container) {
 	let canvas = document.createElement("canvas");
 	canvas.id = id;
@@ -252,6 +297,9 @@ export function initCtx(id, container) {
 	}
 }
 
+/**
+ * Initializes game environment.
+ */
 export function init(env) {
 	game = env;
 	body = document.getElementsByTagName("body")[0];
@@ -284,6 +332,9 @@ export function init(env) {
 	}
 }
 
+/**
+ * Starts up the game.
+ */
 function startGame() {
 	GAME_STARTED = true;
 	game.start();

@@ -1,7 +1,7 @@
 "use strict";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
 import {drag} from "./photonomix.util";
-import {TARGET_FPS, GLOBAL_DRAG} from "./photonomix.constants";
+import {GLOBAL_DRAG, PHOTON_LIFETIME} from "./photonomix.constants";
 let {vec2, times} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
 
@@ -17,7 +17,7 @@ export function Photon(ipos, ivel, color, buffer, offset = 0) {
 	let vel = this.vel = vec2(ivel, buffer, O_VEL+offset);
 	pos.set(ipos);
 	vel.set(ivel);
-	let lifetime = TARGET_FPS*5;
+	let lifetime = PHOTON_LIFETIME;
 
 	Object.defineProperties(this, {
 		"x": {get:() => pos[0], set:(x) => pos[0] = x},

@@ -2,15 +2,15 @@
 let {random, max, min} = Math;
 import {TARGET_FPS, WEIGHT_PRED_R, WEIGHT_PRED_G, MOTE_BASE_SPEED,
 				WEIGHT_PRED_B, MOTE_BASE_SIZE, MOTE_BASE_ALPHA, PREGNANT_THRESHOLD, 
-				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME} from "./photonomix.constants";
+				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG} from "./photonomix.constants";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
 import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, limitVecMut} from "./photonomix.util";
-const {vec2, vec4, times, mut_clamp, magnitude, distance} = vectrix.vectors;
+const {vec2, vec4, times, mut_clamp, magnitude, distance, mut_copy, mut_times} = vectrix.vectors;
 const {plus, mut_plus} = vectrix.matrices;
 import {Photon, COLOR_R, COLOR_B, COLOR_G} from "./photonomix.photons";
 const clamp = mut_clamp;
 
-const R = 0, G = 1, B = 2, A = 3, X = 0, Y = 1, FV = 3;
+const R = 0, G = 1, B = 2, A = 3, FV = 3;
 const POS_C  = vec2(0.0, 0.0); //vec2(0.5, 0.5);
 let rat_r = 0.0, rat_g = 0.0, rat_b = 0.0;
 
@@ -18,29 +18,23 @@ const I8 = 1;
 const F32 = 4;
 
 /**
- * Determines the food value of object b to mote a. Roughly, a mote prefers to eat
+ * Determines the food value of object b to mote a. Roughly, a mote prefers to eat 
  * photons and other motes unlike itself, and prefers objects smaller than itself
  * than those that are larger. Red motes are weighted to be the most predatory,
  * and green motes are weighted to be the least.
  */
 const foodValue = (function() {
-	let fv_strongest = 0.0, pa, pb, asize = 0.0, bsize = 0.0;
+	let fv_strongest = 0.0, asize = 0.0, bsize = 0.0;
 	const FV_SCRATCH = new Float32Array(4);
 	return function foodValue(a, b) {
-		pa = a.photons;
-		pb = b.photons;
 		asize = a.size;
 		bsize = b.size;
 
-		// size = 1 is a photon, so it doesn't eat
-		if(asize === 1) return 0;
-		// photons always have weight = 1
-		if(bsize === 1) return 1;
 		// find the strongest color; this helps determine behavior
-		fv_strongest = max(pa[R], pa[G], pa[B]);
-		FV_SCRATCH[R] = ratio(pb[R], pa[R]);
-		FV_SCRATCH[G] = ratio(pb[G], pa[G]);
-		FV_SCRATCH[B] = ratio(pb[B], pa[B]);
+		fv_strongest = max(a.r, a.g, a.b);
+		FV_SCRATCH[R] = ratio(b.r, a.r);
+		FV_SCRATCH[G] = ratio(b.g, a.g);
+		FV_SCRATCH[B] = ratio(b.b, a.b);
 		FV_SCRATCH[FV] = 1;
 		// this should apply multiple behavior weights when the mote is a hybrid
 		switch(fv_strongest) {
@@ -63,19 +57,22 @@ const foodValue = (function() {
 const O_PHO = 0; 
 const U8_VAL_LENGTH = O_PHO + I8*3;
 const I8_BYTE_OFFSET = U8_VAL_LENGTH;
-// int8 values =  dead, pregnant, stuck, scared, full, handedness, pulse
-const	O_DEAD = 0,
-	O_PREG = O_DEAD + I8,
-	O_STUCK = O_PREG + I8,
-	O_SCARED = O_STUCK + I8,
+// int8 values =  dying, pregnant, injured, scared, full, lastMeal, pulse
+const	O_DYING = 0,
+	O_PREG = O_DYING + I8,
+	O_INJURED = O_PREG + I8,
+	O_LAST_INJURY = O_INJURED + I8,
+	O_SCARED = O_LAST_INJURY + I8,
 	O_FULL = O_SCARED + I8,
-	O_HAND = O_FULL + I8,
-	O_PULSE = O_HAND + I8;
+	O_MEAL = O_FULL + I8,
+	O_PULSE = O_MEAL + I8;
 
 const I8_VAL_LENGTH = O_PULSE + I8;
 
-// float32 values = p[3], v[3], color[4], size, sizeMin, sizeMax, speed, sight, eat, flee
-const VECS_BYTE_OFFSET = U8_VAL_LENGTH + I8_VAL_LENGTH + ((U8_VAL_LENGTH + I8_VAL_LENGTH) % 4), // float32 offsets must be multiples of 4
+const I_VALS_LENGTH = U8_VAL_LENGTH + I8_VAL_LENGTH;
+
+// float32 values = p[3], v[3], color[4], size, sizeMin, sizeMax, speed, sight, agro, fear
+const VECS_BYTE_OFFSET = I_VALS_LENGTH + (F32-(I_VALS_LENGTH % F32)), // float32 offsets must be multiples of 4
 	// from here on, increments of value * 4
 	// vectors
 	O_POS = 0,
@@ -89,22 +86,55 @@ const VEC_VAL_LENGTH = O_COL + 4,
 	O_SIZE_MAX = O_SIZE_MIN + 1,
 	O_SPEED = O_SIZE_MAX + 1,
 	O_SIGHT = O_SPEED + 1,
-	O_EAT = O_SIGHT + 1,
-	O_FLEE = O_EAT + 1;
+	O_AGRO = O_SIGHT + 1,
+	O_FEAR = O_AGRO + 1;
 
-const FLOAT_VAL_LENGTH = O_FLEE - O_SIZE + 1;
-const B_LENGTH = O_FLOATS_BYTE_OFFSET + (O_FLEE + 1)*F32;
+const FLOAT_VAL_LENGTH = O_FEAR - O_SIZE + 1;
+export const B_LENGTH = O_FLOATS_BYTE_OFFSET + (O_FEAR + 1)*F32;
 twiddleVec(POS_C);
 console.log(POS_C);
 let ud_sum = 0.0;
 
-
-
-export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_speed = MOTE_BASE_SPEED, b_sight = 0.1, b_eat = 1.0, b_flee = 1.0) {
+/**
+ * Constructor for Motes.
+ * @param {Float32Array(3)} photons initial photons (0-255, R, G, B)
+ * @param {vec2} pos initial position
+ * @param {Float} bSpeed (optional) base acceleration: inheritance and predesigned motes 
+ * @param {Float} bSight (optional) base vision radius: inheritance and predesigned motes 
+ * @param {Float} bAgro (optional) base aggressiveness: inheritance and predesigned motes 
+ * @param {Float} bFear (optional) base fearfulness: inheritance and predesigned motes 
+ * @param {ArrayBuffer(Motes.B_LENGTH)} buffer (optional) pre-assigned buffer
+ * @property {vec2} pos position vector
+ * @property {vec2} vel velocity vector
+ * @property {Uint8} r red photon value (setter updates values and derived props)
+ * @property {Uint8} g green photon value (setter updates value and derived props)
+ * @property {Uint8} b blue photon value (setter updates value and derived props)
+ * @property {string} color_string rgba color string, used for drawing in 2d
+ * @property {Int8} dying counter from 1 to DEATH_THRESHOLD when a mote is dying
+ * @property {Int8} pregnant coundown from PREGNANT_DURATION when a mote is pregnant
+ * @property {Int8} injured injury counter, counts down in mote.bleed
+ * @property {Int8} lastInjury strength of most recent injury taken
+ * @property {Int8} scared timer for fleeing after injury
+ * @property {Int8} full timer after eating before hungry again
+ * @property {Int8} pulse frame offset for pulse animation
+ * @property {Int8} lastMeal color value for last meal (see R, G, B constants)
+ * @property {Float32} speed derived acceleration speed based on Mote properties
+ * @property {Float32} sight derived vision radius based on Mote properties 
+ * @property {Float32} agro derived aggression factor based on Mote properties 
+ * @property {Float32} fear derived fearfulness factor based on Mote properties 
+ * @property {Float32} size derived size radius as fraction of screen size
+ * @property {Float32} sizeMin minimum size the mote can reach as it shrinks
+ * @property {Float32} sizeMax maximum size the mote can reach as it grows
+ * @property {Uint8Array} photons current photon values (R, G, B) (for debug)
+ * @property {Int8Array} intVals direct access to integer value array (for debug)
+ * @property {Float32Array} floatVals direct access to float value array (for debug)
+ * @return {Mote}
+ */
+export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), bSpeed = MOTE_BASE_SPEED, bSight = 0.1, bAgro = 1.0, bFear = 1.0, buffer = undefined) {
 	// "private" properties
 	// use a single buffer for properties so that they're guaranteed to be contiguous
 	// in memory and typed
-	let buffer = new ArrayBuffer(B_LENGTH);
+	buffer = buffer||new ArrayBuffer(B_LENGTH);
 	let photons = new Uint8Array(buffer, O_PHO, I8*3);
 	photons[R] = _photons[R];
 	photons[G] = _photons[G];
@@ -116,34 +146,58 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 	this.vel = vec2(0.0, 0.0, buffer, O_VEL*F32+VECS_BYTE_OFFSET);
 	this.target = undefined;
 	this.color_string = "";
-	this.transparent_string = "";
+	this.strongest = 0;
+	this.weakest = 0;
 
 	floatVals[O_SIZE_MAX] = MOTE_BASE_SIZE*3;
-	floatVals[O_SIZE_MIN] = MOTE_BASE_SIZE*0.25;
-	b_speed = b_speed+adjRand(0.0005);
-	b_sight = b_sight+adjRand(0.001); // vision distance
-	b_eat = b_eat+adjRand(0.001);
-	b_flee = b_flee+adjRand(0.001);
+	floatVals[O_SIZE_MIN] = MOTE_BASE_SIZE*0.5;
+	bSpeed = bSpeed+adjRand(0.0005);
+	bSight = bSight+adjRand(0.001); // vision distance
+	bAgro = bAgro+adjRand(0.001);
+	bFear = bFear+adjRand(0.001);
 
 	function updateProperties(that) {
 		ud_sum = photons[R] + photons[G] + photons[B];
-		floatVals[O_SIZE] = clamp(ud_sum/64*MOTE_BASE_SIZE, floatVals[O_SIZE_MIN], floatVals[O_SIZE_MAX]);
+		floatVals[O_SIZE] = clamp(ud_sum/(PREGNANT_THRESHOLD/3)*MOTE_BASE_SIZE, floatVals[O_SIZE_MIN], floatVals[O_SIZE_MAX]);
 		rat_r = ratio(photons[R], photons[G]+photons[B]);
 		rat_g = ratio(photons[G], photons[R]+photons[B]);
 		rat_b = ratio(photons[B], photons[G]+photons[R]);
-		that.speed = b_speed*((1+rat_b+rat_r)-that.size);
-		that.sight = b_sight*(1+rat_b);
-		that.eat = b_eat*(1+rat_b);
-		that.flee = b_flee*(1+rat_g);
+		that.speed = bSpeed*((1+rat_b+rat_r)-that.size);
+		that.sight = bSight*(1+rat_b);
+		that.agro = bAgro*(1+rat_b);
+		that.fear = bFear*(1+rat_g);
+		switch(max(photons[R], photons[G], photons[B])) {
+			case photons[R]:that.strongest = R; break;
+			case photons[G]:that.strongest = G; break;
+			case photons[B]:that.strongest = B; break;
+		}
+		if(photons[R] < photons[G]) {
+			if(photons[R] < photons[B]) {
+				if(photons[R] > 5) that.weakest = R;
+				else if(photons[B] < photons[G]) {
+					if(photons[B] > 5) that.weakest = B;
+				}
+				else if(photons[G] > 5) that.weakest = G;
+			}
+			else if(photons[B] > 5) that.weakest = B;
+		}
+		else if(photons[G] < photons[B]) {
+			if(photons[G] > 5) that.weakest = G;
+			else if(photons[B] < photons[R]) {
+				if(photons[R] > 5) that.weakest = R;
+				else that.weakest = B;
+			}
+		}
+		else if(photons[B] > 5) that.weakest = B;
+		else that.weakest = G;
 
 		if(ud_sum > PREGNANT_THRESHOLD) that.pregnant = PREGNANT_TIME;
-		if(ud_sum < DEATH_THRESHOLD) that.dead = true;
+		if(ud_sum < DEATH_THRESHOLD) that.dying = 1;
 
 		color[R] = ~~(photons[R]/ud_sum*255);
 		color[G] = ~~(photons[G]/ud_sum*255);
-		color[B] = ~~(photons[B]/ud_sum*128);
+		color[B] = ~~(photons[B]/ud_sum*255);
 		that.color_string = "rgba("+(color[R])+","+color[G]+","+color[B]+","+color[A]+")";
-		that.transparent_string = "rgba("+(color[R])+","+color[G]+","+color[B]+",0.0)";
 	}
 
 	function setPhoton(v, n, that) {
@@ -152,50 +206,50 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
 	}
 
 	Object.defineProperties(this, {
-		"x":{get: () => this.pos[X], set: (v) => this.pos[X] = v},
-		"y":{get: () => this.pos[Y], set: (v) => this.pos[Y] = v},
-		"velX":{get: () => this.vel[X], set: (v) => this.vel[X] = v},
-		"velY": {get: () => this.vel[Y], set: (v) => this.vel[Y] = v},
-		"photons":{get: () => photons},
 		"r":{get: () => photons[R], set: (v) => setPhoton(v, R, this)},
 		"g":{get: () => photons[G], set: (v) => setPhoton(v, G, this)},
 		"b":{get: () => photons[B], set: (v) => setPhoton(v, B, this)},
-		"dead":{get: () => intVals[O_DEAD], set: (v) => intVals[O_DEAD] = v},
+		"dying":{get: () => intVals[O_DYING], set: (v) => intVals[O_DYING] = v},
 		"pregnant":{get: () => intVals[O_PREG], set: (v) => intVals[O_PREG] = v},
-		"stuck":{get: () => intVals[O_STUCK], set: (v) => intVals[O_STUCK] = v},
+		"injured":{get: () => intVals[O_INJURED], set: (v) => intVals[O_INJURED] = v},
+		"lastInjury":{get: () => intVals[O_LAST_INJURY], set: (v) => intVals[O_LAST_INJURY] = v},
 		"scared":{get: () => intVals[O_SCARED], set: (v) => intVals[O_SCARED] = v},
 		"full":{get: () => intVals[O_FULL], set: (v) => intVals[O_FULL] = v},
 		"pulse":{get: () => intVals[O_PULSE], set: (v) => intVals[O_PULSE] = v},
-		"handedness":{get: () => intVals[O_HAND], set: (v) => intVals[O_HAND] = v},
+		"lastMeal":{get: () => intVals[O_MEAL], set: (v) => intVals[O_MEAL] = v},
 		"speed":{get: () => floatVals[O_SPEED], set: (v) => floatVals[O_SPEED] = v},
 		"sight":{get: () => floatVals[O_SIGHT], set: (v) => floatVals[O_SIGHT] = v},
-		"eat":{get: () => floatVals[O_EAT], set: (v) => floatVals[O_EAT] = v},
-		"flee":{get: () => floatVals[O_FLEE], set: (v) => floatVals[O_FLEE] = v},
-		"base_speed":{get: () => b_speed},
-		"base_sight":{get: () => b_sight},
-		"base_eat":{get: () => b_eat},
-		"base_flee":{get: () => b_flee},
+		"agro":{get: () => floatVals[O_AGRO], set: (v) => floatVals[O_AGRO] = v},
+		"fear":{get: () => floatVals[O_FEAR], set: (v) => floatVals[O_FEAR] = v},
 		"size":{get: () => floatVals[O_SIZE]},
 		"sizeMin":{get: () => floatVals[O_SIZE_MIN]},
 		"sizeMax":{get: () => floatVals[O_SIZE_MAX]},
-		/*
-		 * DEBUG USE
-		 */
+		"base_speed":{get: () => bSpeed},
+		"base_sight":{get: () => bSight},
+		"base_agro":{get: () => bAgro},
+		"base_fear":{get: () => bFear}
+	});
+	/*
+	 * Debug access only.
+	 */
+	if(DEBUG) Object.defineProperties(this, {
+		"photons":{get: () => photons},
 		"intVals":{get: () => intVals},
 		"floatVals":{get: () => floatVals},
 	});
 
-	// initialize weights for various activities
-	this.dead = false;
+	// initialize values, important to do since buffer may be reused
+	this.dying = 0;
 	this.pregnant = 0;
-	this.stuck = 0;
+	this.injured = 0;
+	this.lastInjury = 0;
 	this.scared = 0;
 	this.full = 0;
-	this.speed = b_speed;
-	this.sight = b_sight;
-	this.eat = b_eat;
-	this.flee = b_flee;
-	this.handedness = posneg();
+	this.speed = bSpeed;
+	this.sight = bSight;
+	this.agro = bAgro;
+	this.fear = bFear;
+	this.lastMeal = R;
 	this.pulse = ~~(TARGET_FPS*random());
 	floatVals[O_SIZE] = MOTE_BASE_SIZE;
 
@@ -208,12 +262,12 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), b_
  * @param Array surrounding array of nearby objects to consider in movement
  * @param Float delta time delta
  */
-let vel, size, sight, speed, eat, flee, tmp2 = vec2(),
+let vel, size, sight, speed, agro, fear, tmp2 = vec2(),
 	tmpvec = vec2(), weight, mainTarget, predicted = vec2(), 
 	highestWeight, mainTargetDist, a_dist, food, scary, 
-	a_i, a_len, current, handedness, pos, handling;
+	a_i, a_len, current, pos, handling;
 Mote.prototype.tick = function(surrounding, delta) {
-	({pos, vel, size, sight, speed, eat, flee, handedness} = this);
+	({pos, vel, size, sight, speed, agro, fear} = this);
 	// decrement counters
 	if(this.full > 0) this.full--;
 	if(this.scared > 0) this.scared--;
@@ -257,8 +311,8 @@ Mote.prototype.tick = function(surrounding, delta) {
 				if(a_dist  > sight) continue;
 				food = foodValue(this, current)||0;
 				scary = foodValue(current, this)||0;
-				// move value is the weighted difference between food and flee values
-				weight = a_dist*(food*eat - scary*flee);
+				// move value is the weighted difference between food and fear values
+				weight = a_dist*(food*agro - scary*fear);
 				if(weight > highestWeight) {
 					highestWeight = weight;
 					mainTarget = current;
@@ -280,9 +334,9 @@ Mote.prototype.tick = function(surrounding, delta) {
 			mut_plus(vel, accelerate(predicted, pos, -handling, tmpvec));
 			mut_plus(vel, accelerate(pos, predicted, speed, tmpvec));
 			if(mainTarget instanceof Photon) {
-				// multiplied by flee to give greens an advantage in eating
-				if(a_dist < size*flee) this.eatPhoton(current);
-				//else mut_plus(mainTarget.vel, accelerate(mainTarget.pos, pos, handling*flee, tmpvec)); 
+				// multiplied by fear to give greens an advantage in agroing
+				if(a_dist < size*fear) this.eatPhoton(current);
+				//else mut_plus(mainTarget.vel, accelerate(mainTarget.pos, pos, handling*fear, tmpvec)); 
 			}
 			else if(mainTarget instanceof Mote) {
 				if(distance(pos, mainTarget.pos) < (size+mainTarget.size)/2) this.bite(mainTarget);
@@ -296,71 +350,59 @@ Mote.prototype.tick = function(surrounding, delta) {
 	}
 }
 
-Mote.prototype.bite = (function() {
-	let i = 0, m = 5, bite_strongest;
-	return function bite(mote) {
-		for(i = 0; i < m; ++i) {
-			bite_strongest = max(this.r, this.g, this.b);
-			switch(bite_strongest) {
-				case this.r: 
-					if(mote.g > mote.b && mote.g) {
-						mote.g--;
-						this.g++;
-					}
-					else if(mote.b > mote.g && mote.b) {
-						mote.b--;
-						this.b++;
-					}
-					else if(mote.r) {
-						mote.r--;
-						this.r++;
-					}
-				break;
-				case this.b: 
-					if(mote.g > mote.r && mote.g) {
-						mote.g--;
-						this.g++;
-					}
-					else if(mote.r > mote.g && mote.r) {
-						mote.r--;
-						this.r++;
-					}
-					else if(mote.b) {
-						mote.b--;
-						this.b++;
-					}
-				break;
-				case this.g: 
-					if(mote.r > mote.b && mote.r) {
-						mote.r--;
-						this.r++;
-					}
-					else if(mote.b > mote.r && mote.b) {
-						mote.b--;
-						this.b++;
-					}
-					else if(mote.g) {
-						mote.g--;
-						this.g++;
-					}
-				break;
+Mote.prototype.bite = function(mote) {
+	mote.injure(this, ~~(this.agro));
+	this.target = undefined;
+}
+
+Mote.prototype.injure = function(by, strength) {
+	this.injured += strength;
+	this.lastInjury = strength;
+	this.target = by;
+	this.scared = ~~(TARGET_FPS*0.5*strength*this.fear);
+}
+
+/**
+ * Decrements injury, returns a photon to be emitted. Time and max are used to
+ * determine 
+ */
+Mote.prototype.bleed = (function() {
+	let pos, pvel = vec2(0.0), choice = 0|0, choiceVal = 0|0;
+	return function bleed() {
+		({pos, vel} = this);
+		this.injured--;
+		// randomly select a photon to emit
+		do {
+			choice = ~~(random()*3);
+			switch(choice) {
+				case R: choiceVal = this.r; break;
+				case G: choiceVal = this.g; break;
+				case B: choiceVal = this.b; break;
 			}
+		} while (choiceVal === 0);
+		
+		switch(choice) {
+			case R: this.r--; break;
+			case G: this.g--; break;
+			case B: this.b--; break;
 		}
-		mote.scared = ~~(TARGET_FPS*2*(1/mote.flee));
-		this.full = ~~(TARGET_FPS*2*(1/this.eat));
-		this.target = undefined;
-		mote.target = this;
+		mut_copy(pvel, vel);
+		mut_times(pvel, 0.4);
+		return new Photon(pos, pvel, choice);
 	}
 })();
 
 Mote.prototype.eatPhoton = function(photon) {
-	photon.lifetime = 0;
-	switch(photon.color) {
-		case COLOR_R: this.r+=1; break;
-		case COLOR_G: this.g+=1; break;
-		case COLOR_B: this.b+=1; break;
+	if(photon.lifetime > 0) {
+		photon.lifetime = 0;
+		switch(photon.color) {
+			case COLOR_R: this.r+=1; break;
+			case COLOR_G: this.g+=1; break;
+			case COLOR_B: this.b+=1; break;
+		}
+		this.lastMeal = photon.color;
+		this.full = ~~((TARGET_FPS/5)*(1/this.agro));
 	}
-	this.full = ~~((TARGET_FPS/10)*(1/this.eat));
 	this.target = undefined;
 }
 
@@ -369,5 +411,3 @@ Mote.random = function() {
 	while(magnitude(pos) > 0.8) pos = [random()*posneg(), random()*posneg()];
 	return new Mote([~~(random()*64), ~~(random()*64), ~~(random()*64)], pos);
 }
-
-
