@@ -1,5 +1,5 @@
 "use strict";
-let {random, max, min} = Math;
+let {random, max, min, floor, ceil} = Math;
 import {TARGET_FPS, WEIGHT_PRED_R, WEIGHT_PRED_G, MOTE_BASE_SPEED,
 				WEIGHT_PRED_B, MOTE_BASE_SIZE, MOTE_BASE_ALPHA, PREGNANT_THRESHOLD, 
 				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG} from "./photonomix.constants";
@@ -361,6 +361,23 @@ Mote.prototype.injure = function(by, strength) {
 	this.target = by;
 	this.scared = ~~(TARGET_FPS*0.5*strength*this.fear);
 }
+
+Mote.prototype.split = (function() {
+	let baby;
+	return function() {
+		baby = new Mote([floor(this.r/2), floor(this.g/2), floor(this.b/2)], this.pos, this.base_speed, this.base_sight, this.base_agro, this.base_fear);
+		this.r = ceil(this.r/2);
+		this.g = ceil(this.g/2);
+		this.b = ceil(this.b/2);
+		this.scared = TARGET_FPS*2;
+		baby.scared = TARGET_FPS*2;
+		this.pregnant = PREGNANT_TIME-1;
+		baby.pregnant = PREGNANT_TIME-1;
+		this.target = baby;
+		baby.target = this;
+		return baby;
+	}
+})();
 
 /**
  * Decrements injury, returns a photon to be emitted. Time and max are used to

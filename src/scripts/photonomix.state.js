@@ -1,11 +1,12 @@
 "use strict";
 import {Mote} from "./photonomix.motes";
 import {Photon} from "./photonomix.photons";
-import {rotate} from "./photonomix.util";
+import {shuffle, rotate} from "./photonomix.util";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
 const {vec2, mut_copy} = vectrix.vectors;
-import {TARGET_FPS, START_POP, MAX_POP, PREGNANT_TIME} from "./photonomix.constants";
-let {random, floor, ceil} = Math;
+import {TARGET_FPS, START_POP, MAX_POP, PREGNANT_TIME, DEATH_THRESHOLD} 
+	from "./photonomix.constants";
+let {random} = Math;
 
 const marks = new Int32Array(MAX_POP);
 let markpos = 0;
@@ -29,66 +30,61 @@ State.prototype.start = function() {
 	}
 }
 
-State.prototype.tick = function(delta, frameCount) {
-	let entities = this.entities;
-	this.stats.hungry = 0;
-	this.stats.scared = 0;
-	this.stats.target = 0;
-	this.stats.pop = 0;
-	let tick_delta = delta/TARGET_FPS;
-	for(let i = 0, len = entities.length, entity, baby; i < len; ++i) {
-		entity = entities[i];
-		entity.tick(this.entities, tick_delta);
-		// do mote-specific stuff
-		if(entity instanceof Mote) {
-			this.stats.pop++;
-			if(!entity.full) this.stats.hungry++;
-			if(entity.scared) this.stats.scared++;
-			if(entity.target) this.stats.target++;
-			if(entity.injured && (frameCount % (TARGET_FPS*2) === 0)) {
-				this.entities.push(entity.bleed());
+State.prototype.tick = (function() {
+	let entities, entity, i = 0|0, len = 0|0, tick_delta = 0.0;	
+	return function(delta, frameCount) {
+		entities = this.entities;
+		this.stats.hungry = 0;
+		this.stats.scared = 0;
+		this.stats.target = 0;
+		this.stats.pop = 0;
+		tick_delta = delta/TARGET_FPS;
+		for(i = 0, len = entities.length; i < len; ++i) {
+			entity = entities[i];
+			entity.tick(this.entities, tick_delta);
+			// do mote-specific stuff
+			if(entity instanceof Mote) {
+				this.stats.pop++;
+				if(!entity.full) this.stats.hungry++;
+				if(entity.scared) this.stats.scared++;
+				if(entity.target) this.stats.target++;
+				if(entity.injured && (frameCount % (TARGET_FPS*2) === 0)) {
+					this.entities.push(entity.bleed());
+				}
+				// mark dead for removal
+				if(entity.dying === DEATH_THRESHOLD) {
+					this.killMote(entity);
+					marks[markpos] = i;
+					this.stats.died++;
+					markpos++;
+				}
+				else if(entity.dying) {
+				}
+				else if(entity.pregnant === PREGNANT_TIME) {
+					this.entities.push(entity.split());
+					this.stats.born++;
+				}
 			}
-			// mark dead for removal
-			if(entity.dying) {
-				this.killMote(entity);
-				marks[markpos] = i;
-				this.stats.died++;
-				markpos++;
-			}
-			else if(entity.pregnant === PREGNANT_TIME) {
-				baby = new Mote([floor(entity.r/2), floor(entity.g/2), floor(entity.b/2)], entity.pos, entity.base_speed, entity.base_sight, entity.base_agro, entity.base_fear);
-				entity.r = ceil(entity.r/2);
-				entity.g = ceil(entity.g/2);
-				entity.b = ceil(entity.b/2);
-				entity.scared = TARGET_FPS*2;
-				baby.scared = TARGET_FPS*2;
-				entity.pregnant = PREGNANT_TIME-1;
-				baby.pregnant = PREGNANT_TIME-1;
-				entity.target = baby;
-				baby.target = entity;
-				this.entities.push(baby);
-				this.stats.born++;
-			}
-		}
-		else if(entity instanceof Photon) {
-			if(entity.lifetime > 0) entity.lifetime--;
-			else {
-				marks[markpos] = i;
-				markpos++;
+			else if(entity instanceof Photon) {
+				if(entity.lifetime > 0) entity.lifetime--;
+				else {
+					marks[markpos] = i;
+					markpos++;
+				}
 			}
 		}
-	}
 
-	// sweep dead
-	while(markpos > 0) {
-		markpos--;
-		entities.splice(marks[markpos], 1);
-		marks[markpos] = 0;
-	}
+		// sweep dead
+		while(markpos > 0) {
+			markpos--;
+			entities.splice(marks[markpos], 1);
+			marks[markpos] = 0;
+		}
 
-	// shuffling helps action lock issues
-	shuffle(entities);
-}
+		// shuffling helps action lock issues
+		shuffle(entities);
+	}
+})();
 
 State.prototype.emitPhoton = (function() {
 	let pos = vec2(), vel = vec2(), center = vec2(), p_c = 0, 
@@ -117,14 +113,3 @@ State.prototype.killMote = (function() {
 		}
 	}
 })();
-
-/**
-* Shuffles array in place. ES6 version
-* @param {Array} a items The array containing the items.
-*/
-function shuffle(a) {
-	for (let i = a.length; i; i--) {
-		let j = Math.floor(Math.random() * i);
-		[a[i - 1], a[j]] = [a[j], a[i - 1]];
-	}
-}

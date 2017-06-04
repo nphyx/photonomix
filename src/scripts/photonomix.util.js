@@ -282,3 +282,16 @@ export function clamp(v, minv, maxv) {
 export function ratio(a, b) { return a/(abs(a)+abs(b)) }
 export function rat_vec2(v) { return ratio(v[X], v[Y]) }
 
+/**
+* Shuffles array in place. ES6 version
+* @param {Array} a items The array containing the items.
+*/
+export const shuffle = (function() {
+	let i = 0|0, j = 0|0;
+	return function shuffle(a) {
+		for (i = a.length; i; i--) {
+			j = Math.floor(Math.random() * i);
+			[a[i - 1], a[j]] = [a[j], a[i - 1]];
+		}
+	}
+})();
