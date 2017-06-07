@@ -1,12 +1,15 @@
 "use strict";
 import {Mote} from "./photonomix.motes";
+import * as markers from "./photonomix.markers";
 import {Photon} from "./photonomix.photons";
 import {shuffle, rotate} from "./photonomix.util";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
-const {vec2, mut_copy} = vectrix.vectors;
-import {TARGET_FPS, START_POP, MAX_POP, PREGNANT_TIME, DEATH_THRESHOLD} 
+const {plus, mut_plus} = vectrix.matrices;
+const {vec2, mut_copy, times, mut_times} = vectrix.vectors;
+import {TARGET_FPS, START_POP, MAX_POP, PREGNANT_TIME, DEATH_THRESHOLD, MARKER_HIT_LIFETIME} 
 	from "./photonomix.constants";
 let {random} = Math;
+const Marker = markers.Marker;
 
 const marks = new Int32Array(MAX_POP);
 let markpos = 0;
@@ -32,6 +35,7 @@ State.prototype.start = function() {
 
 State.prototype.tick = (function() {
 	let entities, entity, i = 0|0, len = 0|0, tick_delta = 0.0;	
+	let preda = vec2(), predb = vec2(), tmpvec = vec2();
 	return function(delta, frameCount) {
 		entities = this.entities;
 		this.stats.hungry = 0;
@@ -48,8 +52,22 @@ State.prototype.tick = (function() {
 				if(!entity.full) this.stats.hungry++;
 				if(entity.scared) this.stats.scared++;
 				if(entity.target) this.stats.target++;
-				if(entity.injured && (frameCount % (TARGET_FPS*2) === 0)) {
-					this.entities.push(entity.bleed());
+				if(entity.injured) {
+				/*
+					if(entity.injured === entity.lastInjury) {
+						entity.lastInjury = 0;
+						plus(entity.pos, times(entity.vel, tick_delta, tmpvec), preda);
+						if(entity.target) { // sometimes target drops before we get to do this
+							plus(entity.target.pos, times(entity.target.vel, tick_delta, tmpvec), predb);
+							mut_plus(preda, predb);
+							mut_times(preda, 0.5);
+						}
+						this.entities.push(new Marker(markers.MARKER_HIT, preda, MARKER_HIT_LIFETIME));
+					}
+						*/
+					if(frameCount % (TARGET_FPS*0.5) === 0) {
+						this.entities.push(entity.bleed());
+					}
 				}
 				// mark dead for removal
 				if(entity.dying === DEATH_THRESHOLD) {
@@ -65,9 +83,8 @@ State.prototype.tick = (function() {
 					this.stats.born++;
 				}
 			}
-			else if(entity instanceof Photon) {
-				if(entity.lifetime > 0) entity.lifetime--;
-				else {
+			else if(entity instanceof Photon || entity instanceof Marker) {
+				if(entity.lifetime <= 0) {
 					marks[markpos] = i;
 					markpos++;
 				}
@@ -81,7 +98,7 @@ State.prototype.tick = (function() {
 			marks[markpos] = 0;
 		}
 
-		// shuffling helps action lock issues
+		// shuffling helps action lock issues and reduces first in list advantage
 		shuffle(entities);
 	}
 })();

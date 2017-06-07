@@ -5,7 +5,7 @@ import {TARGET_FPS, WEIGHT_PRED_R, WEIGHT_PRED_G, MOTE_BASE_SPEED,
 				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG} from "./photonomix.constants";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
 import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, limitVecMut} from "./photonomix.util";
-const {vec2, vec4, times, mut_clamp, magnitude, distance, mut_copy, mut_times} = vectrix.vectors;
+const {vec2, vec4, times, mut_clamp, magnitude, distance, mut_copy, mut_times, cross} = vectrix.vectors;
 const {plus, mut_plus} = vectrix.matrices;
 import {Photon, COLOR_R, COLOR_B, COLOR_G} from "./photonomix.photons";
 const clamp = mut_clamp;
@@ -125,7 +125,7 @@ let ud_sum = 0.0;
  * @property {Float32} size derived size radius as fraction of screen size
  * @property {Float32} sizeMin minimum size the mote can reach as it shrinks
  * @property {Float32} sizeMax maximum size the mote can reach as it grows
- * @property {Uint8Array} photons current photon values (R, G, B) (for debug)
+ * @property {UintClamped8Array} photons current photon values (R, G, B) (for debug)
  * @property {Int8Array} intVals direct access to integer value array (for debug)
  * @property {Float32Array} floatVals direct access to float value array (for debug)
  * @return {Mote}
@@ -135,7 +135,7 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), bS
 	// use a single buffer for properties so that they're guaranteed to be contiguous
 	// in memory and typed
 	buffer = buffer||new ArrayBuffer(B_LENGTH);
-	let photons = new Uint8Array(buffer, O_PHO, I8*3);
+	let photons = new Uint8ClampedArray(buffer, O_PHO, I8*3);
 	photons[R] = _photons[R];
 	photons[G] = _photons[G];
 	photons[B] = _photons[B];
@@ -158,41 +158,50 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), bS
 
 	function updateProperties(that) {
 		ud_sum = photons[R] + photons[G] + photons[B];
+		if(ud_sum > 0) { // skip this stuff since it'll glitch and the mote is dead anyway
 		floatVals[O_SIZE] = clamp(ud_sum/(PREGNANT_THRESHOLD/3)*MOTE_BASE_SIZE, floatVals[O_SIZE_MIN], floatVals[O_SIZE_MAX]);
-		rat_r = ratio(photons[R], photons[G]+photons[B]);
-		rat_g = ratio(photons[G], photons[R]+photons[B]);
-		rat_b = ratio(photons[B], photons[G]+photons[R]);
-		that.speed = bSpeed*((1+rat_b+rat_r)-that.size);
-		that.sight = bSight*(1+rat_b);
-		that.agro = bAgro*(1+rat_b);
-		that.fear = bFear*(1+rat_g);
-		switch(max(photons[R], photons[G], photons[B])) {
-			case photons[R]:that.strongest = R; break;
-			case photons[G]:that.strongest = G; break;
-			case photons[B]:that.strongest = B; break;
-		}
-		if(photons[R] < photons[G]) {
-			if(photons[R] < photons[B]) {
-				if(photons[R] > 5) that.weakest = R;
-				else if(photons[B] < photons[G]) {
-					if(photons[B] > 5) that.weakest = B;
+			rat_r = ratio(photons[R], photons[G]+photons[B]);
+			rat_g = ratio(photons[G], photons[R]+photons[B]);
+			rat_b = ratio(photons[B], photons[G]+photons[R]);
+			that.speed = bSpeed*((1+rat_b+rat_r)-that.size);
+			that.sight = bSight*(1+rat_b);
+			that.agro = bAgro*(1+rat_b);
+			that.fear = bFear*(1+rat_g);
+			if(DEBUG) {
+				if(isNaN(that.speed)) throw new Error("Mote.updateProperties: NaN speed");
+				if(isNaN(that.sight)) throw new Error("Mote.updateProperties: NaN sight");
+				if(isNaN(that.size)) throw new Error("Mote.updateProperties: NaN size");
+				if(isNaN(that.agro)) throw new Error("Mote.updateProperties: NaN agro");
+				if(isNaN(that.fear)) throw new Error("Mote.updateProperties: NaN fear");
+			}
+			switch(max(photons[R], photons[G], photons[B])) {
+				case photons[R]:that.strongest = R; break;
+				case photons[G]:that.strongest = G; break;
+				case photons[B]:that.strongest = B; break;
+			}
+			if(photons[R] < photons[G]) {
+				if(photons[R] < photons[B]) {
+					if(photons[R] > 5) that.weakest = R;
+					else if(photons[B] < photons[G]) {
+						if(photons[B] > 5) that.weakest = B;
+					}
+					else if(photons[G] > 5) that.weakest = G;
 				}
-				else if(photons[G] > 5) that.weakest = G;
+				else if(photons[B] > 5) that.weakest = B;
+			}
+			else if(photons[G] < photons[B]) {
+				if(photons[G] > 5) that.weakest = G;
+				else if(photons[B] < photons[R]) {
+					if(photons[R] > 5) that.weakest = R;
+					else that.weakest = B;
+				}
 			}
 			else if(photons[B] > 5) that.weakest = B;
-		}
-		else if(photons[G] < photons[B]) {
-			if(photons[G] > 5) that.weakest = G;
-			else if(photons[B] < photons[R]) {
-				if(photons[R] > 5) that.weakest = R;
-				else that.weakest = B;
-			}
-		}
-		else if(photons[B] > 5) that.weakest = B;
-		else that.weakest = G;
+			else that.weakest = G;
+		} // end of stuff to do only if sum > 0
 
 		if(ud_sum > PREGNANT_THRESHOLD) that.pregnant = PREGNANT_TIME;
-		if(ud_sum < DEATH_THRESHOLD) that.dying = 1;
+		if(ud_sum < DEATH_THRESHOLD && that.dying === 0) that.dying = 1;
 
 		color[R] = ~~(photons[R]/ud_sum*255);
 		color[G] = ~~(photons[G]/ud_sum*255);
@@ -229,6 +238,7 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), bS
 		"base_agro":{get: () => bAgro},
 		"base_fear":{get: () => bFear}
 	});
+
 	/*
 	 * Debug access only.
 	 */
@@ -272,6 +282,7 @@ Mote.prototype.tick = function(surrounding, delta) {
 	if(this.full > 0) this.full--;
 	if(this.scared > 0) this.scared--;
 	if(this.pregnant > 0) this.pregnant--;
+	if(this.dying > 0) this.dying++; // start counting up
 	handling = (1/size)*sight*speed;
 
 	// last turn's move, has to happen first to avoid prediction inaccuracy
@@ -290,7 +301,7 @@ Mote.prototype.tick = function(surrounding, delta) {
 	mainTarget = this.target;
 	// drop target if too far away, if hungry, or if scared
 	if(mainTarget && ((distance(pos, mainTarget.pos) > sight) ||
-		(mainTarget instanceof Photon && (mainTarget.lifetime < 2)))) this.target = mainTarget = null; 
+		(mainTarget instanceof Photon && (mainTarget.lifetime < 1)))) this.target = mainTarget = null; 
 	if(!mainTarget && !this.full && !this.scared) { // select a new target
 		// reset scratch memory that may not be initialized
 		//weightCount = 0; 
@@ -299,9 +310,10 @@ Mote.prototype.tick = function(surrounding, delta) {
 		for(a_i = 0, a_len = surrounding.length; a_i < a_len && a_i < 20; ++a_i) {
 			current = surrounding[a_i];
 			if(current === this) continue;
+			if(current.injured > 0) continue; // leave hurt motes alone, avoids bugs
 			a_dist = distance(pos, current.pos);
 			if(current instanceof Photon) {
-				if(a_dist > sight) continue;
+				if(a_dist > sight*fear) continue;
 				else {
 					mainTarget = current;
 					break; // photons are always preferred target
@@ -334,12 +346,11 @@ Mote.prototype.tick = function(surrounding, delta) {
 			mut_plus(vel, accelerate(predicted, pos, -handling, tmpvec));
 			mut_plus(vel, accelerate(pos, predicted, speed, tmpvec));
 			if(mainTarget instanceof Photon) {
-				// multiplied by fear to give greens an advantage in agroing
-				if(a_dist < size*fear) this.eatPhoton(current);
-				//else mut_plus(mainTarget.vel, accelerate(mainTarget.pos, pos, handling*fear, tmpvec)); 
+				// multiplied by fear to give greens an advantage in eating photons
+				if(a_dist < (sight*fear)) this.eatPhoton(current);
 			}
 			else if(mainTarget instanceof Mote) {
-				if(distance(pos, mainTarget.pos) < (size+mainTarget.size)/2) this.bite(mainTarget);
+				if(distance(pos, mainTarget.pos) < (size+mainTarget.size)/3) this.bite(mainTarget);
 			}
 		}
 	}
@@ -350,16 +361,18 @@ Mote.prototype.tick = function(surrounding, delta) {
 	}
 }
 
-Mote.prototype.bite = function(mote) {
-	mote.injure(this, ~~(this.agro));
+Mote.prototype.bite = function(target) {
+	target.injure(this, ~~(this.agro*5));
+	//mut_plus(this.vel, cross(this.vel, target.vel, tmpvec));
 	this.target = undefined;
 }
 
 Mote.prototype.injure = function(by, strength) {
+	//mut_plus(this.vel, cross(this.vel, by.vel, tmpvec));
 	this.injured += strength;
-	this.lastInjury = strength;
+	this.lastInjury = this.injured;
 	this.target = by;
-	this.scared = ~~(TARGET_FPS*0.5*strength*this.fear);
+	this.scared = ~~((TARGET_FPS/2)*strength*this.fear);
 }
 
 Mote.prototype.split = (function() {
@@ -418,9 +431,9 @@ Mote.prototype.eatPhoton = function(photon) {
 			case COLOR_B: this.b+=1; break;
 		}
 		this.lastMeal = photon.color;
-		this.full = ~~((TARGET_FPS/5)*(1/this.agro));
+		this.full = ~~((TARGET_FPS/5)*(1-1/this.agro));
 	}
-	this.target = undefined;
+	//this.target = undefined;
 }
 
 Mote.random = function() {

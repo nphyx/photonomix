@@ -114,7 +114,7 @@ export const accelerate = (function() {
 			}
 			catch(e) {
 				console.log("acceleration error", e);
-				console.log(strength);
+				console.log("strength", strength);
 				minus(p1, p2, out);
 				console.log("minus", out);
 				mut_normalize(out);

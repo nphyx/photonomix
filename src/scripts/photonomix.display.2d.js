@@ -3,6 +3,11 @@ import * as constants from "./photonomix.constants";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
 import * as bokeh from "./photonomix.display.2d.bokeh";
 import * as sprites from "./photonomix.display.2d.sprites";
+import * as markers from "./photonomix.markers";
+import {rotate} from "./photonomix.util";
+//const Marker = markers.Marker;
+const {vec2, lerp} = vectrix.vectors;
+const {plus} = vectrix.matrices;
 import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.photons";
 import {Mote} from "./photonomix.motes";
 let {min, max, cos, sin, sqrt} = Math;
@@ -20,15 +25,18 @@ let buffers = Array(3);
 let fullscreen = false; // whether the game is in fullscreen mode
 let game; // game environment object
 let lastFrame = 0;
-let bgCtx, bokehCtx, gameCtx, displayCtx;
-let bgCanvas, bokehCanvas, gameCanvas, displayCanvas;
+let bgCtx, bokehCtx, gameCtx, displayCtx, invertCtx;
+let bgCanvas, bokehCanvas, gameCanvas, displayCanvas, invertCanvas;
 let moteSprite;
+let markerSprites = Array(1);
 let photonSprites = Array(3);
 
 let PX = 1; // pixel size
 let W = 0; // screen width
 let H = 0; // screen height
 let OR = 0; // orientation (0 = landscape, 1 = portrait)
+let MIN_D = 0; // lesser of width or height
+let OFFSET_MAX_D = 0; // greater of width or height
 
 /**
  * Toggles fullscreen on.
@@ -84,6 +92,8 @@ return n >> 1 << 1;
 function updateRatio() {
 	W = evenNumber(document.body.clientWidth);
 	H = evenNumber(document.body.clientHeight);
+	MIN_D = min(W, H);
+	OFFSET_MAX_D = ~~((max(W, H)-MIN_D)/2);
 	OR = W > H?0:1;
 	W = W - (W%PX);
 	H = H - (H%PX);
@@ -96,6 +106,7 @@ function updateRatio() {
 	photonSprites[COLOR_R] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "red");
 	photonSprites[COLOR_G] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "green");
 	photonSprites[COLOR_B] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "blue");
+	markerSprites[markers.MARKER_HIT] = sprites.createMarkerHitSprite(min(W,H), constants.MARKER_HIT_SIZE);
 }
 
 /**
@@ -114,47 +125,97 @@ function pressEnter(event) {
  * range used in game position vectors.
  */
 function screenSpace(x) {
-	return (x+1)/2;
+	return ~~(((x+1)/2) * MIN_D);
 }
+
+/**
+ * Draws plasma lines between a mote and its target.
+ */
+const drawAttackLine = (function() {
+	let a = vec2(), b = vec2(), ra = vec2(), rb = vec2();
+	let sx = 0|0, sy = 0|0, rax = 0|0, ray = 0|0, rbx = 0|0, rby = 0|0, tx = 0|0, ty = 0|0;
+	return function drawAttackLine(ctx, entity) {
+		lerp(entity.pos, entity.target.pos, 0.333, a);
+		lerp(entity.pos, entity.target.pos, 0.666, b);
+		rotate(a, entity.pos, cos(frameCount * 0.5), ra);
+		plus(a, ra, ra);
+		rotate(b, entity.target.pos, sin(frameCount * 1), rb);
+		plus(b, rb, rb);
+
+		sx = screenSpace(entity.pos[0]);
+		sy = screenSpace(entity.pos[1]);
+		rax = screenSpace(ra[0]);
+		ray = screenSpace(ra[1]);
+		rbx = screenSpace(rb[0]);
+		rby = screenSpace(rb[1]);
+		tx = screenSpace(entity.target.pos[0]);
+		ty = screenSpace(entity.target.pos[1]);
+		if(W > H) {
+			sx = sx + OFFSET_MAX_D;
+			rax = rax + OFFSET_MAX_D;
+			rbx = rbx + OFFSET_MAX_D;
+			tx = tx + OFFSET_MAX_D;
+		}
+		else {
+			sy = sy + OFFSET_MAX_D;
+			ray = ray + OFFSET_MAX_D;
+			rby = rby + OFFSET_MAX_D;
+			ty = ty + OFFSET_MAX_D;
+		}
+		ctx.beginPath();
+		ctx.moveTo(sx, sy);
+		ctx.bezierCurveTo(rax, ray, rbx, rby, tx, ty);
+		ctx.strokeStyle = entity.color_string;
+		ctx.lineWidth = 4;
+		ctx.stroke();
+		ctx.moveTo(sx, sy);
+		ctx.bezierCurveTo(rax, ray, rbx, rby, tx, ty);
+		ctx.strokeStyle = "white";
+		ctx.lineWidth = 0.5;
+		ctx.stroke();
+	}
+})();
+
 
 /**
  * Draw call for all entities. Loops through game entities and draws them according
  * to kind and properties.
  */
 const drawEntities = (function() {
-	let i, l, entity, px, py, tx, ty, size, speed, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, mind = 0|0, hmaxd = 0|0, sprite;
+	let i, l, entity, px, py, tx, ty, size, speed, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, sprite;
 	let pulse = 0|0, pregnant = 0|0, injured = 0|0, full = 0|0, lastMeal = 0|0; 
 	let fadeFillStyle = "rgba(0,0,0,0.3)";
 	let moteCenterFillStyle = "rgba(255,255,255,0.7)";
-	let moteCenterRedFillStyle = "rgba(255,8,8,0.5)";
-	let moteCenterBlueFillStyle = "rgba(8,255,8,0.5)";
-	let moteCenterGreenFillStyle = "rgba(8,8,255,0.5)";
+	let moteCenterRedFillStyle = "rgba(255,8,8,0.8)";
+	let moteCenterBlueFillStyle = "rgba(8,255,8,0.8)";
+	let moteCenterGreenFillStyle = "rgba(8,8,255,0.8)";
 	return function drawEntities(ctx) {
 		ctx.globalCompositeOperation = "source-atop";
 		ctx.fillStyle = fadeFillStyle;
 		ctx.fillRect(0, 0, W, H);
+		invertCtx.globalCompositeOperation = "source-over";
+		invertCtx.fillStyle = fadeFillStyle;
+		invertCtx.fillRect(0, 0, W, H);
 
 		ctx.globalCompositeOperation = "lighter";
 		for(i = 0, l = game.entities.length; i < l; ++i) {
 			entity = game.entities[i];
 			x = entity.pos[0];
 			y = entity.pos[1];
-			mind = min(W, H);
-			hmaxd = ~~((max(W, H)-mind)/2);
-			px = screenSpace(x) * mind;
-			py = screenSpace(y) * mind;
-			if(W > H) px = px + hmaxd;
-			else py = py + hmaxd;
+			px = screenSpace(x);
+			py = screenSpace(y);
+			if(W > H) px = px + OFFSET_MAX_D;
+			else py = py + OFFSET_MAX_D;
 			if(entity instanceof Mote) {
 				({pulse, pregnant, injured, full, lastMeal} = entity);
-				size = entity.size * clamp(mind, 300, 1200);
+				size = entity.size * clamp(MIN_D, 300, 1200);
 				if(pregnant) {
 					sc = size * cos((frameCount+pulse) * 0.2) * (sqrt(pregnant)+1);
 					sw = size * sin((frameCount+pulse+tf) * 0.2) * (sqrt(pregnant)+1)*0.25;
 				}
 				else if(injured) {
-					sc = size * cos((frameCount+pulse) * (0.2+(1/injured)));
-					sw = size * sin((frameCount+pulse+tf) * (0.2+(1/injured)))*0.25;
+					sc = size * cos((frameCount+pulse) * (0.2+(1-1/injured)));
+					sw = size * sin((frameCount+pulse+tf) * 0.2) * 0.25; //* (0.2+(1-1/injured)))*0.25;
 				}
 				else {
 					sc = size * cos((frameCount+pulse) * 0.2);
@@ -188,10 +249,11 @@ const drawEntities = (function() {
 				}
 				ctx.drawImage(sprites.recolor(moteSprite, moteCenterFillStyle).canvas, 
 					px-swh, py-swh, sw, sw);
+				if(!entity.scared && entity.target) drawAttackLine(ctx, entity);
 				if(DEBUG_DRAW && entity.target) {
 					speed = entity.speed;
-					tx = screenSpace(entity.target.x) * W;
-					ty = screenSpace(entity.target.y) * H;
+					tx = screenSpace(entity.target.x);
+					ty = screenSpace(entity.target.y);
 					ctx.beginPath();
 					ctx.moveTo(px, py);
 					ctx.strokeStyle = (entity.scared?"white":entity.full?"red":entity.color_string);
@@ -219,7 +281,7 @@ const drawEntities = (function() {
 function drawCircle(ctx, x, y, size, color) {
 	ctx.globalCompositeOperation = "source-over";
 	ctx.beginPath();
-	ctx.arc(screenSpace(x)*W, screenSpace(y)*H, size, 2 * Math.PI, false);
+	ctx.arc(screenSpace(x), screenSpace(y), size, 2 * Math.PI, false);
 	ctx.fillStyle = color;
 	ctx.fill();
 	ctx.closePath();
@@ -235,6 +297,8 @@ function composite() {
 	displayCtx.globalCompositeOperation = "lighter";
 	displayCtx.drawImage(bokehCanvas, 0, 0);
 	displayCtx.drawImage(gameCanvas, 0, 0);
+	displayCtx.globalCompositeOperation = "difference";
+	displayCtx.drawImage(invertCanvas, 0, 0);
 }
 
 /**
@@ -288,7 +352,7 @@ export function initCtx(id, container) {
 	canvas.id = id;
 	canvas.width = W;
 	canvas.height = H;
-	let context = canvas.getContext("2d", {alpha:false});
+	let context = canvas.getContext("2d"/*, {alpha:false}*/);
 	if(container) container.appendChild(canvas);
 	return {
 		id:id,
@@ -308,6 +372,7 @@ export function init(env) {
 	buffers[1] = initCtx("bokeh"); 
 	buffers[2] = initCtx("game"); 
 	buffers[3] = initCtx("display", body); 
+	buffers[4] = initCtx("inverted"); 
 	bgCtx = buffers[0].context;
 	bgCanvas = buffers[0].canvas;
 	bokehCtx = buffers[1].context;
@@ -316,6 +381,8 @@ export function init(env) {
 	gameCanvas = buffers[2].canvas;
 	displayCtx = buffers[3].context;
 	displayCanvas = buffers[3].canvas;
+	invertCtx = buffers[4].context;
+	invertCanvas = buffers[4].canvas;
 	displayCanvas.style.display = "block";
 	body.addEventListener("click", startGame);
 	document.addEventListener("keyup", pressEnter);
