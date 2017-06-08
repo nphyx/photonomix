@@ -5,7 +5,7 @@ import {TARGET_FPS, WEIGHT_PRED_R, WEIGHT_PRED_G, MOTE_BASE_SPEED,
 				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG} from "./photonomix.constants";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
 import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, limitVecMut} from "./photonomix.util";
-const {vec2, vec4, times, mut_clamp, magnitude, distance, mut_copy, mut_times, cross} = vectrix.vectors;
+const {vec2, vec4, times, mut_clamp, magnitude, distance} = vectrix.vectors;
 const {plus, mut_plus} = vectrix.matrices;
 import {Photon, COLOR_R, COLOR_B, COLOR_G} from "./photonomix.photons";
 const clamp = mut_clamp;
@@ -90,7 +90,7 @@ const VEC_VAL_LENGTH = O_COL + 4,
 	O_FEAR = O_AGRO + 1;
 
 const FLOAT_VAL_LENGTH = O_FEAR - O_SIZE + 1;
-export const B_LENGTH = O_FLOATS_BYTE_OFFSET + (O_FEAR + 1)*F32;
+export const BUFFER_LENGTH = O_FLOATS_BYTE_OFFSET + (O_FEAR + 1)*F32;
 twiddleVec(POS_C);
 console.log(POS_C);
 let ud_sum = 0.0;
@@ -103,7 +103,7 @@ let ud_sum = 0.0;
  * @param {Float} bSight (optional) base vision radius: inheritance and predesigned motes 
  * @param {Float} bAgro (optional) base aggressiveness: inheritance and predesigned motes 
  * @param {Float} bFear (optional) base fearfulness: inheritance and predesigned motes 
- * @param {ArrayBuffer(Motes.B_LENGTH)} buffer (optional) pre-assigned buffer
+ * @param {ArrayBuffer(Motes.BUFFER_LENGTH)} buffer (optional) pre-assigned buffer
  * @property {vec2} pos position vector
  * @property {vec2} vel velocity vector
  * @property {Uint8} r red photon value (setter updates values and derived props)
@@ -134,7 +134,7 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), bS
 	// "private" properties
 	// use a single buffer for properties so that they're guaranteed to be contiguous
 	// in memory and typed
-	buffer = buffer||new ArrayBuffer(B_LENGTH);
+	buffer = buffer||new ArrayBuffer(BUFFER_LENGTH);
 	let photons = new Uint8ClampedArray(buffer, O_PHO, I8*3);
 	photons[R] = _photons[R];
 	photons[G] = _photons[G];
@@ -392,36 +392,6 @@ Mote.prototype.split = (function() {
 	}
 })();
 
-/**
- * Decrements injury, returns a photon to be emitted. Time and max are used to
- * determine 
- */
-Mote.prototype.bleed = (function() {
-	let pos, pvel = vec2(0.0), choice = 0|0, choiceVal = 0|0;
-	return function bleed() {
-		({pos, vel} = this);
-		this.injured--;
-		// randomly select a photon to emit
-		do {
-			choice = ~~(random()*3);
-			switch(choice) {
-				case R: choiceVal = this.r; break;
-				case G: choiceVal = this.g; break;
-				case B: choiceVal = this.b; break;
-			}
-		} while (choiceVal === 0);
-		
-		switch(choice) {
-			case R: this.r--; break;
-			case G: this.g--; break;
-			case B: this.b--; break;
-		}
-		mut_copy(pvel, vel);
-		mut_times(pvel, 0.4);
-		return new Photon(pos, pvel, choice);
-	}
-})();
-
 Mote.prototype.eatPhoton = function(photon) {
 	if(photon.lifetime > 0) {
 		photon.lifetime = 0;
@@ -440,4 +410,17 @@ Mote.random = function() {
 	let pos = [random()*posneg(), random()*posneg()];
 	while(magnitude(pos) > 0.8) pos = [random()*posneg(), random()*posneg()];
 	return new Mote([~~(random()*64), ~~(random()*64), ~~(random()*64)], pos);
+}
+
+let choice = 0|0, choiceVal = 0|0;
+export function chooseEmission(mote) {
+	do {
+		choice = ~~(random()*3);
+		switch(choice) {
+			case R: choiceVal = mote.r; break;
+			case G: choiceVal = mote.g; break;
+			case B: choiceVal = mote.b; break;
+		}
+	} while (choiceVal === 0);
+	return choice;
 }

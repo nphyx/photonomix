@@ -1,21 +1,24 @@
 "use strict";
-import {Mote} from "./photonomix.motes";
+import {Mote, chooseEmission} from "./photonomix.motes";
 import * as markers from "./photonomix.markers";
-import {Photon} from "./photonomix.photons";
+import * as photons from "./photonomix.photons";
 import {shuffle, rotate} from "./photonomix.util";
+import {BufferPool} from "./photonomix.bufferPools";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
-const {plus, mut_plus} = vectrix.matrices;
-const {vec2, mut_copy, times, mut_times} = vectrix.vectors;
-import {TARGET_FPS, START_POP, MAX_POP, PREGNANT_TIME, DEATH_THRESHOLD, MARKER_HIT_LIFETIME} 
-	from "./photonomix.constants";
+//const {plus, mut_plus} = vectrix.matrices;
+const {vec2, mut_copy, mut_times} = vectrix.vectors;
+import {TARGET_FPS, START_POP, MAX_ENTITIES, PREGNANT_TIME, DEATH_THRESHOLD} from "./photonomix.constants";
 let {random} = Math;
 const Marker = markers.Marker;
+const Photon = photons.Photon;
 
-const marks = new Int32Array(MAX_POP);
+const marks = new Uint16Array(MAX_ENTITIES);
 let markpos = 0;
+let mark = 0;
 
 export function State() {
 	this.entities = [];
+	this.photonBuffer = null;
 	this.stats = {
 		pop:0,
 		born:0,
@@ -28,6 +31,7 @@ export function State() {
 }
 
 State.prototype.start = function() {
+	this.photonPool = new BufferPool(photons.BUFFER_LENGTH); //, MAX_ENTITIES);
 	for(let i = 0; i < START_POP; ++i) {
 		this.entities.push(new Mote.random())
 	}
@@ -35,8 +39,8 @@ State.prototype.start = function() {
 
 State.prototype.tick = (function() {
 	let entities, entity, i = 0|0, len = 0|0, tick_delta = 0.0;	
-	let preda = vec2(), predb = vec2(), tmpvec = vec2();
-	return function(delta, frameCount) {
+	let pvel = vec2(0.0);
+	return function tick(delta, frameCount) {
 		entities = this.entities;
 		this.stats.hungry = 0;
 		this.stats.scared = 0;
@@ -53,20 +57,12 @@ State.prototype.tick = (function() {
 				if(entity.scared) this.stats.scared++;
 				if(entity.target) this.stats.target++;
 				if(entity.injured) {
-				/*
-					if(entity.injured === entity.lastInjury) {
-						entity.lastInjury = 0;
-						plus(entity.pos, times(entity.vel, tick_delta, tmpvec), preda);
-						if(entity.target) { // sometimes target drops before we get to do this
-							plus(entity.target.pos, times(entity.target.vel, tick_delta, tmpvec), predb);
-							mut_plus(preda, predb);
-							mut_times(preda, 0.5);
-						}
-						this.entities.push(new Marker(markers.MARKER_HIT, preda, MARKER_HIT_LIFETIME));
-					}
-						*/
 					if(frameCount % (TARGET_FPS*0.5) === 0) {
-						this.entities.push(entity.bleed());
+						let choice = chooseEmission(entity);
+						mut_copy(pvel, entity.vel);
+						mut_times(pvel, 0.4);
+						this.emitPhoton(entity.pos, pvel, choice, 1, 1);
+						entity.injured--;
 					}
 				}
 				// mark dead for removal
@@ -94,7 +90,12 @@ State.prototype.tick = (function() {
 		// sweep dead
 		while(markpos > 0) {
 			markpos--;
-			entities.splice(marks[markpos], 1);
+			mark = marks[markpos];
+			entity = entities[mark];
+			if(entity instanceof Photon) {
+				entity.destroy();
+			}
+			entities.splice(mark, 1);
 			marks[markpos] = 0;
 		}
 
@@ -106,14 +107,20 @@ State.prototype.tick = (function() {
 State.prototype.emitPhoton = (function() {
 	let pos = vec2(), vel = vec2(), center = vec2(), p_c = 0, 
 		base_vel = vec2(0.05, 0.05);
-	return function emitPhoton(ipos, color, count = p_c, max = 12) {
+	return function emitPhoton(ipos, ivel, color, count = p_c, max = 12) {
 		ipos = ipos||[random()*1.8-0.9, random()*1.8-0.9];
+		if(ivel) {
+			mut_copy(vel, ivel);
+		}
+		else {
+			mut_copy(vel, base_vel);
+			rotate(vel, center, ((p_c%max)/(max/2))*Math.PI, vel);
+		}
 		color = color||~~(random()*3);
-		pos.set(ipos);
-		mut_copy(vel, base_vel);
-		rotate(vel, center, ((p_c%max)/(max/2))*Math.PI, vel);
-		this.entities.push(new Photon(pos, vel, color));
+		mut_copy(pos, ipos);
+		this.entities.push(new Photon(pos, vel, color, this.photonPool));
 		p_c++;
+		return color;
 	}
 })();
 
@@ -126,7 +133,7 @@ State.prototype.killMote = (function() {
 		for(i = 0; i < sum; ++i) {
 			if(r === i) c = 1;
 			if(r+g === i) c = 2;
-			this.emitPhoton(pos, c, i, sum);
+			this.emitPhoton(pos, undefined, c, i, sum);
 		}
 	}
 })();
