@@ -1,5 +1,5 @@
 "use strict";
-import {Mote, chooseEmission} from "./photonomix.motes";
+import * as motes from "./photonomix.motes";
 import * as markers from "./photonomix.markers";
 import * as photons from "./photonomix.photons";
 import {shuffle, rotate} from "./photonomix.util";
@@ -11,6 +11,8 @@ import {TARGET_FPS, START_POP, MAX_ENTITIES, PREGNANT_TIME, DEATH_THRESHOLD} fro
 let {random} = Math;
 const Marker = markers.Marker;
 const Photon = photons.Photon;
+const {COLOR_R, COLOR_G, COLOR_B} = photons;
+const Mote = motes.Mote;
 
 const marks = new Uint16Array(MAX_ENTITIES);
 let markpos = 0;
@@ -31,14 +33,15 @@ export function State() {
 }
 
 State.prototype.start = function() {
-	this.photonPool = new BufferPool(photons.BUFFER_LENGTH); //, MAX_ENTITIES);
+	this.photonPool = new BufferPool(photons.BUFFER_LENGTH, MAX_ENTITIES);
+	this.motePool = new BufferPool(motes.BUFFER_LENGTH, MAX_ENTITIES);
 	for(let i = 0; i < START_POP; ++i) {
-		this.entities.push(new Mote.random())
+		this.entities.push(new Mote.random(this.motePool))
 	}
 }
 
 State.prototype.tick = (function() {
-	let entities, entity, i = 0|0, len = 0|0, tick_delta = 0.0;	
+	let entities, entity, i = 0|0, len = 0|0, tick_delta = 0.0, choice = 0|0;	
 	let pvel = vec2(0.0);
 	return function tick(delta, frameCount) {
 		entities = this.entities;
@@ -58,11 +61,10 @@ State.prototype.tick = (function() {
 				if(entity.target) this.stats.target++;
 				if(entity.injured) {
 					if(frameCount % (TARGET_FPS*0.5) === 0) {
-						let choice = chooseEmission(entity);
+						choice = entity.bleed();
 						mut_copy(pvel, entity.vel);
 						mut_times(pvel, 0.4);
 						this.emitPhoton(entity.pos, pvel, choice, 1, 1);
-						entity.injured--;
 					}
 				}
 				// mark dead for removal
@@ -92,7 +94,7 @@ State.prototype.tick = (function() {
 			markpos--;
 			mark = marks[markpos];
 			entity = entities[mark];
-			if(entity instanceof Photon) {
+			if(entity.pool !== undefined) {
 				entity.destroy();
 			}
 			entities.splice(mark, 1);
