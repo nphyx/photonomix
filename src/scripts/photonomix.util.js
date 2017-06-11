@@ -180,8 +180,8 @@ export const drag = (function() {
 
 export const avoid = (function() {
 	let aev = vec2(), dist = 0.0;
-	return function avoid(vel, pos, opposite, speed, handling, out) {
-		dist = distance(pos, opposite)*1.3;
+	return function avoid(vel, pos, opposite, maxDist, speed, handling, out) {
+		dist = distance(pos, opposite)*maxDist;
 		out = out||aev;
 		out[0] = 0.0;
 		out[1] = 0.0;
@@ -223,12 +223,13 @@ export const absVec = (function() {
 	}
 })();
 
-export const checkBounds = (function() {
-	return function checkBounds(v) {
+export const outOfBounds = (function() {
+	return function outOfBounds(v, n) {
 		let x = v[0];	
 		let y = v[1];	
-		if(x > 1 || x < -1) console.log("out of x bounds", x);
-		if(y > 1 || y < -1) console.log("out of y bounds", y);
+		if(x > n || x < -n) return true; 
+		else if(y > n || y < -n) return true;
+		else return false;
 	}
 })();
 

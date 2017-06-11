@@ -1,13 +1,12 @@
 "use strict";
-let {random, max, min, floor, ceil} = Math;
-import {TARGET_FPS, WEIGHT_PRED_R, WEIGHT_PRED_G, MOTE_BASE_SPEED,
-				WEIGHT_PRED_B, MOTE_BASE_SIZE, PREGNANT_THRESHOLD, 
+let {random, max, min, floor, ceil, sin} = Math;
+import {TARGET_FPS, MOTE_BASE_SPEED, MOTE_BASE_SIZE, PREGNANT_THRESHOLD, 
 				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG} from "./photonomix.constants";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
-import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, limitVecMut} from "./photonomix.util";
-const {vec2, times, mut_clamp, magnitude, distance} = vectrix.vectors;
+import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, limitVecMut, outOfBounds, rotate} from "./photonomix.util";
+const {vec2, times, mut_clamp, magnitude, distance, mut_copy} = vectrix.vectors;
 const {plus, mut_plus} = vectrix.matrices;
-import {Photon, COLOR_R, COLOR_B, COLOR_G} from "./photonomix.photons";
+import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.photons";
 const clamp = mut_clamp;
 // Center of the playfield is at 0,0 (ranging from -1 to 1 on X and Y axis)
 const POS_C  = vec2(0.0, 0.0);
@@ -22,42 +21,26 @@ let ud_sum = 0.0;
 // for rendering
 const tmp_color = new Uint8ClampedArray(3);
 
-const FV = 3;
 /**
  * Determines the food value of object b to mote a. Roughly, a mote prefers to eat 
  * photons and other motes unlike itself, and prefers objects smaller than itself
  * than those that are larger. Red motes are weighted to be the most predatory,
  * and green motes are weighted to be the least.
  */
-const foodValue = (function() {
-	let fv_strongest = 0.0, asize = 0.0, bsize = 0.0;
-	const FV_SCRATCH = new Float32Array(4);
-	return function foodValue(a, b) {
-		asize = a.size;
-		bsize = b.size;
-		// find the strongest color; this helps determine behavior
-		fv_strongest = max(a.r, a.g, a.b);
-		FV_SCRATCH[COLOR_R] = ratio(b.r, a.r);
-		FV_SCRATCH[COLOR_G] = ratio(b.g, a.g);
-		FV_SCRATCH[COLOR_B] = ratio(b.b, a.b);
-		FV_SCRATCH[FV] = 1;
-		// this should apply multiple behavior weights when the mote is a hybrid
-		switch(fv_strongest) {
-			case a.r: 
-				FV_SCRATCH[FV] *= (FV_SCRATCH[COLOR_G] + FV_SCRATCH[COLOR_B]) * 
-					WEIGHT_PRED_R - FV_SCRATCH[COLOR_R]*(1/WEIGHT_PRED_R);
-			break;
-			case a.g:
-				FV_SCRATCH[FV] *= (FV_SCRATCH[COLOR_R] + FV_SCRATCH[COLOR_B]) * 
-					WEIGHT_PRED_G - FV_SCRATCH[COLOR_G]*(1/WEIGHT_PRED_G);
-			break;
-			case a.b:
-				FV_SCRATCH[FV] *= (FV_SCRATCH[COLOR_R] + FV_SCRATCH[COLOR_G]) * 
-					WEIGHT_PRED_B - FV_SCRATCH[COLOR_B]*(1/WEIGHT_PRED_B);
-			break;
-		}
-
-		return FV_SCRATCH[FV] * ((ratio(asize, bsize)*2)-1);
+const targetValue = (function() {
+	return function targetValue(a, b) {
+		let rat_argb = ratio(a.r, a.g+a.b);
+		let rat_agrb = ratio(a.g, a.r+a.b);
+		let rat_abrg = ratio(a.b, a.r+a.g);
+		let rat_brgb = ratio(b.r, b.g+b.b);
+		let rat_bgrb = ratio(b.g, b.r+b.b);
+		let rat_bbrg = ratio(b.b, b.r+b.g);
+		let deltaA = rat_argb - rat_brgb;
+		let deltaB = rat_agrb - rat_bgrb;
+		let deltaC = rat_abrg - rat_bbrg;
+		let maxr = max(deltaA, deltaB, deltaC);
+		let minr = min(deltaA, deltaB, deltaC);
+		return maxr - minr;
 	}
 })();
 
@@ -67,43 +50,43 @@ const I8 = 1;
 const F32 = 4;
 
 // uint8 values = photons[3]
-const O_PHO = 0; 
-const U8_VAL_LENGTH = O_PHO + I8*3;
+const U8_PHO = 0; 
+const U8_VAL_LENGTH = U8_PHO + I8*3;
 const I8_BYTE_OFFSET = U8_VAL_LENGTH;
-// int8 values =  dying, pregnant, injured, scared, full, lastMeal, pulse
-const	O_DYING = 0,
-	O_PREG = O_DYING + I8,
-	O_INJURED = O_PREG + I8,
-	O_LAST_INJURY = O_INJURED + I8,
-	O_SCARED = O_LAST_INJURY + I8,
-	O_FULL = O_SCARED + I8,
-	O_MEAL = O_FULL + I8,
-	O_PULSE = O_MEAL + I8;
+// int8 values =  dying, pregnant, injured, lastMeal, pulse
+const	I8_DYING = 0,
+	I8_PREG = I8_DYING + I8,
+	I8_INJURED = I8_PREG + I8,
+	I8_LAST_INJURY = I8_INJURED + I8,
+	I8_MEAL = I8_LAST_INJURY + I8,
+	I8_PULSE = I8_MEAL + I8;
 
-const I8_VAL_LENGTH = O_PULSE + I8;
+const I8_VAL_LENGTH = I8_PULSE + I8;
 
-const I_VALS_LENGTH = U8_VAL_LENGTH + I8_VAL_LENGTH;
+const INT_VAL_LENGTH = U8_VAL_LENGTH + I8_VAL_LENGTH;
 
-// float32 values = p[3], v[3], color[4], size, sizeMin, sizeMax, speed, sight, agro, fear
-const VECS_BYTE_OFFSET = I_VALS_LENGTH + (F32-(I_VALS_LENGTH % F32)), // float32 offsets must be multiples of 4
+// float32 values = p[3], v[3], color[4], size, sizeMin, sizeMax, speed, sight, agro, fear, potential, resistance
+const VEC_BYTE_OFFSET = INT_VAL_LENGTH + (F32-(INT_VAL_LENGTH % F32)), // float32 offsets must be multiples of 4
 	// from here on, increments of value * 4
 	// vectors
-	O_POS = 0,
-	O_VEL = O_POS + 2,
-	O_COL = O_VEL + 2;
-const VEC_VAL_LENGTH = O_COL + 4,
-	O_FLOATS_BYTE_OFFSET = VECS_BYTE_OFFSET + VEC_VAL_LENGTH*F32,
+	F32_POS = 0,
+	F32_VEL = F32_POS + 2;
+const VEC_VAL_LENGTH = F32_VEL + 2,
+	F32_BYTE_OFFSET = VEC_BYTE_OFFSET + (VEC_VAL_LENGTH*F32),
 	// scalars
-	O_SIZE = 0,
-	O_SIZE_MIN = O_SIZE + 1,
-	O_SIZE_MAX = O_SIZE_MIN + 1,
-	O_SPEED = O_SIZE_MAX + 1,
-	O_SIGHT = O_SPEED + 1,
-	O_AGRO = O_SIGHT + 1,
-	O_FEAR = O_AGRO + 1;
+	F32_SIZE = 0,
+	F32_SIZE_MIN = F32_SIZE + 1,
+	F32_SIZE_MAX = F32_SIZE_MIN + 1,
+	F32_SPEED = F32_SIZE_MAX + 1,
+	F32_SIGHT = F32_SPEED + 1,
+	F32_AGRO = F32_SIGHT + 1,
+	F32_FEAR = F32_AGRO + 1,
+	F32_POTENTIAL = F32_FEAR + 1,
+	F32_RESISTANCE = F32_POTENTIAL + 1;
 
-const FLOAT_VAL_LENGTH = O_FEAR - O_SIZE + 1;
-export const BUFFER_LENGTH = O_FLOATS_BYTE_OFFSET + (O_FEAR + 1)*F32;
+const FLOAT_VAL_LENGTH = F32_RESISTANCE + 1;
+export const BUFFER_LENGTH = F32_BYTE_OFFSET + (FLOAT_VAL_LENGTH*F32);
+
 
 /**
  * Constructor for Motes.
@@ -124,14 +107,14 @@ export const BUFFER_LENGTH = O_FLOATS_BYTE_OFFSET + (O_FEAR + 1)*F32;
  * @property {Int8} pregnant coundown from PREGNANT_DURATION when a mote is pregnant
  * @property {Int8} injured injury counter, counts down in mote.bleed
  * @property {Int8} lastInjury strength of most recent injury taken
- * @property {Int8} scared timer for fleeing after injury
- * @property {Int8} full timer after eating before hungry again
  * @property {Int8} pulse frame offset for pulse animation
  * @property {Int8} lastMeal color value for last meal (see R, G, B constants)
  * @property {Float32} speed derived acceleration speed based on Mote properties
  * @property {Float32} sight derived vision radius based on Mote properties 
  * @property {Float32} agro derived aggression factor based on Mote properties 
  * @property {Float32} fear derived fearfulness factor based on Mote properties 
+ * @property {Float32} potential accumulated charge potential
+ * @property {Float32} resistance accumulated resistance to charge
  * @property {Float32} size derived size radius as fraction of screen size
  * @property {Float32} sizeMin minimum size the mote can reach as it shrinks
  * @property {Float32} sizeMax maximum size the mote can reach as it grows
@@ -141,7 +124,7 @@ export const BUFFER_LENGTH = O_FLOATS_BYTE_OFFSET + (O_FEAR + 1)*F32;
  * @return {Mote}
  */
 export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), pool = undefined, bSpeed = MOTE_BASE_SPEED, bSight = 0.1, bAgro = 1.0, bFear = 1.0) {
-	let buffer, offset;
+	let buffer, offset = 0|0;
 	if(pool) {
 		buffer = pool.buffer;
 		offset = pool.allocate();
@@ -155,37 +138,31 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
 	// "private" properties
 	// use a single buffer for properties so that they're guaranteed to be contiguous
 	// in memory and typed
-	let photons = new Uint8ClampedArray(buffer, O_PHO+offset, I8*3);
+	let photons = new Uint8ClampedArray(buffer, U8_PHO+offset, I8*3);
 	photons[COLOR_R] = _photons[COLOR_R];
 	photons[COLOR_G] = _photons[COLOR_G];
 	photons[COLOR_B] = _photons[COLOR_B];
-	let intVals = new Int8Array(buffer, I8_BYTE_OFFSET+offset, I8_VAL_LENGTH - O_PHO);
-	let floatVals = new Float32Array(buffer, O_FLOATS_BYTE_OFFSET+offset, FLOAT_VAL_LENGTH);
-	this.pos = vec2(pos, buffer, O_POS*F32+VECS_BYTE_OFFSET+offset);
-	this.vel = vec2(0.0, 0.0, buffer, O_VEL*F32+VECS_BYTE_OFFSET+offset);
+	let intVals = new Int8Array(buffer, I8_BYTE_OFFSET+offset, I8_VAL_LENGTH - U8_PHO);
+	let floatVals = new Float32Array(buffer, F32_BYTE_OFFSET+offset, FLOAT_VAL_LENGTH);
+	this.pos = vec2(pos, buffer, F32_POS*F32+VEC_BYTE_OFFSET+offset);
+	this.vel = vec2(0.0, 0.0, buffer, F32_VEL*F32+VEC_BYTE_OFFSET+offset);
 	this.target = undefined;
 	this.color_string = "";
-	this.strongest = 0;
-	this.weakest = 0;
-
-	floatVals[O_SIZE_MAX] = MOTE_BASE_SIZE*3;
-	floatVals[O_SIZE_MIN] = MOTE_BASE_SIZE*0.5;
 	bSpeed = bSpeed+adjRand(0.0005);
 	bSight = bSight+adjRand(0.001); // vision distance
 	bAgro = bAgro+adjRand(0.001);
 	bFear = bFear+adjRand(0.001);
 
 	function updateProperties() {
-		/* jshint validthat:true */
 		ud_sum = photons[COLOR_R] + photons[COLOR_G] + photons[COLOR_B];
-		if(ud_sum > 0) { // skip that stuff since it'll glitch and the mote is dead anyway
-		floatVals[O_SIZE] = clamp(ud_sum/(PREGNANT_THRESHOLD/3)*MOTE_BASE_SIZE, floatVals[O_SIZE_MIN], floatVals[O_SIZE_MAX]);
+		if(ud_sum > 0) { // otherwise skip this stuff since the mote is dead anyway
+		that.size = clamp(ud_sum/(PREGNANT_THRESHOLD/3)*MOTE_BASE_SIZE, that.sizeMin, that.sizeMax);
 			rat_r = ratio(photons[COLOR_R], photons[COLOR_G]+photons[COLOR_B]);
 			rat_g = ratio(photons[COLOR_G], photons[COLOR_R]+photons[COLOR_B]);
 			rat_b = ratio(photons[COLOR_B], photons[COLOR_G]+photons[COLOR_R]);
-			that.speed = bSpeed*((1+rat_b+rat_r)-that.size);
-			that.sight = bSight*(1+rat_b);
-			that.agro = bAgro*(1+rat_b);
+			that.speed = bSpeed*(1-that.size)*(1+rat_b);
+			that.sight = bSight;
+			that.agro = bAgro*(1+rat_r);
 			that.fear = bFear*(1+rat_g);
 			if(DEBUG) {
 				if(isNaN(that.speed)) throw new Error("Mote.updateProperties: NaN speed");
@@ -194,30 +171,6 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
 				if(isNaN(that.agro)) throw new Error("Mote.updateProperties: NaN agro");
 				if(isNaN(that.fear)) throw new Error("Mote.updateProperties: NaN fear");
 			}
-			switch(max(photons[COLOR_R], photons[COLOR_G], photons[COLOR_B])) {
-				case photons[COLOR_R]:that.strongest = COLOR_R; break;
-				case photons[COLOR_G]:that.strongest = COLOR_G; break;
-				case photons[COLOR_B]:that.strongest = COLOR_B; break;
-			}
-			if(photons[COLOR_R] < photons[COLOR_G]) {
-				if(photons[COLOR_R] < photons[COLOR_B]) {
-					if(photons[COLOR_R] > 5) that.weakest = COLOR_R;
-					else if(photons[COLOR_B] < photons[COLOR_G]) {
-						if(photons[COLOR_B] > 5) that.weakest = COLOR_B;
-					}
-					else if(photons[COLOR_G] > 5) that.weakest = COLOR_G;
-				}
-				else if(photons[COLOR_B] > 5) that.weakest = COLOR_B;
-			}
-			else if(photons[COLOR_G] < photons[COLOR_B]) {
-				if(photons[COLOR_G] > 5) that.weakest = COLOR_G;
-				else if(photons[COLOR_B] < photons[COLOR_R]) {
-					if(photons[COLOR_R] > 5) that.weakest = COLOR_R;
-					else that.weakest = COLOR_B;
-				}
-			}
-			else if(photons[COLOR_B] > 5) that.weakest = COLOR_B;
-			else that.weakest = COLOR_G;
 		} // end of stuff to do only if sum > 0
 
 		if(ud_sum > PREGNANT_THRESHOLD) that.pregnant = PREGNANT_TIME;
@@ -238,21 +191,21 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
 		"r":{get: () => photons[COLOR_R], set: (v) => setPhoton(v, COLOR_R)},
 		"g":{get: () => photons[COLOR_G], set: (v) => setPhoton(v, COLOR_G)},
 		"b":{get: () => photons[COLOR_B], set: (v) => setPhoton(v, COLOR_B)},
-		"dying":{get: () => intVals[O_DYING], set: (v) => intVals[O_DYING] = v},
-		"pregnant":{get: () => intVals[O_PREG], set: (v) => intVals[O_PREG] = v},
-		"injured":{get: () => intVals[O_INJURED], set: (v) => intVals[O_INJURED] = v},
-		"lastInjury":{get: () => intVals[O_LAST_INJURY], set: (v) => intVals[O_LAST_INJURY] = v},
-		"scared":{get: () => intVals[O_SCARED], set: (v) => intVals[O_SCARED] = v},
-		"full":{get: () => intVals[O_FULL], set: (v) => intVals[O_FULL] = v},
-		"pulse":{get: () => intVals[O_PULSE], set: (v) => intVals[O_PULSE] = v},
-		"lastMeal":{get: () => intVals[O_MEAL], set: (v) => intVals[O_MEAL] = v},
-		"size":{get: () => floatVals[O_SIZE]},
-		"sizeMin":{get: () => floatVals[O_SIZE_MIN]},
-		"sizeMax":{get: () => floatVals[O_SIZE_MAX]},
-		"speed":{get: () => floatVals[O_SPEED], set: (v) => floatVals[O_SPEED] = v},
-		"sight":{get: () => floatVals[O_SIGHT], set: (v) => floatVals[O_SIGHT] = v},
-		"agro":{get: () => floatVals[O_AGRO], set: (v) => floatVals[O_AGRO] = v},
-		"fear":{get: () => floatVals[O_FEAR], set: (v) => floatVals[O_FEAR] = v},
+		"dying":{get: () => intVals[I8_DYING], set: (v) => intVals[I8_DYING] = v},
+		"pregnant":{get: () => intVals[I8_PREG], set: (v) => intVals[I8_PREG] = v},
+		"injured":{get: () => intVals[I8_INJURED], set: (v) => intVals[I8_INJURED] = v},
+		"lastInjury":{get: () => intVals[I8_LAST_INJURY], set: (v) => intVals[I8_LAST_INJURY] = v},
+		"pulse":{get: () => intVals[I8_PULSE], set: (v) => intVals[I8_PULSE] = v},
+		"lastMeal":{get: () => intVals[I8_MEAL], set: (v) => intVals[I8_MEAL] = v},
+		"size":{get: () => floatVals[F32_SIZE], set: (v) => floatVals[F32_SIZE] = v},
+		"sizeMin":{get: () => floatVals[F32_SIZE_MIN], set: (v) => floatVals[F32_SIZE_MIN] = v},
+		"sizeMax":{get: () => floatVals[F32_SIZE_MAX], set: (v) => floatVals[F32_SIZE_MAX] = v},
+		"speed":{get: () => floatVals[F32_SPEED], set: (v) => floatVals[F32_SPEED] = v},
+		"sight":{get: () => floatVals[F32_SIGHT], set: (v) => floatVals[F32_SIGHT] = v},
+		"agro":{get: () => floatVals[F32_AGRO], set: (v) => floatVals[F32_AGRO] = v},
+		"fear":{get: () => floatVals[F32_FEAR], set: (v) => floatVals[F32_FEAR] = v},
+		"potential":{get: () => floatVals[F32_POTENTIAL], set: (v) => floatVals[F32_POTENTIAL] = v},
+		"resistance":{get: () => floatVals[F32_RESISTANCE], set: (v) => floatVals[F32_RESISTANCE] = v},
 		"base_speed":{get: () => bSpeed},
 		"base_sight":{get: () => bSight},
 		"base_agro":{get: () => bAgro},
@@ -275,15 +228,17 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
 	this.pregnant = 0;
 	this.injured = 0;
 	this.lastInjury = 0;
-	this.scared = 0;
-	this.full = 0;
 	this.speed = bSpeed;
 	this.sight = bSight;
 	this.agro = bAgro;
 	this.fear = bFear;
+	this.potential = this.agro*2;
+	this.resistance = this.fear*2;
 	this.lastMeal = ~~(random()*3);
 	this.pulse = ~~(TARGET_FPS*random());
-	floatVals[O_SIZE] = MOTE_BASE_SIZE;
+	this.size = MOTE_BASE_SIZE;
+	this.sizeMin = MOTE_BASE_SIZE*0.5;
+	this.sizeMax = MOTE_BASE_SIZE*3;
 
 	updateProperties(this);
 	return this;
@@ -295,125 +250,143 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
  * @param Float delta time delta
  */
 let vel, size, sight, speed, agro, fear, tmp2 = vec2(),
-	tmpvec = vec2(), weight, mainTarget, predicted = vec2(), 
-	highestWeight, mainTargetDist, a_dist, food, scary, 
-	a_i, a_len, current, pos, handling;
-Mote.prototype.tick = function(surrounding, delta) {
-	({pos, vel, size, sight, speed, agro, fear} = this);
+	tmpVec = vec2(), weight, mainTarget, predicted = vec2(), 
+	highestWeight, mainTargetDist, a_dist, value, 
+	a_i, a_len, entity, pos, handling, tmpPot = 0.0, tmpRes = 0.0, 
+	potential = 0.0, resistance = 0.0;
+Mote.prototype.tick = function(surrounding, delta, frameCount) {
+	({pos, vel, size, sight, speed, agro, fear, resistance, potential} = this);
 	// decrement counters
-	if(this.full > 0) this.full--;
-	if(this.scared > 0) this.scared--;
 	if(this.pregnant > 0) this.pregnant--;
 	if(this.dying > 0) this.dying++; // start counting up
 	handling = (1/size)*sight*speed;
+	// build potential and resistance each tick
+	tmpPot = agro * (size*100);
+	tmpRes = fear * (size*100);
+	this.potential = clamp(potential + agro*delta, -tmpPot, tmpPot);
+	this.resistance = clamp(resistance + fear*delta, -tmpRes, tmpRes);
 
 	// last turn's move, has to happen first to avoid prediction inaccuracy
 	// during chases
-	mut_plus(pos, times(vel, delta, tmpvec));
+	mut_plus(pos, times(vel, delta, tmpVec));
 
 	// apply basic forces
-	mut_plus(vel, avoid(vel, pos, POS_C, speed, handling, tmpvec)); // don't go off the screen
+	mut_plus(vel, avoid(vel, pos, POS_C, 1.1, speed, handling, tmpVec)); // don't go off the screen
 	// apply drag
 	mut_plus(vel, drag(vel, GLOBAL_DRAG));
-	// gravitate toward center
-	//mut_plus(vel, gravitate(pos, POS_C, GRAVITY, tmpvec));
 	// put an absolute limit on velocity
 	limitVecMut(vel, 0, 1);
-	//check_bounds(pos);
 	mainTarget = this.target;
-	// drop target if too far away, if hungry, or if scared
-	if(mainTarget && ((distance(pos, mainTarget.pos) > sight) ||
-		(mainTarget instanceof Photon && (mainTarget.lifetime < 1)))) this.target = mainTarget = null; 
-	if(!mainTarget && !this.full && !this.scared) { // select a new target
+	// drop target if invalid, too far away or out of bounds
+	if(mainTarget && (
+			outOfBounds(mainTarget, 0.7) ||
+			this.injured ||
+			(distance(pos, mainTarget.pos) > sight) ||
+			(mainTarget instanceof Photon && mainTarget.lifetime < 1)
+		)) this.target = mainTarget = undefined; 
+	else if(mainTarget instanceof Photon) this.eatPhoton(entity);
+	else if(mainTarget instanceof Mote) {
+		plus(mainTarget.pos, times(mainTarget.vel, delta, tmpVec), predicted);
+		if(this.resistance < (fear*3)) { // run away
+			mut_plus(vel, accelerate(predicted, pos, handling, tmpVec));
+			mut_plus(vel, accelerate(pos, predicted, -speed, tmpVec));
+		}
+		else { // chase target
+			if(distance(pos, mainTarget.pos) < sight &&
+				this.potential > agro*3) this.discharge(mainTarget);
+			mut_plus(vel, accelerate(predicted, pos, -handling, tmpVec));
+			mut_plus(vel, accelerate(pos, predicted, speed, tmpVec));
+		}
+	} // end what to do if target is mote 
+	else if(!this.injured) { // select a new target
 		// reset scratch memory that may not be initialized
 		//weightCount = 0; 
 		highestWeight = -Infinity;
 		mainTargetDist = 0;
-		for(a_i = 0, a_len = surrounding.length; a_i < a_len && a_i < 20; ++a_i) {
-			current = surrounding[a_i];
-			if(current === this) continue;
-			if(current.injured > 0) continue; // leave hurt motes alone, avoids bugs
-			a_dist = distance(pos, current.pos);
-			if(current instanceof Photon) {
-				if(a_dist > sight*fear) continue;
-				else {
-					mainTarget = current;
-					break; // photons are always preferred target
+		for(a_i = 0, a_len = surrounding.length; a_i < a_len; ++a_i) {
+			entity = surrounding[a_i];
+			if(entity === this) continue;
+			if(entity.dying > 0) continue; // leave dying motes alone, avoids bugs
+			a_dist = distance(pos, entity.pos);
+			if(entity instanceof Photon && 
+				a_dist < (sight*fear) && 
+				entity.lifetime > 1) {
+				// need some energy to eat, and can't eat while injured
+				mainTarget = entity;
+				break; // photons are always preferred target
+			} // end stuff to do if photon
+			else if(entity instanceof Mote && (a_dist < sight)) {
+				if(this.potential > agro*3 && !outOfBounds(entity, 0.9)) { // save up a good charge
+					value = targetValue(this, entity)||0;
+					// target value is the weighted difference between food and fear values
+					weight = a_dist*(value*agro + value*fear);
+					if(weight > highestWeight) {
+						highestWeight = weight;
+						mainTarget = entity;
+						mainTargetDist = a_dist;
+					}
+					// don't get too close
+					if(a_dist < size+entity.size) mut_plus(vel, accelerate(pos, entity.pos, -handling, tmpVec));
 				}
-			}
-			else if(current instanceof Mote) {
-				if(a_dist  > sight) continue;
-				food = foodValue(this, current)||0;
-				scary = foodValue(current, this)||0;
-				// move value is the weighted difference between food and fear values
-				weight = a_dist*(food*agro - scary*fear);
-				if(weight > highestWeight) {
-					highestWeight = weight;
-					mainTarget = current;
-					mainTargetDist = a_dist;
-				}
-				//weightCount++;
-			}
-		}
-	}
+			} // end stuff to do if mote
+		} // end surrounding entities loop
+	} // end no main target and not injured
 	// new target acquired?
-	this.target = mainTarget;
-	if(mainTarget) {
-		plus(mainTarget.pos, times(mainTarget.vel, delta, tmpvec), predicted);
-		if(this.scared) { // run away
-			mut_plus(vel, accelerate(predicted, pos, handling, tmpvec));
-			mut_plus(vel, accelerate(pos, predicted, -speed, tmpvec));
-		}
-		else if(!this.full) { // chase target
-			mut_plus(vel, accelerate(predicted, pos, -handling, tmpvec));
-			mut_plus(vel, accelerate(pos, predicted, speed, tmpvec));
-			if(mainTarget instanceof Photon) {
-				// multiplied by fear to give greens an advantage in eating photons
-				if(a_dist < (sight*fear)) this.eatPhoton(current);
-			}
-			else if(mainTarget instanceof Mote) {
-				if(distance(pos, mainTarget.pos) < (size+mainTarget.size)/3) this.bite(mainTarget);
-			}
-		}
-	}
+	if(mainTarget) this.target = mainTarget;
 	else { // wander
-		tmpvec[0] = ((random()*2)-1);
-		tmpvec[1] = ((random()*2)-1);
-		mut_plus(vel, accelerate(pos, tmpvec, speed, tmp2));
+		if(magnitude(vel) < 0.001) { // not going anywhere, so pick a random direction
+			tmpVec[0] = random()*2-1;
+			tmpVec[1] = random()*2-1;
+		}
+		else {
+			mut_copy(tmpVec, pos);
+			mut_plus(tmpVec, times(vel, delta, tmp2));
+			mut_plus(tmpVec, rotate(tmpVec, pos, sin((frameCount+this.pulse)*handling), tmp2));
+		}
+		mut_plus(vel, accelerate(pos, tmpVec, speed, tmp2));
 	}
 }
 
-Mote.prototype.bite = function(target) {
-	target.injure(this, ~~(this.agro*5));
-	//mut_plus(this.vel, cross(this.vel, target.vel, tmpvec));
-	this.target = undefined;
+let delta = 0.0;
+Mote.prototype.discharge = function(target) {
+	delta = this.potential - target.resistance;
+	target.resistance -= max(this.agro, delta*this.agro);
+	this.potential -= max(this.fear, delta*this.fear);
+	target.injure(this, max(0, ~~(delta)));
+	if(this.potential < (this.fear*3) ||
+		target.injured > this.agro
+	) this.target = undefined;
 }
 
 Mote.prototype.injure = function(by, strength) {
-	//mut_plus(this.vel, cross(this.vel, by.vel, tmpvec));
 	this.injured += strength;
 	this.lastInjury = this.injured;
-	this.target = by;
-	this.scared = ~~((TARGET_FPS/2)*strength*this.fear);
+	if(this.resistance < (this.agro*3) ||
+		this.injured < this.fear
+	) this.target = by;
 }
 
-Mote.prototype.bleed = function() {
-	do {
-		choice = ~~(random()*3);
+
+Mote.prototype.bleed = (function() {
+	let choice = 0|0, choiceVal = 0|0;
+	return function bleed() {
+		do {
+			choice = ~~(random()*3);
+			switch(choice) {
+				case COLOR_R: choiceVal = this.r; break;
+				case COLOR_G: choiceVal = this.g; break;
+				case COLOR_B: choiceVal = this.b; break;
+			}
+		} while (choiceVal === 0);
 		switch(choice) {
-			case COLOR_R: choiceVal = this.r; break;
-			case COLOR_G: choiceVal = this.g; break;
-			case COLOR_B: choiceVal = this.b; break;
+			case COLOR_R: this.r = this.r - 1; break;
+			case COLOR_G: this.g = this.g - 1; break;
+			case COLOR_B: this.b = this.b - 1; break;
 		}
-	} while (choiceVal === 0);
-	switch(choice) {
-		case COLOR_R: this.r = this.r - 1; break;
-		case COLOR_G: this.g = this.g - 1; break;
-		case COLOR_B: this.b = this.b - 1; break;
+		this.injured--;
+		return choice;
 	}
-	this.injured--;
-	return choice;
-}
+})();
 
 Mote.prototype.split = (function() {
 	let baby;
@@ -422,8 +395,6 @@ Mote.prototype.split = (function() {
 		this.r = ceil(this.r/2);
 		this.g = ceil(this.g/2);
 		this.b = ceil(this.b/2);
-		this.scared = TARGET_FPS*2;
-		baby.scared = TARGET_FPS*2;
 		this.pregnant = PREGNANT_TIME-1;
 		baby.pregnant = PREGNANT_TIME-1;
 		this.target = baby;
@@ -441,22 +412,31 @@ Mote.prototype.eatPhoton = function(photon) {
 			case COLOR_B: this.b+=1; break;
 		}
 		this.lastMeal = photon.color;
-		this.full = ~~((TARGET_FPS/5)*(1-1/this.agro));
+		this.potential -= this.agro*0.5;
+		this.resistance -= this.fear*0.5;
 	}
-	//this.target = undefined;
+	this.target = undefined;
 }
 
+const rpos = new Float32Array(2);
+const rphotons = new Uint8ClampedArray(3);
+/**
+ * Generates mote with randomized position and photon values.
+ * @param {BufferPool} pool storage pool
+ * @return {Mote}
+ */
 Mote.random = function(pool) {
-	let pos = [random()*posneg(), random()*posneg()];
-	while(magnitude(pos) > 0.8) pos = [random()*posneg(), random()*posneg()];
-	return new Mote([~~(random()*64), ~~(random()*64), ~~(random()*64)], pos, pool);
+	do {
+		rpos[0] = random()*posneg();
+		rpos[1] = random()*posneg();
+	}
+	while(magnitude(rpos) > 0.8); 
+	rphotons[0] = ~~(random()*64);
+	rphotons[1] = ~~(random()*64);
+	rphotons[2] = ~~(random()*64);
+	return new Mote(rphotons, rpos, pool);
 }
 
 Mote.prototype.destroy = function() {
 	this.pool.free(this.offset);
 }
-
-let choice = 0|0, choiceVal = 0|0;
-export function chooseEmission(mote) {
-}
-

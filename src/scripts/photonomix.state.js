@@ -11,7 +11,6 @@ import {TARGET_FPS, START_POP, MAX_ENTITIES, PREGNANT_TIME, DEATH_THRESHOLD} fro
 let {random} = Math;
 const Marker = markers.Marker;
 const Photon = photons.Photon;
-const {COLOR_R, COLOR_G, COLOR_B} = photons;
 const Mote = motes.Mote;
 
 const marks = new Uint16Array(MAX_ENTITIES);
@@ -25,9 +24,7 @@ export function State() {
 		pop:0,
 		born:0,
 		died:0,
-		target:0,
-		hungry:0,
-		scared:0,
+		target:0
 	}
 	return this;
 }
@@ -45,25 +42,21 @@ State.prototype.tick = (function() {
 	let pvel = vec2(0.0);
 	return function tick(delta, frameCount) {
 		entities = this.entities;
-		this.stats.hungry = 0;
-		this.stats.scared = 0;
 		this.stats.target = 0;
 		this.stats.pop = 0;
 		tick_delta = delta/TARGET_FPS;
 		for(i = 0, len = entities.length; i < len; ++i) {
 			entity = entities[i];
-			entity.tick(this.entities, tick_delta);
+			entity.tick(this.entities, tick_delta, frameCount);
 			// do mote-specific stuff
 			if(entity instanceof Mote) {
 				this.stats.pop++;
-				if(!entity.full) this.stats.hungry++;
-				if(entity.scared) this.stats.scared++;
 				if(entity.target) this.stats.target++;
 				if(entity.injured) {
 					if(frameCount % (TARGET_FPS*0.5) === 0) {
 						choice = entity.bleed();
 						mut_copy(pvel, entity.vel);
-						mut_times(pvel, 0.4);
+						mut_times(pvel, -1);
 						this.emitPhoton(entity.pos, pvel, choice, 1, 1);
 					}
 				}
@@ -127,9 +120,12 @@ State.prototype.emitPhoton = (function() {
 })();
 
 State.prototype.killMote = (function() {
-	let sum = 0|0, c = 0|0, i = 0|0, pos, r = 0|0, g = 0|0, b = 0|0;
+	let sum = 0|0, c = 0|0, i = 0|0, pos = vec2(), r = 0|0, g = 0|0, b = 0|0;
 	return function killMote(mote) {
-		({pos, r, g, b} = mote);
+		mut_copy(pos, mote.pos);
+		r = mote.r;
+		g = mote.g;
+		b = mote.b;
 		sum = r+b+g;
 		c = 0;
 		for(i = 0; i < sum; ++i) {

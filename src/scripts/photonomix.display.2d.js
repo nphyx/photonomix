@@ -7,7 +7,7 @@ import * as markers from "./photonomix.markers";
 import {rotate} from "./photonomix.util";
 //const Marker = markers.Marker;
 const {vec2, lerp} = vectrix.vectors;
-const {plus} = vectrix.matrices;
+const {mut_plus} = vectrix.matrices;
 import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.photons";
 import {Mote} from "./photonomix.motes";
 let {min, max, cos, sin, sqrt} = Math;
@@ -135,12 +135,13 @@ const drawAttackLine = (function() {
 	let a = vec2(), b = vec2(), ra = vec2(), rb = vec2();
 	let sx = 0|0, sy = 0|0, rax = 0|0, ray = 0|0, rbx = 0|0, rby = 0|0, tx = 0|0, ty = 0|0;
 	return function drawAttackLine(ctx, entity) {
-		lerp(entity.pos, entity.target.pos, 0.333, a);
-		lerp(entity.pos, entity.target.pos, 0.666, b);
-		rotate(a, entity.pos, cos(frameCount * 0.5), ra);
-		plus(a, ra, ra);
-		rotate(b, entity.target.pos, sin(frameCount * 1), rb);
-		plus(b, rb, rb);
+		// nothing special about the constants used below, they just looked nice
+		lerp(entity.pos, entity.target.pos, 0.331, a);
+		lerp(entity.pos, entity.target.pos, 0.692, b);
+		rotate(a, entity.pos, cos((frameCount+entity.pulse)*0.772), ra);
+		mut_plus(ra, a);
+		rotate(b, entity.target.pos, sin((frameCount+entity.pulse)*0.373), rb);
+		mut_plus(rb, b);
 
 		sx = screenSpace(entity.pos[0]);
 		sy = screenSpace(entity.pos[1]);
@@ -176,19 +177,20 @@ const drawAttackLine = (function() {
 	}
 })();
 
-
 /**
  * Draw call for all entities. Loops through game entities and draws them according
  * to kind and properties.
  */
 const drawEntities = (function() {
-	let i, l, entity, px, py, tx, ty, size, speed, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, sprite;
-	let pulse = 0|0, pregnant = 0|0, injured = 0|0, full = 0|0, lastMeal = 0|0; 
+	let i, l, entity, px, py, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, sprite;
+	let pulse = 0|0, pregnant = 0|0, injured = 0|0, lastMeal = 0|0, size = 0.0; 
 	let fadeFillStyle = "rgba(0,0,0,0.3)";
 	let moteCenterFillStyle = "rgba(255,255,255,0.7)";
+	/*
 	let moteCenterRedFillStyle = "rgba(255,8,8,0.8)";
 	let moteCenterBlueFillStyle = "rgba(8,255,8,0.8)";
 	let moteCenterGreenFillStyle = "rgba(8,8,255,0.8)";
+	*/
 	return function drawEntities(ctx) {
 		ctx.globalCompositeOperation = "source-atop";
 		ctx.fillStyle = fadeFillStyle;
@@ -207,7 +209,7 @@ const drawEntities = (function() {
 			if(W > H) px = px + OFFSET_MAX_D;
 			else py = py + OFFSET_MAX_D;
 			if(entity instanceof Mote) {
-				({pulse, pregnant, injured, full, lastMeal} = entity);
+				({pulse, pregnant, injured, lastMeal} = entity);
 				size = entity.size * clamp(MIN_D, 300, 1200);
 				if(pregnant) {
 					sc = size * cos((frameCount+pulse) * 0.2) * (sqrt(pregnant)+1);
@@ -229,38 +231,9 @@ const drawEntities = (function() {
 				swh = ~~(swh);
 				ctx.drawImage(sprites.recolor(moteSprite, entity.color_string).canvas, 
 					px-sch, py-sch, sc, sc);
-				if(full) {
-					ctx.globalCompositeOperation = "overlay";
-					switch(lastMeal) {
-						case 0:
-							ctx.drawImage(sprites.recolor(moteSprite, moteCenterRedFillStyle).canvas, 
-								px-sch, py-sch, sc, sc);
-						break;
-						case 1:
-							ctx.drawImage(sprites.recolor(moteSprite, moteCenterGreenFillStyle).canvas, 
-								px-sch, py-sch, sc, sc);
-						break;
-						case 2:
-							ctx.drawImage(sprites.recolor(moteSprite, moteCenterBlueFillStyle).canvas, 
-								px-sch, py-sch, sc, sc);
-						break;
-					}
-					ctx.globalCompositeOperation = "lighter";
-				}
 				ctx.drawImage(sprites.recolor(moteSprite, moteCenterFillStyle).canvas, 
 					px-swh, py-swh, sw, sw);
-				if(!entity.scared && entity.target) drawAttackLine(ctx, entity);
-				if(DEBUG_DRAW && entity.target) {
-					speed = entity.speed;
-					tx = screenSpace(entity.target.x);
-					ty = screenSpace(entity.target.y);
-					ctx.beginPath();
-					ctx.moveTo(px, py);
-					ctx.strokeStyle = (entity.scared?"white":entity.full?"red":entity.color_string);
-					ctx.strokeWidth = 1;
-					ctx.lineTo(tx, ty);
-					ctx.stroke();
-				}
+				if(entity.target !== undefined && entity.potential > 1) drawAttackLine(ctx, entity);
 			} // end mote draw
 			else if(entity instanceof Photon) {
 				sprite = photonSprites[entity.color];

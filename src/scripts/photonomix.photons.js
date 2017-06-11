@@ -17,7 +17,7 @@ export const BUFFER_LENGTH = (FLOAT_LENGTH + U8_LENGTH) + (F32 - (FLOAT_LENGTH +
 
 export const COLOR_R = 0, COLOR_G = 1, COLOR_B = 2;
 export function Photon(ipos, ivel, color, pool = undefined) {
-	let buffer, offset;
+	let buffer, offset = 0|0;
 	if(pool) {
 		buffer = pool.buffer;
 		offset = pool.allocate();
