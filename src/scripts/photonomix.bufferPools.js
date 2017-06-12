@@ -1,6 +1,6 @@
 "use strict";
 
-export const MAX_POOL_SIZE = Math.pow(2, 20); // 1mb
+export const MAX_POOL_SIZE = Math.pow(2, 21); // 2mb
 
 function calculatePoolSize(itemLength) {
 	return MAX_POOL_SIZE - (MAX_POOL_SIZE % itemLength);

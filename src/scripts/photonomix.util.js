@@ -1,9 +1,9 @@
 "use strict";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
-import {VALIDATE_VECTORS} from "./photonomix.constants";
+import {VALIDATE_VECTORS, GRAVITY} from "./photonomix.constants";
 const {vec2, magnitude, mut_normalize, distance, mut_times, mut_copy} = vectrix.vectors;
 const {minus} = vectrix.matrices;
-const {sqrt, abs, E, pow, cos, sin, random} = Math;
+const {sqrt, abs, E, pow, cos, sin, random, PI} = Math;
 const X = 0, Y = 1;
 
 export const validate = (function() {
@@ -57,7 +57,7 @@ export const gravitate = (function() {
 	return function gravitate(p1, p2, strength, out) {
 		out = out||g_v;
 		minus(p1, p2, out);
-		limitVecMut(out, 0.00001, 10); // put a cap on it to avoid infinite acceleration
+		limitVecMut(out, 0.001, 10); // put a cap on it to avoid infinite acceleration
 		mag = magnitude(out);
 		// inline normalize for speed, since this happens a lot
 		x = out[0];
@@ -66,7 +66,7 @@ export const gravitate = (function() {
 		out[0] = x*scale;
 		out[1] = y*scale;
 		//mut_normalize(out);
-		mut_times(out, -strength/(mag*mag));
+		mut_times(out, -strength*GRAVITY/(mag*mag));
 		if(VALIDATE_VECTORS) {
 			try {
 				validate(out);
@@ -100,6 +100,7 @@ export const accelerate = (function() {
 	return function accelerate(p1, p2, strength, out) {
 		out = out||v;	
 		minus(p1, p2, out);
+		twiddleVec(out); // avoid 0
 		// inline normalize for speed, since this happens a lot
 		x = out[0];
 		y = out[1];
@@ -260,8 +261,8 @@ export const rotate = (function() {
 	let cosr = 0.0, sinr = 0.0, rdx = 0.0, rdy = 0.0, rvec = vec2(), rdelta = vec2();
 	return function rotate(p, c, r, out) {
 		out = out||rvec;
-		cosr = cos(r);
-		sinr = sin(r);
+		cosr = cos(r*PI);
+		sinr = sin(r*PI);
 		minus(p, c, rdelta);
 		rdx = rdelta[X]; 
 		rdy = rdelta[Y];

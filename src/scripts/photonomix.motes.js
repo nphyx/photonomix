@@ -4,9 +4,10 @@ import {TARGET_FPS, MOTE_BASE_SPEED, MOTE_BASE_SIZE, PREGNANT_THRESHOLD,
 				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG} from "./photonomix.constants";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
 import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, limitVecMut, outOfBounds, rotate} from "./photonomix.util";
-const {vec2, times, mut_clamp, magnitude, distance, mut_copy} = vectrix.vectors;
+const {vec2, times, mut_clamp, magnitude, distance, mut_copy, mut_times} = vectrix.vectors;
 const {plus, mut_plus} = vectrix.matrices;
 import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.photons";
+import {Void} from "./photonomix.voids";
 const clamp = mut_clamp;
 // Center of the playfield is at 0,0 (ranging from -1 to 1 on X and Y axis)
 const POS_C  = vec2(0.0, 0.0);
@@ -249,8 +250,8 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
  * @param Array surrounding array of nearby objects to consider in movement
  * @param Float delta time delta
  */
-let vel, size, sight, speed, agro, fear, tmp2 = vec2(),
-	tmpVec = vec2(), weight, mainTarget, predicted = vec2(), 
+let vel, size, sight, speed, agro, fear, scratchVec2 = vec2(),
+	scratchVec1 = vec2(), weight, mainTarget, predicted = vec2(), 
 	highestWeight, mainTargetDist, a_dist, value, 
 	a_i, a_len, entity, pos, handling, tmpPot = 0.0, tmpRes = 0.0, 
 	potential = 0.0, resistance = 0.0;
@@ -268,82 +269,85 @@ Mote.prototype.tick = function(surrounding, delta, frameCount) {
 
 	// last turn's move, has to happen first to avoid prediction inaccuracy
 	// during chases
-	mut_plus(pos, times(vel, delta, tmpVec));
+	mut_plus(pos, times(vel, delta, scratchVec1));
 
 	// apply basic forces
-	mut_plus(vel, avoid(vel, pos, POS_C, 1.1, speed, handling, tmpVec)); // don't go off the screen
+	mut_plus(vel, avoid(vel, pos, POS_C, 1.1, speed, handling, scratchVec1)); // don't go off the screen
 	// apply drag
 	mut_plus(vel, drag(vel, GLOBAL_DRAG));
 	// put an absolute limit on velocity
-	limitVecMut(vel, 0, 1);
+	limitVecMut(vel, 0, 2);
 	mainTarget = this.target;
 	// drop target if invalid, too far away or out of bounds
 	if(mainTarget && (
 			outOfBounds(mainTarget, 0.7) ||
-			this.injured ||
 			(distance(pos, mainTarget.pos) > sight) ||
 			(mainTarget instanceof Photon && mainTarget.lifetime < 1)
 		)) this.target = mainTarget = undefined; 
 	else if(mainTarget instanceof Photon) this.eatPhoton(entity);
 	else if(mainTarget instanceof Mote) {
-		plus(mainTarget.pos, times(mainTarget.vel, delta, tmpVec), predicted);
+		plus(mainTarget.pos, times(mainTarget.vel, delta, scratchVec1), predicted);
 		if(this.resistance < (fear*3)) { // run away
-			mut_plus(vel, accelerate(predicted, pos, handling, tmpVec));
-			mut_plus(vel, accelerate(pos, predicted, -speed, tmpVec));
+			mut_plus(vel, accelerate(predicted, pos, handling, scratchVec1));
+			mut_plus(vel, accelerate(pos, predicted, -speed, scratchVec1));
 		}
 		else { // chase target
 			if(distance(pos, mainTarget.pos) < sight &&
 				this.potential > agro*3) this.discharge(mainTarget);
-			mut_plus(vel, accelerate(predicted, pos, -handling, tmpVec));
-			mut_plus(vel, accelerate(pos, predicted, speed, tmpVec));
+			mut_plus(vel, accelerate(predicted, pos, -handling, scratchVec1));
+			mut_plus(vel, accelerate(pos, predicted, speed, scratchVec1));
 		}
 	} // end what to do if target is mote 
-	else if(!this.injured) { // select a new target
-		// reset scratch memory that may not be initialized
-		//weightCount = 0; 
-		highestWeight = -Infinity;
-		mainTargetDist = 0;
-		for(a_i = 0, a_len = surrounding.length; a_i < a_len; ++a_i) {
-			entity = surrounding[a_i];
-			if(entity === this) continue;
-			if(entity.dying > 0) continue; // leave dying motes alone, avoids bugs
-			a_dist = distance(pos, entity.pos);
-			if(entity instanceof Photon && 
-				a_dist < (sight*fear) && 
-				entity.lifetime > 1) {
+	// reset scratch memory that may not be initialized
+	//weightCount = 0; 
+	highestWeight = -Infinity;
+	mainTargetDist = 0;
+	for(a_i = 0, a_len = surrounding.length; a_i < a_len; ++a_i) {
+		entity = surrounding[a_i];
+		if(entity === this) continue;
+		if(entity.dying && entity.dying > 0) continue; // leave dying motes alone, avoids bugs
+		// ignore things outside sight range
+		if((a_dist = distance(pos, entity.pos)) > sight) continue;
+		if(entity instanceof Void || entity instanceof Mote) {
+			// don't get too close
+			if(a_dist < (size+entity.size)/2) {
+				mut_copy(scratchVec1, pos);
+				mut_plus(vel, rotate(scratchVec1, entity.pos, 0.333, scratchVec1)); 
+				mut_plus(vel, accelerate(pos, scratchVec1, speed, scratchVec2));
+			}
+		} // end stuff to do if void
+		if(highestWeight < Infinity && this.injured === 0) { // else a hard choice has been made
+			if(entity instanceof Photon && entity.lifetime > 1) {
 				// need some energy to eat, and can't eat while injured
 				mainTarget = entity;
-				break; // photons are always preferred target
+				highestWeight = Infinity;
 			} // end stuff to do if photon
-			else if(entity instanceof Mote && (a_dist < sight)) {
-				if(this.potential > agro*3 && !outOfBounds(entity, 0.9)) { // save up a good charge
-					value = targetValue(this, entity)||0;
-					// target value is the weighted difference between food and fear values
-					weight = a_dist*(value*agro + value*fear);
-					if(weight > highestWeight) {
-						highestWeight = weight;
-						mainTarget = entity;
-						mainTargetDist = a_dist;
-					}
-					// don't get too close
-					if(a_dist < size+entity.size) mut_plus(vel, accelerate(pos, entity.pos, -handling, tmpVec));
+			else if(entity instanceof Mote && 
+					this.potential > agro*3) { // save up a good charge
+				value = targetValue(this, entity)||0;
+				// target value is the weighted difference between food and fear values
+				weight = a_dist*(value*agro + value*fear);
+				if(weight > highestWeight) {
+					highestWeight = weight;
+					mainTarget = entity;
+					mainTargetDist = a_dist;
 				}
 			} // end stuff to do if mote
-		} // end surrounding entities loop
-	} // end no main target and not injured
+		} // end if highest weight < Infinity
+	} // end surrounding entities loop
 	// new target acquired?
 	if(mainTarget) this.target = mainTarget;
 	else { // wander
 		if(magnitude(vel) < 0.001) { // not going anywhere, so pick a random direction
-			tmpVec[0] = random()*2-1;
-			tmpVec[1] = random()*2-1;
+			scratchVec1[0] = random()*2-1;
+			scratchVec1[1] = random()*2-1;
 		}
 		else {
-			mut_copy(tmpVec, pos);
-			mut_plus(tmpVec, times(vel, delta, tmp2));
-			mut_plus(tmpVec, rotate(tmpVec, pos, sin((frameCount+this.pulse)*handling), tmp2));
+			mut_copy(scratchVec1, pos);
+			mut_plus(scratchVec1, times(vel, delta, scratchVec2));
+			mut_plus(scratchVec1, rotate(scratchVec1, pos, sin((frameCount+this.pulse)*handling), scratchVec2));
 		}
-		mut_plus(vel, accelerate(pos, tmpVec, speed, tmp2));
+		mut_plus(vel, accelerate(pos, scratchVec1, speed, scratchVec2));
 	}
 }
 
@@ -368,8 +372,8 @@ Mote.prototype.injure = function(by, strength) {
 
 
 Mote.prototype.bleed = (function() {
-	let choice = 0|0, choiceVal = 0|0;
-	return function bleed() {
+	let choice = 0|0, choiceVal = 0|0, pvel = vec2();
+	return function bleed(photonPool) {
 		do {
 			choice = ~~(random()*3);
 			switch(choice) {
@@ -384,7 +388,11 @@ Mote.prototype.bleed = (function() {
 			case COLOR_B: this.b = this.b - 1; break;
 		}
 		this.injured--;
-		return choice;
+		mut_times(this.vel, 1+this.speed);
+		mut_copy(pvel, this.vel);
+		mut_times(pvel, -1);
+		return new Photon(this.pos, pvel, choice, photonPool);
+		//return choice;
 	}
 })();
 

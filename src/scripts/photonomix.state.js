@@ -1,19 +1,21 @@
 "use strict";
 import * as motes from "./photonomix.motes";
+import * as voids from "./photonomix.voids";
 import * as markers from "./photonomix.markers";
 import * as photons from "./photonomix.photons";
 import {shuffle, rotate} from "./photonomix.util";
 import {BufferPool} from "./photonomix.bufferPools";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
 //const {plus, mut_plus} = vectrix.matrices;
-const {vec2, mut_copy, mut_times} = vectrix.vectors;
-import {TARGET_FPS, START_POP, MAX_ENTITIES, PREGNANT_TIME, DEATH_THRESHOLD} from "./photonomix.constants";
+const {vec2, mut_copy} = vectrix.vectors;
+import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS, PREGNANT_TIME, DEATH_THRESHOLD} from "./photonomix.constants";
 let {random} = Math;
 const Marker = markers.Marker;
 const Photon = photons.Photon;
 const Mote = motes.Mote;
+const Void = voids.Void;
 
-const marks = new Uint16Array(MAX_ENTITIES);
+const marks = new Uint16Array(MAX_MOTES);
 let markpos = 0;
 let mark = 0;
 
@@ -30,16 +32,17 @@ export function State() {
 }
 
 State.prototype.start = function() {
-	this.photonPool = new BufferPool(photons.BUFFER_LENGTH, MAX_ENTITIES);
-	this.motePool = new BufferPool(motes.BUFFER_LENGTH, MAX_ENTITIES);
+	this.photonPool = new BufferPool(photons.BUFFER_LENGTH, MAX_MOTES);
+	this.motePool = new BufferPool(motes.BUFFER_LENGTH, MAX_PHOTONS);
 	for(let i = 0; i < START_POP; ++i) {
 		this.entities.push(new Mote.random(this.motePool))
 	}
+	this.entities.push(new Void(vec2(0.5, 0.5), vec2(0,0)));
+	this.entities.push(new Void(vec2(-0.5, -0.5), vec2(0,0)));
 }
 
 State.prototype.tick = (function() {
-	let entities, entity, i = 0|0, len = 0|0, tick_delta = 0.0, choice = 0|0;	
-	let pvel = vec2(0.0);
+	let entities, entity, i = 0|0, len = 0|0, tick_delta = 0.0;
 	return function tick(delta, frameCount) {
 		entities = this.entities;
 		this.stats.target = 0;
@@ -53,11 +56,14 @@ State.prototype.tick = (function() {
 				this.stats.pop++;
 				if(entity.target) this.stats.target++;
 				if(entity.injured) {
-					if(frameCount % (TARGET_FPS*0.5) === 0) {
+					if(frameCount % ~~(TARGET_FPS*0.1) === 0) {
+						this.entities.push(entity.bleed(this.photonPool));
+						/*
 						choice = entity.bleed();
 						mut_copy(pvel, entity.vel);
 						mut_times(pvel, -1);
 						this.emitPhoton(entity.pos, pvel, choice, 1, 1);
+						*/
 					}
 				}
 				// mark dead for removal
@@ -66,8 +72,6 @@ State.prototype.tick = (function() {
 					marks[markpos] = i;
 					this.stats.died++;
 					markpos++;
-				}
-				else if(entity.dying) {
 				}
 				else if(entity.pregnant === PREGNANT_TIME) {
 					this.entities.push(entity.split());
@@ -79,6 +83,10 @@ State.prototype.tick = (function() {
 					marks[markpos] = i;
 					markpos++;
 				}
+			}
+			else if((entity instanceof Void) && (entity.mass === 0)) {
+				marks[markpos] = i;
+				markpos++;
 			}
 		}
 
@@ -109,7 +117,7 @@ State.prototype.emitPhoton = (function() {
 		}
 		else {
 			mut_copy(vel, base_vel);
-			rotate(vel, center, ((p_c%max)/(max/2))*Math.PI, vel);
+			rotate(vel, center, ((p_c%max)/(max/2)), vel);
 		}
 		color = color||~~(random()*3);
 		mut_copy(pos, ipos);

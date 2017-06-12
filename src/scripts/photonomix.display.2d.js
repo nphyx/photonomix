@@ -10,6 +10,7 @@ const {vec2, lerp} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
 import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.photons";
 import {Mote} from "./photonomix.motes";
+import {Void} from "./photonomix.voids";
 let {min, max, cos, sin, sqrt} = Math;
 const clamp = vectrix.vectors.mut_clamp;
 const AUTO_FULLSCREEN = false;
@@ -28,6 +29,7 @@ let lastFrame = 0;
 let bgCtx, bokehCtx, gameCtx, displayCtx, invertCtx;
 let bgCanvas, bokehCanvas, gameCanvas, displayCanvas, invertCanvas;
 let moteSprite;
+let voidSprite;
 let markerSprites = Array(1);
 let photonSprites = Array(3);
 
@@ -103,6 +105,7 @@ function updateRatio() {
 	}
 	bokeh.create(buffers[0], buffers[1], W, H);
 	moteSprite = sprites.createMoteSprite(min(W,H), constants.MOTE_BASE_SIZE*4);
+	voidSprite = sprites.createVoidSprite(min(W,H), constants.VOID_SIZE*10);
 	photonSprites[COLOR_R] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "red");
 	photonSprites[COLOR_G] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "green");
 	photonSprites[COLOR_B] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "blue");
@@ -185,6 +188,7 @@ const drawEntities = (function() {
 	let i, l, entity, px, py, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, sprite;
 	let pulse = 0|0, pregnant = 0|0, injured = 0|0, lastMeal = 0|0, size = 0.0; 
 	let fadeFillStyle = "rgba(0,0,0,0.3)";
+	let invFillStyle = "rgba(255,255,255,0.3)";
 	let moteCenterFillStyle = "rgba(255,255,255,0.7)";
 	/*
 	let moteCenterRedFillStyle = "rgba(255,8,8,0.8)";
@@ -196,7 +200,7 @@ const drawEntities = (function() {
 		ctx.fillStyle = fadeFillStyle;
 		ctx.fillRect(0, 0, W, H);
 		invertCtx.globalCompositeOperation = "source-over";
-		invertCtx.fillStyle = fadeFillStyle;
+		invertCtx.fillStyle = invFillStyle;
 		invertCtx.fillRect(0, 0, W, H);
 
 		ctx.globalCompositeOperation = "lighter";
@@ -243,6 +247,14 @@ const drawEntities = (function() {
 				sch = ~~(sch);
 				ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
 			} // end photon draw
+			else if(entity instanceof Void) {
+				sprite = voidSprite;
+				sc = entity.size * MIN_D * 1+(sin(frameCount*0.2));
+				sch = sc*0.5;
+				sc = sc;
+				sch = sch;
+				invertCtx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
+			}
 		}
 		ctx.globalCompositeOperation = "source-over";
 	}
@@ -269,9 +281,10 @@ function composite() {
 	displayCtx.drawImage(bgCanvas, 0, 0, W, H);
 	displayCtx.globalCompositeOperation = "lighter";
 	displayCtx.drawImage(bokehCanvas, 0, 0);
-	displayCtx.drawImage(gameCanvas, 0, 0);
-	displayCtx.globalCompositeOperation = "difference";
+	displayCtx.globalCompositeOperation = "multiply";
 	displayCtx.drawImage(invertCanvas, 0, 0);
+	displayCtx.globalCompositeOperation = "lighter";
+	displayCtx.drawImage(gameCanvas, 0, 0);
 }
 
 /**
