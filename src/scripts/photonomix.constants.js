@@ -16,6 +16,7 @@ export const PHOTON_LIFETIME = TARGET_FPS*10;
 export const MARKER_HIT_LIFETIME = ~~(TARGET_FPS);
 export const MARKER_HIT_SIZE = 0.1;
 export const VOID_SIZE = 0.01;
+export const EMITTER_SIZE = 0.01;
 export const MAX_MOTES = 300;
 export const MAX_PHOTONS = ~~(MAX_MOTES * PREGNANT_THRESHOLD)/2;
 export const MAX_VOIDS = 7;

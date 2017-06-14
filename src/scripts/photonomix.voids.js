@@ -1,17 +1,20 @@
 "use strict";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
-import {gravitate, drag, outOfBounds, limitVecMut} from  "./photonomix.util";
+import {gravitate, drag, outOfBounds, limitVecMut, avoid} from  "./photonomix.util";
 import {Mote} from "./photonomix.motes";
 import {Photon} from "./photonomix.photons";
+import {Emitter} from "./photonomix.emitters";
 const {vec2, times, mut_times, distance} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
 import {VOID_SIZE, GLOBAL_DRAG} from "./photonomix.constants";
 const {sqrt, PI} = Math;
-export function Void(ipos = vec2(), ivel = vec2(), size = VOID_SIZE) {
-	this.pos = ipos;
-	this.vel = ivel;
-	this.size = size;
-	this.mass = 1;
+const POS_C = vec2(0,0);
+
+export function Void(ipos = vec2(), ivel = vec2(), mass = 1) {
+	this.pos = vec2(ipos);
+	this.vel = vec2(ivel);
+	this.size = 0;
+	this.mass = mass;
 	return this;
 }
 
@@ -27,7 +30,7 @@ Void.prototype.tick = function(entities, delta) {
 	mut_plus(this.pos, times(this.vel, delta, scratchVec1));
 
 	// apply basic forces
-	//mut_plus(vel, avoid(vel, pos, POS_C, 1.1, speed, handling, scratchVec1)); // don't go off the screen
+	mut_plus(this.vel, avoid(this.vel, this.pos, POS_C, 1.1, this.size, this.size, scratchVec1)); // don't go off the screen
 	// apply drag
 	mut_plus(this.vel, drag(this.vel, GLOBAL_DRAG));
 	limitVecMut(this.vel, 0, 1);
@@ -53,12 +56,18 @@ Void.prototype.tick = function(entities, delta) {
 			entity.injured = entity.injured + 1;
 		}
 		if(entity instanceof Void) {
-			if(entity.mass > 0 && a_dist < this.size && this.mass > entity.mass) { // bigger ones eat smaller ones
-				entity.mass = entity.mass - 1;
-				this.mass = this.mass + 1;
+			if(entity.mass > 0 && a_dist < this.size) { // bigger ones eat smaller ones
+				if(this.mass > entity.mass) this.mass += entity.mass;
+				entity.mass = 0;
 			}
 			mut_plus(entity.vel, mut_times(
 				gravitate(entity.pos, this.pos, this.mass*entity.mass*MASS_FACTOR, scratchVec1),
+				delta)
+			);
+		}
+		if(entity instanceof Emitter) {
+			mut_plus(entity.vel, mut_times(
+				gravitate(entity.pos, this.pos, (this.mass/entity.mass)*MASS_FACTOR, scratchVec1),
 				delta)
 			);
 		}

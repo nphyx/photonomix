@@ -1,6 +1,7 @@
 "use strict";
 import * as motes from "./photonomix.motes";
 import * as voids from "./photonomix.voids";
+import * as emitters from "./photonomix.emitters";
 import * as markers from "./photonomix.markers";
 import * as photons from "./photonomix.photons";
 import {shuffle, rotate} from "./photonomix.util";
@@ -14,8 +15,9 @@ const Marker = markers.Marker;
 const Photon = photons.Photon;
 const Mote = motes.Mote;
 const Void = voids.Void;
+const Emitter = emitters.Emitter;
 
-const marks = new Uint16Array(MAX_MOTES);
+const marks = new Uint16Array(MAX_MOTES+MAX_PHOTONS+100);
 let markpos = 0;
 let mark = 0;
 
@@ -32,8 +34,8 @@ export function State() {
 }
 
 State.prototype.start = function() {
-	this.photonPool = new BufferPool(photons.BUFFER_LENGTH, MAX_MOTES);
-	this.motePool = new BufferPool(motes.BUFFER_LENGTH, MAX_PHOTONS);
+	this.motePool = new BufferPool(motes.BUFFER_LENGTH, MAX_MOTES);
+	this.photonPool = new BufferPool(photons.BUFFER_LENGTH, MAX_PHOTONS);
 	for(let i = 0; i < START_POP; ++i) {
 		this.entities.push(new Mote.random(this.motePool))
 	}
@@ -58,12 +60,6 @@ State.prototype.tick = (function() {
 				if(entity.injured) {
 					if(frameCount % ~~(TARGET_FPS*0.1) === 0) {
 						this.entities.push(entity.bleed(this.photonPool));
-						/*
-						choice = entity.bleed();
-						mut_copy(pvel, entity.vel);
-						mut_times(pvel, -1);
-						this.emitPhoton(entity.pos, pvel, choice, 1, 1);
-						*/
 					}
 				}
 				// mark dead for removal
@@ -84,7 +80,7 @@ State.prototype.tick = (function() {
 					markpos++;
 				}
 			}
-			else if((entity instanceof Void) && (entity.mass === 0)) {
+			else if((entity instanceof Void || entity instanceof Emitter) && (entity.mass === 0)) {
 				marks[markpos] = i;
 				markpos++;
 			}

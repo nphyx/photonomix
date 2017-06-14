@@ -277,14 +277,14 @@ Mote.prototype.tick = function(surrounding, delta, frameCount) {
 	mut_plus(vel, drag(vel, GLOBAL_DRAG));
 	// put an absolute limit on velocity
 	limitVecMut(vel, 0, 2);
-	mainTarget = this.target;
 	// drop target if invalid, too far away or out of bounds
+	mainTarget = this.target;
 	if(mainTarget && (
 			outOfBounds(mainTarget, 0.7) ||
 			(distance(pos, mainTarget.pos) > sight) ||
 			(mainTarget instanceof Photon && mainTarget.lifetime < 1)
 		)) this.target = mainTarget = undefined; 
-	else if(mainTarget instanceof Photon) this.eatPhoton(entity);
+	else if(mainTarget instanceof Photon) this.eatPhoton(mainTarget);
 	else if(mainTarget instanceof Mote) {
 		plus(mainTarget.pos, times(mainTarget.vel, delta, scratchVec1), predicted);
 		if(this.resistance < (fear*3)) { // run away
@@ -317,7 +317,7 @@ Mote.prototype.tick = function(surrounding, delta, frameCount) {
 			}
 		} // end stuff to do if void
 		if(highestWeight < Infinity && this.injured === 0) { // else a hard choice has been made
-			if(entity instanceof Photon && entity.lifetime > 1) {
+			if(entity instanceof Photon && entity.lifetime > 2) {
 				// need some energy to eat, and can't eat while injured
 				mainTarget = entity;
 				highestWeight = Infinity;

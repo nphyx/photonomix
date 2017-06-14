@@ -11,6 +11,7 @@ const {mut_plus} = vectrix.matrices;
 import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.photons";
 import {Mote} from "./photonomix.motes";
 import {Void} from "./photonomix.voids";
+import {Emitter} from "./photonomix.emitters";
 let {min, max, cos, sin, sqrt} = Math;
 const clamp = vectrix.vectors.mut_clamp;
 const AUTO_FULLSCREEN = false;
@@ -30,6 +31,7 @@ let bgCtx, bokehCtx, gameCtx, displayCtx, invertCtx;
 let bgCanvas, bokehCanvas, gameCanvas, displayCanvas, invertCanvas;
 let moteSprite;
 let voidSprite;
+let emitterSprite;
 let markerSprites = Array(1);
 let photonSprites = Array(3);
 
@@ -106,6 +108,7 @@ function updateRatio() {
 	bokeh.create(buffers[0], buffers[1], W, H);
 	moteSprite = sprites.createMoteSprite(min(W,H), constants.MOTE_BASE_SIZE*4);
 	voidSprite = sprites.createVoidSprite(min(W,H), constants.VOID_SIZE*10);
+	emitterSprite = sprites.createEmitterSprite(min(W,H), constants.EMITTER_SIZE*10);
 	photonSprites[COLOR_R] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "red");
 	photonSprites[COLOR_G] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "green");
 	photonSprites[COLOR_B] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "blue");
@@ -237,7 +240,7 @@ const drawEntities = (function() {
 					px-sch, py-sch, sc, sc);
 				ctx.drawImage(sprites.recolor(moteSprite, moteCenterFillStyle).canvas, 
 					px-swh, py-swh, sw, sw);
-				if(entity.target !== undefined && entity.potential > 1) drawAttackLine(ctx, entity);
+				if(entity.target !== undefined && (entity.potential > 1 || entity.target.lifetime > 0)) drawAttackLine(ctx, entity);
 			} // end mote draw
 			else if(entity instanceof Photon) {
 				sprite = photonSprites[entity.color];
@@ -255,6 +258,16 @@ const drawEntities = (function() {
 				sch = sch;
 				invertCtx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
 			}
+			else if(entity instanceof Emitter) {
+				sprite = emitterSprite;
+				sc = entity.size * MIN_D * 0.9;
+				sc = sc + (sc*(sin(frameCount*0.2))/10);
+				sch = sc*0.5;
+				sc = sc;
+				sch = sch;
+				ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
+			}
+
 		}
 		ctx.globalCompositeOperation = "source-over";
 	}

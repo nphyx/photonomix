@@ -117,3 +117,26 @@ export function createVoidSprite(scale, spriteSize) {
 		pixelSize:pixelSize
 	}
 }
+
+export function createEmitterSprite(scale, spriteSize) {
+	let pixelSize = scaleSprite(scale, spriteSize);
+	let canvas = document.createElement("canvas");
+	canvas.width = canvas.height = pixelSize;
+	let ctx = canvas.getContext("2d");	
+	let g = ctx.createRadialGradient(
+		pixelSize/2, pixelSize/2, pixelSize/2,
+		pixelSize/2, pixelSize/2, 0
+	);
+	g.addColorStop(1, "rgba(255,255,255,0.25");
+	g.addColorStop(0.9, "rgba(255,255,255,0.25)");
+	g.addColorStop(0.0, "rgba(255,255,255,0.0)");
+	ctx.fillStyle = g;
+	ctx.fillRect(0, 0, pixelSize, pixelSize);
+	return {
+		canvas:canvas,
+		context:ctx,
+		w:pixelSize,
+		h:pixelSize,
+		pixelSize:pixelSize
+	}
+}

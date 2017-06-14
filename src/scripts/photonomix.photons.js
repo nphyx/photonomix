@@ -29,8 +29,6 @@ export function Photon(ipos, ivel, color, pool = undefined) {
 	this.pos = vec2(ipos, buffer, O_POS+offset);
 	this.vel = vec2(ivel, buffer, O_VEL+offset);
 	this.intVals = new Uint8ClampedArray(buffer, FLOAT_LENGTH+offset, U8_LENGTH);
-	this.pos.set(ipos);
-	this.vel.set(ivel);
 
 	Object.defineProperties(this, {
 		"x": {get:() => this.pos[0], set:(x) => this.pos[0] = x},

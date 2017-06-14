@@ -6,6 +6,24 @@ const {minus} = vectrix.matrices;
 const {sqrt, abs, E, pow, cos, sin, random, PI} = Math;
 const X = 0, Y = 1;
 
+/**
+ * Twiddles a value by a small amount to avoid zeroes
+ */
+export function twiddle(x) {
+	return x + (1e-11*posneg());
+}
+
+export const twiddleVec = (function() {
+	let i = 0|0, l = 0|0;
+	return function twiddleVec(v) {
+		for(i = 0, l = v.length; i < l; ++i) {
+			v[i] = twiddle(v[i]);
+		}
+		return v;
+	}
+})();
+
+
 export const validate = (function() {
 	let i, l;
 	return function validate(v) {
@@ -57,7 +75,7 @@ export const gravitate = (function() {
 	return function gravitate(p1, p2, strength, out) {
 		out = out||g_v;
 		minus(p1, p2, out);
-		limitVecMut(out, 0.001, 10); // put a cap on it to avoid infinite acceleration
+		limitVecMut(out, 0.001, 1000); // put a cap on it to avoid infinite acceleration
 		mag = magnitude(out);
 		// inline normalize for speed, since this happens a lot
 		x = out[0];
@@ -191,23 +209,6 @@ export const avoid = (function() {
 			accelerate(pos, opposite, speed*dist*dist, out);
 		}
 		return out;
-	}
-})();
-
-/**
- * Twiddles a value by a small amount to avoid zeroes
- */
-export function twiddle(x) {
-	return x + (1e-11*posneg());
-}
-
-export const twiddleVec = (function() {
-	let i = 0|0, l = 0|0;
-	return function twiddleVec(v) {
-		for(i = 0, l = v.length; i < l; ++i) {
-			v[i] = twiddle(v[i]);
-		}
-		return v;
 	}
 })();
 
