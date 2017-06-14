@@ -83,7 +83,7 @@ export const gravitate = (function() {
 		y = out[1];
 		if((x === 0 && y === 0) || mag === 0) return out;
 		scale = mut_clamp(1/sqrt((x*x)+(y*y)), MIN_F, MAX_F);
-		strength = mut_clamp(strength, MIN_F, MAX_F);
+		strength = mut_clamp(strength, -MAX_F, MAX_F);
 		out[0] = x*scale;
 		out[1] = y*scale;
 		//mut_normalize(out);
