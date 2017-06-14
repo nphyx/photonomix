@@ -15,6 +15,8 @@ export function Void(ipos = vec2(), ivel = vec2(), mass = 1) {
 	this.vel = vec2(ivel);
 	this.size = 0;
 	this.mass = mass;
+	this.lastMeal = -1;
+	this.eatTime = 0;
 	return this;
 }
 
@@ -22,6 +24,8 @@ const MASS_FACTOR = 1e+5;
 
 let scratchVec1 = vec2(), entity, i = 0|0, len = 0|0, a_dist = 0.0;
 Void.prototype.tick = function(entities, delta) {
+	if(this.eatTime > 30) this.eatTime--;
+	else this.lastMeal = -1;
 	if(outOfBounds(this.pos, 1.3)) {
 		this.mass = this.mass - 1;
 	}
@@ -49,6 +53,8 @@ Void.prototype.tick = function(entities, delta) {
 			entity.lifetime = entity.lifetime - 1;
 			if(entity.lifetime === 0 || a_dist < this.size*0.6) {
 				this.mass = this.mass + 1;
+				this.lastMeal = entity.color;
+				this.eatTime = 15;
 				entity.lifetime = 0;
 			}
 		}

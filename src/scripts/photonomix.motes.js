@@ -3,7 +3,7 @@ let {random, max, min, floor, ceil, sin} = Math;
 import {TARGET_FPS, MOTE_BASE_SPEED, MOTE_BASE_SIZE, PREGNANT_THRESHOLD, 
 				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG} from "./photonomix.constants";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
-import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, limitVecMut, outOfBounds, rotate} from "./photonomix.util";
+import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, outOfBounds, rotate} from "./photonomix.util";
 const {vec2, times, mut_clamp, magnitude, distance, mut_copy, mut_times} = vectrix.vectors;
 const {plus, mut_plus} = vectrix.matrices;
 import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.photons";
@@ -14,13 +14,8 @@ const POS_C  = vec2(0.0, 0.0);
 // twiddle to slightly offset the values, avoids divide by zero and other errors
 // inherent to acceleration, friction, drag and gravity equations
 twiddleVec(POS_C);
-// these are used during Mote.updateProperties to store ratios between colors
-let rat_r = 0.0, rat_g = 0.0, rat_b = 0.0;
-// sum of photon values, used during Mote.updateProperties
-let ud_sum = 0.0;
 // relative color values derived from a Mote's photons, used to produce color string
 // for rendering
-const tmp_color = new Uint8ClampedArray(3);
 
 /**
  * Determines the food value of object b to mote a. Roughly, a mote prefers to eat 
@@ -52,7 +47,10 @@ const F32 = 4;
 
 // uint8 values = photons[3]
 const U8_PHO = 0; 
-const U8_VAL_LENGTH = U8_PHO + I8*3;
+const U8_RAT = U8_PHO + I8*3; 
+const U8_COL = U8_RAT + I8*3; 
+const U8_PREF = U8_COL + I8*3; 
+const U8_VAL_LENGTH = U8_PREF + I8*3;
 const I8_BYTE_OFFSET = U8_VAL_LENGTH;
 // int8 values =  dying, pregnant, injured, lastMeal, pulse
 const	I8_DYING = 0,
@@ -60,7 +58,8 @@ const	I8_DYING = 0,
 	I8_INJURED = I8_PREG + I8,
 	I8_LAST_INJURY = I8_INJURED + I8,
 	I8_MEAL = I8_LAST_INJURY + I8,
-	I8_PULSE = I8_MEAL + I8;
+	I8_UPD = I8_MEAL + I8,
+	I8_PULSE = I8_UPD + I8;
 
 const I8_VAL_LENGTH = I8_PULSE + I8;
 
@@ -119,7 +118,9 @@ export const BUFFER_LENGTH = F32_BYTE_OFFSET + (FLOAT_VAL_LENGTH*F32);
  * @property {Float32} size derived size radius as fraction of screen size
  * @property {Float32} sizeMin minimum size the mote can reach as it shrinks
  * @property {Float32} sizeMax maximum size the mote can reach as it grows
- * @property {UintClamped8Array} photons current photon values (R, G, B) (for debug)
+ * @property {UintClamped8Array} photons current photon values (R, G, B)
+ * @property {UintClamped8Array} ratios current photon ratios (R, G, B)
+ * @property {UintClamped8Array} color current mote color (R, G, B)
  * @property {Int8Array} intVals direct access to integer value array (for debug)
  * @property {Float32Array} floatVals direct access to float value array (for debug)
  * @return {Mote}
@@ -134,12 +135,14 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
 		buffer = new ArrayBuffer(BUFFER_LENGTH);
 		offset = 0;
 	}
-	let that = this;
 
 	// "private" properties
 	// use a single buffer for properties so that they're guaranteed to be contiguous
 	// in memory and typed
 	let photons = new Uint8ClampedArray(buffer, U8_PHO+offset, I8*3);
+	let ratios  = new Uint8ClampedArray(buffer, U8_RAT+offset, I8*3);
+	let prefs   = new Uint8ClampedArray(buffer, U8_PREF+offset, I8*3);
+	let color = new Uint8ClampedArray(buffer, U8_COL+offset, I8*3);
 	photons[COLOR_R] = _photons[COLOR_R];
 	photons[COLOR_G] = _photons[COLOR_G];
 	photons[COLOR_B] = _photons[COLOR_B];
@@ -154,48 +157,16 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
 	bAgro = bAgro+adjRand(0.001);
 	bFear = bFear+adjRand(0.001);
 
-	function updateProperties() {
-		ud_sum = photons[COLOR_R] + photons[COLOR_G] + photons[COLOR_B];
-		if(ud_sum > 0) { // otherwise skip this stuff since the mote is dead anyway
-		that.size = clamp(ud_sum/(PREGNANT_THRESHOLD/3)*MOTE_BASE_SIZE, that.sizeMin, that.sizeMax);
-			rat_r = ratio(photons[COLOR_R], photons[COLOR_G]+photons[COLOR_B]);
-			rat_g = ratio(photons[COLOR_G], photons[COLOR_R]+photons[COLOR_B]);
-			rat_b = ratio(photons[COLOR_B], photons[COLOR_G]+photons[COLOR_R]);
-			that.speed = bSpeed*(1-that.size)*(1+rat_b);
-			that.sight = bSight;
-			that.agro = bAgro*(1+rat_r);
-			that.fear = bFear*(1+rat_g);
-			if(DEBUG) {
-				if(isNaN(that.speed)) throw new Error("Mote.updateProperties: NaN speed");
-				if(isNaN(that.sight)) throw new Error("Mote.updateProperties: NaN sight");
-				if(isNaN(that.size)) throw new Error("Mote.updateProperties: NaN size");
-				if(isNaN(that.agro)) throw new Error("Mote.updateProperties: NaN agro");
-				if(isNaN(that.fear)) throw new Error("Mote.updateProperties: NaN fear");
-			}
-		} // end of stuff to do only if sum > 0
-
-		if(ud_sum > PREGNANT_THRESHOLD) that.pregnant = PREGNANT_TIME;
-		if(ud_sum < DEATH_THRESHOLD && that.dying === 0) that.dying = 1;
-
-		tmp_color[COLOR_R] = ~~(photons[COLOR_R]/ud_sum*255);
-		tmp_color[COLOR_G] = ~~(photons[COLOR_G]/ud_sum*255);
-		tmp_color[COLOR_B] = ~~(photons[COLOR_B]/ud_sum*255);
-		that.color_string = "rgb("+tmp_color[COLOR_R]+","+tmp_color[COLOR_G]+","+tmp_color[COLOR_B]+")";
-	}
-
-	function setPhoton(v, n) {
-		photons[n] = max(0, min(v, 255));
-		updateProperties();
-	}
-
 	Object.defineProperties(this, {
-		"r":{get: () => photons[COLOR_R], set: (v) => setPhoton(v, COLOR_R)},
-		"g":{get: () => photons[COLOR_G], set: (v) => setPhoton(v, COLOR_G)},
-		"b":{get: () => photons[COLOR_B], set: (v) => setPhoton(v, COLOR_B)},
+		"photons":{get: () => photons},
+		"ratios":{get: () => ratios},
+		"prefs":{get: () => prefs},
+		"color":{get: () => color},
 		"dying":{get: () => intVals[I8_DYING], set: (v) => intVals[I8_DYING] = v},
 		"pregnant":{get: () => intVals[I8_PREG], set: (v) => intVals[I8_PREG] = v},
 		"injured":{get: () => intVals[I8_INJURED], set: (v) => intVals[I8_INJURED] = v},
 		"lastInjury":{get: () => intVals[I8_LAST_INJURY], set: (v) => intVals[I8_LAST_INJURY] = v},
+		"needsUpdate":{get: () => intVals[I8_UPD], set: (v) => intVals[I8_UPD] = v},
 		"pulse":{get: () => intVals[I8_PULSE], set: (v) => intVals[I8_PULSE] = v},
 		"lastMeal":{get: () => intVals[I8_MEAL], set: (v) => intVals[I8_MEAL] = v},
 		"size":{get: () => floatVals[F32_SIZE], set: (v) => floatVals[F32_SIZE] = v},
@@ -219,7 +190,6 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
 	 * Debug access only.
 	 */
 	if(DEBUG) Object.defineProperties(this, {
-		"photons":{get: () => photons},
 		"intVals":{get: () => intVals},
 		"floatVals":{get: () => floatVals},
 	});
@@ -241,9 +211,51 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
 	this.sizeMin = MOTE_BASE_SIZE*0.5;
 	this.sizeMax = MOTE_BASE_SIZE*3;
 
-	updateProperties(this);
+	this.updateProperties();
+	this.prefs[COLOR_R] = this.ratios[COLOR_R];
+	this.prefs[COLOR_G] = this.ratios[COLOR_G];
+	this.prefs[COLOR_B] = this.ratios[COLOR_B];
 	return this;
 }
+
+/**
+ * Updates derived properties for mote.
+ */
+Mote.prototype.updateProperties = (function() {
+	let ud_sum = 0|0, r = 0|0, g = 0|0, b = 0|0, photons, color, ratios;
+	return function updateProperties() {
+		({photons, ratios, color} = this);
+		r = photons[COLOR_R];
+		g = photons[COLOR_B];
+		b = photons[COLOR_G];
+		ud_sum = r + g + b;
+		if(ud_sum > 0) { // otherwise skip this stuff since the mote is dead anyway
+		this.size = clamp(ud_sum/(PREGNANT_THRESHOLD/3)*MOTE_BASE_SIZE, this.sizeMin, this.sizeMax);
+			ratios[COLOR_R] = ratio(r, g+b);
+			ratios[COLOR_G] = ratio(g, r+b);
+			ratios[COLOR_B] = ratio(b, g+r);
+			this.speed = this.base_speed*(1-this.size)*(1+ratios[COLOR_B]);
+			this.sight = this.base_sight;
+			this.agro = this.base_agro*(1+ratios[COLOR_R]);
+			this.fear = this.base_fear*(1+ratios[COLOR_G]);
+			if(DEBUG) {
+				if(isNaN(this.speed)) throw new Error("Mote.updateProperties: NaN speed");
+				if(isNaN(this.sight)) throw new Error("Mote.updateProperties: NaN sight");
+				if(isNaN(this.size)) throw new Error("Mote.updateProperties: NaN size");
+				if(isNaN(this.agro)) throw new Error("Mote.updateProperties: NaN agro");
+				if(isNaN(this.fear)) throw new Error("Mote.updateProperties: NaN fear");
+			}
+		} // end of stuff to do only if sum > 0
+
+		if((ud_sum > PREGNANT_THRESHOLD) && this.pregnant === 0) this.pregnant = PREGNANT_TIME;
+		if((ud_sum < DEATH_THRESHOLD) && this.dying === 0) this.dying = 1;
+
+		color[COLOR_R] = ~~(r/ud_sum*255);
+		color[COLOR_G] = ~~(g/ud_sum*255);
+		color[COLOR_B] = ~~(b/ud_sum*255);
+		this.needsUpdate = 0;
+	}
+})();
 
 /**
  * Decide how to act each tick based on nearby objects.
@@ -254,12 +266,15 @@ let vel, size, sight, speed, agro, fear, scratchVec2 = vec2(),
 	scratchVec1 = vec2(), weight, mainTarget, predicted = vec2(), 
 	highestWeight, mainTargetDist, a_dist, value, 
 	a_i, a_len, entity, pos, handling, tmpPot = 0.0, tmpRes = 0.0, 
-	potential = 0.0, resistance = 0.0;
+	potential = 0.0, resistance = 0.0, pregnant = 0|0, dying = 0|0,
+	epos;
 Mote.prototype.tick = function(surrounding, delta, frameCount) {
+	({pregnant, dying} = this);
+	if(pregnant > 0) this.pregnant = pregnant - 1;
+	if(dying > 0) this.dying = dying + 1; // start counting up
+	if(this.needsUpdate) this.updateProperties();
 	({pos, vel, size, sight, speed, agro, fear, resistance, potential} = this);
 	// decrement counters
-	if(this.pregnant > 0) this.pregnant--;
-	if(this.dying > 0) this.dying++; // start counting up
 	handling = (1/size)*sight*speed;
 	// build potential and resistance each tick
 	tmpPot = agro * (size*100);
@@ -276,7 +291,7 @@ Mote.prototype.tick = function(surrounding, delta, frameCount) {
 	// apply drag
 	mut_plus(vel, drag(vel, GLOBAL_DRAG));
 	// put an absolute limit on velocity
-	limitVecMut(vel, 0, 2);
+	//limitVecMut(vel, 0, 2);
 	// drop target if invalid, too far away or out of bounds
 	mainTarget = this.target;
 	if(mainTarget && (
@@ -304,15 +319,17 @@ Mote.prototype.tick = function(surrounding, delta, frameCount) {
 	mainTargetDist = 0;
 	for(a_i = 0, a_len = surrounding.length; a_i < a_len; ++a_i) {
 		entity = surrounding[a_i];
+		dying = entity.dying; // safe to reuse here since we're done with this.dying
+		epos = entity.pos;
 		if(entity === this) continue;
-		if(entity.dying && entity.dying > 0) continue; // leave dying motes alone, avoids bugs
+		if(dying !== undefined && dying > 0) continue; // leave dying motes alone, avoids bugs
 		// ignore things outside sight range
-		if((a_dist = distance(pos, entity.pos)) > sight) continue;
+		if((a_dist = distance(pos, epos)) > sight) continue;
 		if(entity instanceof Void || entity instanceof Mote) {
 			// don't get too close
 			if(a_dist < (size+entity.size)/2) {
 				mut_copy(scratchVec1, pos);
-				mut_plus(vel, rotate(scratchVec1, entity.pos, 0.333, scratchVec1)); 
+				mut_plus(vel, rotate(scratchVec1, epos, 0.333, scratchVec1)); 
 				mut_plus(vel, accelerate(pos, scratchVec1, speed, scratchVec2));
 			}
 		} // end stuff to do if void
@@ -370,61 +387,73 @@ Mote.prototype.injure = function(by, strength) {
 	) this.target = by;
 }
 
-
 Mote.prototype.bleed = (function() {
-	let choice = 0|0, choiceVal = 0|0, pvel = vec2();
+	let choice = 0|0, choiceVal = 0|0, pvel = vec2(), photons;
 	return function bleed(photonPool) {
+		photons = this.photons;
 		do {
 			choice = ~~(random()*3);
 			switch(choice) {
-				case COLOR_R: choiceVal = this.r; break;
-				case COLOR_G: choiceVal = this.g; break;
-				case COLOR_B: choiceVal = this.b; break;
+				case COLOR_R: choiceVal = photons[COLOR_R]; break;
+				case COLOR_G: choiceVal = photons[COLOR_G]; break;
+				case COLOR_B: choiceVal = photons[COLOR_B]; break;
 			}
 		} while (choiceVal === 0);
 		switch(choice) {
-			case COLOR_R: this.r = this.r - 1; break;
-			case COLOR_G: this.g = this.g - 1; break;
-			case COLOR_B: this.b = this.b - 1; break;
+			case COLOR_R: photons[COLOR_R] = photons[COLOR_R] - 1; break;
+			case COLOR_G: photons[COLOR_G] = photons[COLOR_G] - 1; break;
+			case COLOR_B: photons[COLOR_B] = photons[COLOR_B] - 1; break;
 		}
 		this.injured--;
 		mut_times(this.vel, 1+this.speed);
 		mut_copy(pvel, this.vel);
 		mut_times(pvel, -1);
+		this.needsUpdate = 1;
 		return new Photon(this.pos, pvel, choice, photonPool);
 		//return choice;
 	}
 })();
 
 Mote.prototype.split = (function() {
-	let baby;
+	let baby, photons;
 	return function() {
-		baby = new Mote([floor(this.r/2), floor(this.g/2), floor(this.b/2)], this.pos, this.pool, this.base_speed, this.base_sight, this.base_agro, this.base_fear);
-		this.r = ceil(this.r/2);
-		this.g = ceil(this.g/2);
-		this.b = ceil(this.b/2);
+		photons = this.photons;
+		baby = new Mote(
+			[floor(photons[COLOR_R]/2), floor(photons[COLOR_G]/2), floor(photons[COLOR_B]/2)],
+			this.pos, this.pool, this.base_speed, this.base_sight, this.base_agro, 
+			this.base_fear);
+		photons[COLOR_R] = ceil(photons[COLOR_R]/2);
+		photons[COLOR_G] = ceil(photons[COLOR_G]/2);
+		photons[COLOR_B] = ceil(photons[COLOR_B]/2);
 		this.pregnant = PREGNANT_TIME-1;
 		baby.pregnant = PREGNANT_TIME-1;
 		this.target = baby;
 		baby.target = this;
+		baby.needsUpdate = 1;
+		this.needsUpdate = 1;
 		return baby;
 	}
 })();
 
-Mote.prototype.eatPhoton = function(photon) {
-	if(photon.lifetime > 0) {
-		photon.lifetime = 0;
-		switch(photon.color) {
-			case COLOR_R: this.r+=1; break;
-			case COLOR_G: this.g+=1; break;
-			case COLOR_B: this.b+=1; break;
+Mote.prototype.eatPhoton = (function() {
+	let photons;
+	return function eatPhotons(photon) {
+		photons = this.photons;
+		if(photon.lifetime > 0) {
+			photon.lifetime = 0;
+			switch(photon.color) {
+				case COLOR_R: photons[COLOR_R]+=1; break;
+				case COLOR_G: photons[COLOR_G]+=1; break;
+				case COLOR_B: photons[COLOR_B]+=1; break;
+			}
+			this.lastMeal = photon.color;
+			this.potential -= this.agro*0.5;
+			this.resistance -= this.fear*0.5;
+			this.needsUpdate = 1;
 		}
-		this.lastMeal = photon.color;
-		this.potential -= this.agro*0.5;
-		this.resistance -= this.fear*0.5;
+		this.target = undefined;
 	}
-	this.target = undefined;
-}
+})();
 
 const rpos = new Float32Array(2);
 const rphotons = new Uint8ClampedArray(3);

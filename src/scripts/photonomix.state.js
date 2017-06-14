@@ -39,8 +39,10 @@ State.prototype.start = function() {
 	for(let i = 0; i < START_POP; ++i) {
 		this.entities.push(new Mote.random(this.motePool))
 	}
+	/*
 	this.entities.push(new Void(vec2(0.5, 0.5), vec2(0,0)));
 	this.entities.push(new Void(vec2(-0.5, -0.5), vec2(0,0)));
+	*/
 }
 
 State.prototype.tick = (function() {
@@ -124,8 +126,10 @@ State.prototype.emitPhoton = (function() {
 })();
 
 State.prototype.killMote = (function() {
-	let sum = 0|0, c = 0|0, i = 0|0, pos = vec2(), r = 0|0, g = 0|0, b = 0|0;
+	//let sum = 0|0, c = 0|0, i = 0|0, pos = vec2(), r = 0|0, g = 0|0, b = 0|0;
 	return function killMote(mote) {
+		this.entities.push(new Emitter(mote.pos, mote.vel, DEATH_THRESHOLD, this.photonPool, DEATH_THRESHOLD));
+		/*
 		mut_copy(pos, mote.pos);
 		r = mote.r;
 		g = mote.g;
@@ -137,5 +141,6 @@ State.prototype.killMote = (function() {
 			if(r+g === i) c = 2;
 			this.emitPhoton(pos, undefined, c, i, sum);
 		}
+		*/
 	}
 })();

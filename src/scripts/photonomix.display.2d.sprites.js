@@ -1,9 +1,47 @@
 "use strict";
-function scaleSprite(scale, spriteSize) {
-	return ~~(scale*spriteSize);
+export const moteSprites = Array(4092);
+export const colorStrings = Array(4092);
+const MASK_R = 0xf00;
+const MASK_G = 0x0f0;
+const MASK_B = 0x00f;
+var moteSpriteScale = 0;
+var moteSpriteSize = 0;
+
+export function setMoteSpriteDimensions(scale, size) {
+	moteSpriteScale = scale;
+	moteSpriteSize = size;
 }
-export function createMoteSprite(scale, spriteSize) {
-	let pixelSize = scaleSprite(scale, spriteSize);
+
+export function getMoteSprite(index) {
+	if(moteSprites[index] === undefined) {
+		let color = getColorString(index);
+		moteSprites[index] = createMoteSprite();
+		recolor(moteSprites[index], color);
+	}
+	return moteSprites[index];
+}
+
+export function getColorString(index) {
+	if(colorStrings[index] === undefined) {
+		colorStrings[index] = "rgb("+((index & MASK_R) >> 4)+
+													","+(index & MASK_G)+
+													","+((index & MASK_B) << 4)+")";	
+	}
+	return colorStrings[index];
+}
+
+export function colorIndex(r, g, b) {
+	return (r >> 4 << 8) + (g >> 4 << 4) + (b >> 4);
+}
+
+export function createMoteCenterSprite(color) {
+	let sprite = createMoteSprite();
+	recolor(sprite, color);
+	return sprite;
+}
+
+export function createMoteSprite() {
+	let pixelSize = scaleSprite(moteSpriteScale, moteSpriteSize);
 	let canvas = document.createElement("canvas");
 	canvas.width = canvas.height = pixelSize;
 	let mask = document.createElement("canvas");
@@ -27,6 +65,10 @@ export function createMoteSprite(scale, spriteSize) {
 		w:pixelSize,
 		h:pixelSize
 	}
+}
+
+function scaleSprite(scale, spriteSize) {
+	return ~~(scale*spriteSize);
 }
 
 export function recolor(sprite, color) {
@@ -104,8 +146,15 @@ export function createVoidSprite(scale, spriteSize) {
 		pixelSize/2, pixelSize/2, pixelSize/2,
 		pixelSize/2, pixelSize/2, 0
 	);
-	g.addColorStop(1, "rgba(0,0,0,1.0");
-	g.addColorStop(0.6, "rgba(0,0,0,1.0)");
+	g.addColorStop(1, "rgba(0,0,0,0.98)");
+	g.addColorStop(0.5, "rgba(0,0,0,0.98)");
+	g.addColorStop(0.449, "rgba(0,0,0,0.85)");
+	g.addColorStop(0.44, "rgba(192,192,192,0.6)");
+	g.addColorStop(0.44, "rgba(192,192,192,0.6)");
+	g.addColorStop(0.42, "rgba(128,128,128,0.4)");
+	g.addColorStop(0.4, "rgba(92,92,92,0.2)");
+	g.addColorStop(0.37, "rgba(128,128,128,0.2)");
+	g.addColorStop(0.25, "rgba(0,0,0,0.2)");
 	g.addColorStop(0.0, "rgba(0,0,0,0.0)");
 	ctx.fillStyle = g;
 	ctx.fillRect(0, 0, pixelSize, pixelSize);

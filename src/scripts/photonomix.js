@@ -8,6 +8,7 @@ import * as constants from "./photonomix.constants";
 import * as state from "./photonomix.state";
 import * as emitters from "./photonomix.emitters";
 import * as util from "./photonomix.util";
+import * as sprites from "./photonomix.display.2d.sprites";
 
 var photonomix = {
 	motes:motes,
@@ -15,6 +16,7 @@ var photonomix = {
 	photons:photons,
 	voids:voids,
 	emitters:emitters,
+	sprites:sprites,
 	util:util,
 	constants:constants
 }

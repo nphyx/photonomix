@@ -17,28 +17,23 @@ export const BUFFER_LENGTH = (FLOAT_LENGTH + U8_LENGTH) + (F32 - (FLOAT_LENGTH +
 
 export const COLOR_R = 0, COLOR_G = 1, COLOR_B = 2;
 export function Photon(ipos, ivel, color, pool = undefined) {
-	let buffer, offset = 0|0;
+	let buffer;
+	this.pool = pool;
 	if(pool) {
 		buffer = pool.buffer;
-		offset = pool.allocate();
+		this.offset = pool.allocate();
 	}
  	else {
 		buffer = new ArrayBuffer(BUFFER_LENGTH);
-		offset = 0;
+		this.offset = 0;
 	}
-	this.pos = vec2(ipos, buffer, O_POS+offset);
-	this.vel = vec2(ivel, buffer, O_VEL+offset);
-	this.intVals = new Uint8ClampedArray(buffer, FLOAT_LENGTH+offset, U8_LENGTH);
+	this.pos = vec2(ipos[0], ipos[1], buffer, O_POS+this.offset);
+	this.vel = vec2(ivel[0], ivel[1], buffer, O_VEL+this.offset);
+	this.intVals = new Uint8ClampedArray(buffer, FLOAT_LENGTH+this.offset, U8_LENGTH);
 
 	Object.defineProperties(this, {
-		"x": {get:() => this.pos[0], set:(x) => this.pos[0] = x},
-		"y": {get:() => this.pos[1], set:(x) => this.pos[1] = x},
-		"toX": {get:() => this.vel[0], set:(x) => this.vel[0] = x},
-		"toY": {get:() => this.vel[1], set:(x) => this.vel[1] = x},
 		"color": {get:() => this.intVals[O_COLOR], set:(x) => this.intVals[O_COLOR] = x},
-		"lifetime": {get:() => this.intVals[O_LIFE], set:(x) => this.intVals[O_LIFE] = x},
-		"pool": {get:() => pool},
-		"offset": {get:() => offset}
+		"lifetime": {get:() => this.intVals[O_LIFE], set:(x) => this.intVals[O_LIFE] = x}
 	});
 	this.color = color;
 	this.lifetime = PHOTON_LIFETIME;

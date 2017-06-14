@@ -29,11 +29,12 @@ let game; // game environment object
 let lastFrame = 0;
 let bgCtx, bokehCtx, gameCtx, displayCtx, invertCtx;
 let bgCanvas, bokehCanvas, gameCanvas, displayCanvas, invertCanvas;
-let moteSprite;
+let moteCenterSprite;
 let voidSprite;
 let emitterSprite;
 let markerSprites = Array(1);
 let photonSprites = Array(3);
+let moteCenterFillStyle = "rgba(255,255,255,0.7)";
 
 let PX = 1; // pixel size
 let W = 0; // screen width
@@ -106,13 +107,15 @@ function updateRatio() {
 		buffers[i].canvas.height = H;
 	}
 	bokeh.create(buffers[0], buffers[1], W, H);
-	moteSprite = sprites.createMoteSprite(min(W,H), constants.MOTE_BASE_SIZE*4);
-	voidSprite = sprites.createVoidSprite(min(W,H), constants.VOID_SIZE*10);
-	emitterSprite = sprites.createEmitterSprite(min(W,H), constants.EMITTER_SIZE*10);
-	photonSprites[COLOR_R] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "red");
-	photonSprites[COLOR_G] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "green");
-	photonSprites[COLOR_B] = sprites.createPhotonSprite(min(W,H), constants.PHOTON_BASE_SIZE, "blue");
-	markerSprites[markers.MARKER_HIT] = sprites.createMarkerHitSprite(min(W,H), constants.MARKER_HIT_SIZE);
+	sprites.setMoteSpriteDimensions(MIN_D, constants.MOTE_BASE_SIZE*4);
+	//moteSprite = sprites.createMoteSprite(MIN_D, constants.MOTE_BASE_SIZE*4);
+	voidSprite = sprites.createVoidSprite(MIN_D, 1);
+	emitterSprite = sprites.createEmitterSprite(MIN_D, constants.EMITTER_SIZE*10);
+	moteCenterSprite = sprites.createMoteCenterSprite(moteCenterFillStyle);
+	photonSprites[COLOR_R] = sprites.createPhotonSprite(MIN_D, constants.PHOTON_BASE_SIZE, "red");
+	photonSprites[COLOR_G] = sprites.createPhotonSprite(MIN_D, constants.PHOTON_BASE_SIZE, "green");
+	photonSprites[COLOR_B] = sprites.createPhotonSprite(MIN_D, constants.PHOTON_BASE_SIZE, "blue");
+	markerSprites[markers.MARKER_HIT] = sprites.createMarkerHitSprite(MIN_D, constants.MARKER_HIT_SIZE);
 }
 
 /**
@@ -140,7 +143,7 @@ function screenSpace(x) {
 const drawAttackLine = (function() {
 	let a = vec2(), b = vec2(), ra = vec2(), rb = vec2();
 	let sx = 0|0, sy = 0|0, rax = 0|0, ray = 0|0, rbx = 0|0, rby = 0|0, tx = 0|0, ty = 0|0;
-	return function drawAttackLine(ctx, entity) {
+	return function drawAttackLine(ctx, entity, color) {
 		// nothing special about the constants used below, they just looked nice
 		lerp(entity.pos, entity.target.pos, 0.331, a);
 		lerp(entity.pos, entity.target.pos, 0.692, b);
@@ -172,7 +175,7 @@ const drawAttackLine = (function() {
 		ctx.beginPath();
 		ctx.moveTo(sx, sy);
 		ctx.bezierCurveTo(rax, ray, rbx, rby, tx, ty);
-		ctx.strokeStyle = entity.color_string;
+		ctx.strokeStyle = color;
 		ctx.lineWidth = 4;
 		ctx.stroke();
 		ctx.moveTo(sx, sy);
@@ -189,20 +192,16 @@ const drawAttackLine = (function() {
  */
 const drawEntities = (function() {
 	let i, l, entity, px, py, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, sprite;
-	let pulse = 0|0, pregnant = 0|0, injured = 0|0, lastMeal = 0|0, size = 0.0; 
+	let ox, oy;
+	let pulse = 0|0, pregnant = 0|0, injured = 0|0, lastMeal = 0|0, size = 0.0, index = 0|0; 
 	let fadeFillStyle = "rgba(0,0,0,0.3)";
-	let invFillStyle = "rgba(255,255,255,0.3)";
-	let moteCenterFillStyle = "rgba(255,255,255,0.7)";
-	/*
-	let moteCenterRedFillStyle = "rgba(255,8,8,0.8)";
-	let moteCenterBlueFillStyle = "rgba(8,255,8,0.8)";
-	let moteCenterGreenFillStyle = "rgba(8,8,255,0.8)";
-	*/
+	let invFillStyle = "rgba(255,255,255,0.1)";
 	return function drawEntities(ctx) {
 		ctx.globalCompositeOperation = "source-atop";
 		ctx.fillStyle = fadeFillStyle;
 		ctx.fillRect(0, 0, W, H);
-		invertCtx.globalCompositeOperation = "source-over";
+		invertCtx.globalCompositeOperation = "source-in";
+		//invertCtx.clearRect(0,0,W,H);
 		invertCtx.fillStyle = invFillStyle;
 		invertCtx.fillRect(0, 0, W, H);
 
@@ -232,40 +231,71 @@ const drawEntities = (function() {
 				}
 				sch = sc*0.5;
 				swh = sw*0.5;
-				sc = ~~(sc);
-				sw = ~~(sw);
-				sch = ~~(sch);
-				swh = ~~(swh);
-				ctx.drawImage(sprites.recolor(moteSprite, entity.color_string).canvas, 
-					px-sch, py-sch, sc, sc);
-				ctx.drawImage(sprites.recolor(moteSprite, moteCenterFillStyle).canvas, 
-					px-swh, py-swh, sw, sw);
-				if(entity.target !== undefined && (entity.potential > 1 || entity.target.lifetime > 0)) drawAttackLine(ctx, entity);
+				index = sprites.colorIndex(entity.color[COLOR_R], entity.color[COLOR_G], entity.color[COLOR_B]);
+				sprite = sprites.getMoteSprite(index);
+				ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
+				ctx.drawImage(moteCenterSprite.canvas, px-swh, py-swh, sw, sw);
+				if(entity.target !== undefined && (entity.potential > 1 || entity.target.lifetime > 0)) drawAttackLine(ctx, entity, sprites.getColorString(index));
 			} // end mote draw
 			else if(entity instanceof Photon) {
 				sprite = photonSprites[entity.color];
 				sc = sprite.pixelSize * cos(frameCount*0.2);
 				sch = sc*0.5;
-				sc = ~~(sc);
-				sch = ~~(sch);
 				ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
 			} // end photon draw
 			else if(entity instanceof Void) {
-				sprite = voidSprite;
 				sc = entity.size * MIN_D * 1+(sin(frameCount*0.2));
 				sch = sc*0.5;
-				sc = sc;
-				sch = sch;
+				invertCtx.globalCompositeOperation = "source-over";
+				sprite = voidSprite;
 				invertCtx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
+				if(entity.mass > 500) { // smaller than this and effects look janky
+					switch(entity.lastMeal) {
+						case -1:index = 0x888; break;
+						case COLOR_R:index = 0xf44; break;
+						case COLOR_G:index = 0x4f4; break;
+						case COLOR_B:index = 0x44f; break;
+					}
+					// light patch
+					invertCtx.globalCompositeOperation = "soft-light";
+					sw = sc*0.8;
+					swh = sw*0.5;
+					ox = sin(frameCount*0.05)*sc*entity.size*0.3;
+					oy = cos(frameCount*0.05)*sc*entity.size*0.3;
+					sprite = sprites.getMoteSprite(0xfff);
+					invertCtx.drawImage(sprite.canvas, px+ox-swh, py+oy-swh, sw, sw);
+					// smaller light patch
+					sw = sc*0.8;
+					swh = sw*0.5;
+					ox = sin(frameCount*0.1)*sc*entity.size*0.26;
+					oy = cos(frameCount*0.1)*sc*entity.size*0.26;
+					sprite = sprites.getMoteSprite(index);
+					invertCtx.drawImage(sprite.canvas, px+ox-swh, py+oy-swh, sw, sw);
+					// dark patch
+					invertCtx.globalCompositeOperation = "multiply";
+					sprite = sprites.getMoteSprite(0x000);
+					sw = sc*0.9;
+					swh = sw*0.5;
+					ox = cos(frameCount*0.09)*sc*entity.size*0.2;
+					oy = sin(frameCount*0.09)*sc*entity.size*0.2;
+					invertCtx.drawImage(sprite.canvas, px+ox-swh, py+oy-swh, sw, sw);
+				}
 			}
 			else if(entity instanceof Emitter) {
-				sprite = emitterSprite;
 				sc = entity.size * MIN_D * 0.9;
 				sc = sc + (sc*(sin(frameCount*0.2))/10);
 				sch = sc*0.5;
-				sc = sc;
-				sch = sch;
+				sw = sc*1.1;
+				swh = sw*0.5;
+				switch(entity.next) {
+					case COLOR_R:index = 0xf88; break;
+					case COLOR_G:index = 0x8f8; break;
+					case COLOR_B:index = 0x88f; break;
+				}
+				sprite = emitterSprite;
 				ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
+				sprite = sprites.getMoteSprite(index);
+				ctx.drawImage(sprite.canvas, px-swh, py-swh, sw, sw);
 			}
 
 		}
@@ -294,10 +324,10 @@ function composite() {
 	displayCtx.drawImage(bgCanvas, 0, 0, W, H);
 	displayCtx.globalCompositeOperation = "lighter";
 	displayCtx.drawImage(bokehCanvas, 0, 0);
-	displayCtx.globalCompositeOperation = "multiply";
-	displayCtx.drawImage(invertCanvas, 0, 0);
 	displayCtx.globalCompositeOperation = "lighter";
 	displayCtx.drawImage(gameCanvas, 0, 0);
+	displayCtx.globalCompositeOperation = "hard-light";
+	displayCtx.drawImage(invertCanvas, 0, 0);
 }
 
 /**

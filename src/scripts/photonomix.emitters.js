@@ -1,6 +1,6 @@
 "use strict";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
-import {TARGET_FPS, GLOBAL_DRAG, EMITTER_SIZE} from "./photonomix.constants";
+import {TARGET_FPS, GLOBAL_DRAG, EMITTER_SIZE, DEATH_THRESHOLD} from "./photonomix.constants";
 import {rotate, limitVecMut, drag, gravitate, avoid} from "./photonomix.util";
 import {Photon} from "./photonomix.photons";
 import {Mote} from "./photonomix.motes";
@@ -22,6 +22,7 @@ export function Emitter(ipos = vec2(), ivel = vec2(), mass = 1, photonPool = und
 	this.photonPool = photonPool;
 	this.arms = arms||1+~~(random()*6);
 	this.size = 0;
+	this.next = ~~(random()*3);
 	return this;
 }
 
@@ -51,30 +52,33 @@ Emitter.prototype.tick = function(entities, delta, frameCount) {
 		entity = entities[i];
 		if(entity === this) continue;
 		a_dist = distance(this.pos, entity.pos);
-		if(entity instanceof Photon || entity instanceof Mote) {
-			mut_plus(entity.vel, mut_times(
-				gravitate(entity.pos, this.pos, -this.mass*MASS_FACTOR, scratchVec1),
-				delta)
-			);
-		}
-		if(entity instanceof Void) {
-			mut_plus(entity.vel, mut_times(
-				gravitate(entity.pos, this.pos, -(this.mass/entity.mass)*MASS_FACTOR, scratchVec1),
-				delta)
-			);
-		}
-		if(entity instanceof Emitter) {
-			mut_plus(entity.vel, mut_times(
-				gravitate(entity.pos, this.pos, -(this.mass*entity.mass)*MASS_FACTOR, scratchVec1),
-				delta)
-			);
+		if(this.mass > DEATH_THRESHOLD) { // don't need tons of tiny emitters screwing with things
+			if(entity instanceof Photon || entity instanceof Mote) {
+				mut_plus(entity.vel, mut_times(
+					gravitate(entity.pos, this.pos, -this.mass*MASS_FACTOR, scratchVec1),
+					delta)
+				);
+			}
+			else if(entity instanceof Void) {
+				mut_plus(entity.vel, mut_times(
+					gravitate(entity.pos, this.pos, -(this.mass/entity.mass)*MASS_FACTOR, scratchVec1),
+					delta)
+				);
+			}
+			else if(entity instanceof Emitter) {
+				mut_plus(entity.vel, mut_times(
+					gravitate(entity.pos, this.pos, -(this.mass*entity.mass)*MASS_FACTOR, scratchVec1),
+					delta)
+				);
+			}
 		}
 	}
 }
 
 Emitter.prototype.emitPhoton = (function() {
-	let pos = vec2(), radians = 0.0, mmi = 0.0;
+	let pos = vec2(), radians = 0.0, mmi = 0.0, color = 0|0;
 	return function emitPhoton() {
+		color = this.next;
 		pos[0] = this.size/5;
 		pos[1] = this.size/5;
 		mut_plus(pos, this.pos);
@@ -82,7 +86,8 @@ Emitter.prototype.emitPhoton = (function() {
 		radians = (mmi/(this.initialMass/2));
 		radians = radians + (mmi%this.arms)*(2/this.arms); // split across arms
 		mut_plus(rotate(pos, this.pos, radians, pos), this.pos);
+		this.next = ~~(random()*3);
 		// introduce some jitter
-		return(new Photon(pos, vec2(0,0), ~~(random()*3), this.photonPool));
+		return(new Photon(pos, vec2(0,0), color, this.photonPool));
 	}
 })();
