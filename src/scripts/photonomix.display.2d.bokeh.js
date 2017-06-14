@@ -42,9 +42,9 @@ export function create(screen1, screen2, w, h) {
 		saturationMin: 10,
 		saturationMax: 70,
 		lightnessMin: 1,
-		lightnessMax: 7,
-		alphaMin: 0.3,
-		alphaMax: 0.7
+		lightnessMax: 5,
+		alphaMin: 0.1,
+		alphaMax: 0.4
 	}
 	ctx1.fillStyle = "#000000";
 	ctx1.fillRect(0, 0, cw, ch);
