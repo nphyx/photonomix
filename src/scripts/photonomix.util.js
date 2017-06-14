@@ -1,10 +1,12 @@
 "use strict";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
 import {VALIDATE_VECTORS, GRAVITY} from "./photonomix.constants";
-const {vec2, magnitude, mut_normalize, distance, mut_times, mut_copy} = vectrix.vectors;
+const {vec2, magnitude, mut_normalize, distance, mut_times, mut_copy, mut_clamp} = vectrix.vectors;
 const {minus} = vectrix.matrices;
 const {sqrt, abs, E, pow, cos, sin, random, PI} = Math;
 const X = 0, Y = 1;
+const MIN_F = 1e-11;
+const MAX_F = 1e+11;
 
 /**
  * Twiddles a value by a small amount to avoid zeroes
@@ -75,12 +77,13 @@ export const gravitate = (function() {
 	return function gravitate(p1, p2, strength, out) {
 		out = out||g_v;
 		minus(p1, p2, out);
-		limitVecMut(out, 0.001, 1000); // put a cap on it to avoid infinite acceleration
 		mag = magnitude(out);
 		// inline normalize for speed, since this happens a lot
 		x = out[0];
 		y = out[1];
-		scale = 1/sqrt((x*x)+(y*y));
+		if((x === 0 && y === 0) || mag === 0) return out;
+		scale = mut_clamp(1/sqrt((x*x)+(y*y)), MIN_F, MAX_F);
+		strength = mut_clamp(strength, MIN_F, MAX_F);
 		out[0] = x*scale;
 		out[1] = y*scale;
 		//mut_normalize(out);
@@ -109,20 +112,21 @@ export const gravitate = (function() {
 	}
 })();
 
+/**
+ * Accelerate toward a target.
+ */
 export const accelerate = (function() {
 	let v = vec2();
 	let scale = 0.0, x = 0.0, y = 0.0;
-	/**
-	 * Accelerate toward a target.
-	 */
 	return function accelerate(p1, p2, strength, out) {
 		out = out||v;	
 		minus(p1, p2, out);
-		twiddleVec(out); // avoid 0
-		// inline normalize for speed, since this happens a lot
 		x = out[0];
 		y = out[1];
-		scale = 1/sqrt((x*x)+(y*y));
+		if(x === 0 && y === 0) return out;
+		scale = mut_clamp(1/sqrt((x*x)+(y*y)), 1e-11, 1e+11);
+		strength = mut_clamp(strength, 1e-11, 1e+11);
+		// inline normalize for speed, since this happens a lot
 		out[0] = x*scale;
 		out[1] = y*scale;
 		//mut_normalize(out);
@@ -158,18 +162,15 @@ export const drag = (function() {
 		out = out||delta;
 		dragSpeed = magnitude(vel);
 		// null small values
-		if(dragSpeed < 1e-11) {
-			out[0] = 0.0;
-			out[1] = 0.0;
-			return out;
-		}
 		dragSpeed = limit(dragSpeed, 0, 1e+11); // avoid infinite dragSpeeds
-		dragStrength = c * dragSpeed * dragSpeed;
+		dragStrength = mut_clamp(c * dragSpeed * dragSpeed, 1e-11, 1e+11);
 		mut_copy(out, vel);
-		// inline normalize for speed, since this happens a lot
 		x = out[0];
 		y = out[1];
-		scale = 1/sqrt((x*x)+(y*y));
+		if((x === 0 && y === 0) || dragStrength === 0) return out;
+		// inline normalize for speed, since this happens a lot
+		scale = mut_clamp(1/sqrt((x*x)+(y*y)), MIN_F, MAX_F);
+		dragStrength = mut_clamp(dragStrength, MIN_F, MAX_F);
 		out[0] = x*scale;
 		out[1] = y*scale;
 		// mut_normalize(out)
@@ -180,6 +181,7 @@ export const drag = (function() {
 				validate(out);
 			}
 			catch(e) {
+				console.log("drag error", e);
 				console.log(c, dragSpeed, dragStrength);
 				console.log("magnitude", magnitude(vel));
 				mut_copy(out, vel);
