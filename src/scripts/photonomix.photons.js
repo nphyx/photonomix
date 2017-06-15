@@ -1,7 +1,7 @@
 "use strict";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
 import {drag} from "./photonomix.util";
-import {GLOBAL_DRAG, PHOTON_LIFETIME} from "./photonomix.constants";
+import {GLOBAL_DRAG, PHOTON_LIFETIME, PHOTON_BASE_SIZE} from "./photonomix.constants";
 let {vec2, times} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
 
@@ -39,6 +39,7 @@ export function Photon(ipos, ivel, color, pool = undefined) {
 	});
 	this.color = color;
 	this.lifetime = PHOTON_LIFETIME;
+	this.size = PHOTON_BASE_SIZE;
 	this.mass = 1;
 }
 

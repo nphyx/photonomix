@@ -124,8 +124,8 @@ export const accelerate = (function() {
 		x = out[0];
 		y = out[1];
 		if(x === 0 && y === 0) return out;
-		scale = mut_clamp(1/sqrt((x*x)+(y*y)), 1e-11, 1e+11);
-		strength = mut_clamp(strength, 1e-11, 1e+11);
+		scale = mut_clamp(1/sqrt((x*x)+(y*y)), MIN_F, MAX_F);
+		strength = mut_clamp(strength, -MAX_F, MAX_F);
 		// inline normalize for speed, since this happens a lot
 		out[0] = x*scale;
 		out[1] = y*scale;

@@ -237,7 +237,7 @@ Mote.prototype.updateProperties = (function() {
 			ratios[COLOR_G] = ratio(g, r+b);
 			ratios[COLOR_B] = ratio(b, g+r);
 			this.speed = this.base_speed*(1-this.size)*(1+ratios[COLOR_B]);
-			this.sight = this.base_sight;
+			this.sight = this.base_sight+(this.size*0.5); // see from edge onward
 			this.agro = this.base_agro*(1+ratios[COLOR_R]);
 			this.fear = this.base_fear*(1+ratios[COLOR_G]);
 			if(DEBUG) {
@@ -271,6 +271,7 @@ let vel, size, sight, speed, agro, fear, scratchVec2 = vec2(),
 	potential = 0.0, resistance = 0.0, pregnant = 0|0, dying = 0|0,
 	epos;
 Mote.prototype.tick = function(surrounding, delta, frameCount) {
+	/* jshint unused:false */
 	({pregnant, dying} = this);
 	if(pregnant > 0) this.pregnant = pregnant - 1;
 	if(dying > 0) this.dying = dying + 1; // start counting up
@@ -326,22 +327,25 @@ Mote.prototype.tick = function(surrounding, delta, frameCount) {
 		if(entity === this) continue;
 		if(dying !== undefined && dying > 0) continue; // leave dying motes alone, avoids bugs
 		// ignore things outside sight range
-		if((a_dist = distance(pos, epos)) > sight) continue;
-		if(entity instanceof Void || entity instanceof Mote) {
-			// don't get too close
-			if(a_dist < (size+entity.size)/2) {
+		if((a_dist = distance(pos, epos)) > (sight+(entity.size*0.5))) continue;
+		// don't get too close
+		if(entity instanceof Mote && a_dist < (size+entity.size)*0.5) {
 				mut_copy(scratchVec1, pos);
-				mut_plus(vel, rotate(scratchVec1, epos, 0.2, scratchVec1)); 
+				mut_plus(vel, rotate(scratchVec1, epos, handling, scratchVec1)); 
 				mut_plus(vel, accelerate(pos, scratchVec1, speed, scratchVec2));
-			}
 		} // end stuff to do if void
+		else if(entity instanceof Void) {
+				mut_copy(scratchVec1, pos);
+				//mut_plus(vel, rotate(epos, scratchVec1, 0.1, scratchVec1)); 
+				mut_plus(vel, accelerate(epos, pos, speed, scratchVec2));
+		}
 		if(highestWeight < Infinity && this.injured === 0) { // else a hard choice has been made
 			if(entity instanceof Photon && entity.lifetime > 2) {
 				// need some energy to eat, and can't eat while injured
 				mainTarget = entity;
 				highestWeight = Infinity;
 			} // end stuff to do if photon
-			else if(entity instanceof Mote && 
+			else if(entity instanceof Mote &&
 					this.potential > agro*3) { // save up a good charge
 				value = targetValue(this, entity)||0;
 				// target value is the weighted difference between food and fear values
