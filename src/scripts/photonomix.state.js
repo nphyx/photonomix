@@ -4,7 +4,7 @@ import * as voids from "./photonomix.voids";
 import * as emitters from "./photonomix.emitters";
 import * as markers from "./photonomix.markers";
 import * as photons from "./photonomix.photons";
-import {shuffle, rotate} from "./photonomix.util";
+import {shuffle, rotate, outOfBounds} from "./photonomix.util";
 import {BufferPool} from "./photonomix.bufferPools";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
 //const {plus, mut_plus} = vectrix.matrices;
@@ -84,6 +84,12 @@ State.prototype.tick = (function() {
 				}
 			}
 			else if((entity instanceof Void || entity instanceof Emitter) && (entity.mass === 0)) {
+				marks[markpos] = i;
+				markpos++;
+			}
+			// physics effects sometimes chuck things way out of bounds
+			// just delete them, they ain't comin' back
+			if(outOfBounds(entity.pos, 20)) {
 				marks[markpos] = i;
 				markpos++;
 			}
