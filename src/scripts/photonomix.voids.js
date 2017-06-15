@@ -70,6 +70,7 @@ Void.prototype.tick = function(entities, delta) {
 				}
 			}
 		}
+		if(!entity.mass) continue; // zero mass means gravity bugs
 		// apply gravity
 		if(entity instanceof Emitter) { // emitters have negative & repelling mass
 			mut_plus(entity.vel, mut_times(
