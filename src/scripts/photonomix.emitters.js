@@ -17,7 +17,8 @@ const POS_C = vec2(0,0);
 export function Emitter(ipos = vec2(), ivel = vec2(), mass = 1, photonPool = undefined, arms = undefined) {
 	this.pos = vec2(ipos);
 	this.vel = vec2(ivel);
-	this.mass = mass;
+	this.birthMass = mass;
+	this.mass = 1;
 	this.initialMass = mass;
 	this.photonPool = photonPool;
 	this.arms = arms||1+~~(random()*6);
@@ -30,6 +31,10 @@ let scratchVec1 = vec2(), emissionsPerSecond = 0|0, emissionsPerFrame = 0|0,
 		targetFrame = 0|0, i = 0|0, len = 0|0, entity, a_dist = 0.0;
 Emitter.prototype.tick = function(entities, delta, frameCount) {
 	/* jshint unused:false */
+	if(this.birthMass > 0) {
+		this.birthMass--;
+		this.mass++;
+	}
 	this.size = sqrt(this.mass/PI) * EMITTER_SIZE;
 	emissionsPerSecond = this.mass/10;
 	targetFrame = ceil(TARGET_FPS/emissionsPerSecond);

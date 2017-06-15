@@ -9,7 +9,8 @@ import {BufferPool} from "./photonomix.bufferPools";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
 //const {plus, mut_plus} = vectrix.matrices;
 const {vec2, mut_copy} = vectrix.vectors;
-import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS, PREGNANT_TIME, DEATH_THRESHOLD} from "./photonomix.constants";
+import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS, PREGNANT_TIME, DEATH_THRESHOLD,
+	POSITIVE_ENERGY, NEGATIVE_ENERGY} from "./photonomix.constants";
 let {random} = Math;
 const Marker = markers.Marker;
 const Photon = photons.Photon;
@@ -128,11 +129,16 @@ State.prototype.emitPhoton = (function() {
 State.prototype.killMote = (function() {
 	let sum = 0|0, c = 0|0, i = 0|0, pos = vec2(), r = 0|0, g = 0|0, b = 0|0;
 	return function killMote(mote) {
-		//this.entities.push(new Emitter(mote.pos, mote.vel, DEATH_THRESHOLD, this.photonPool, DEATH_THRESHOLD));
+		if(random() < POSITIVE_ENERGY) {
+			this.entities.push(new Emitter(mote.pos, mote.vel, ~~(DEATH_THRESHOLD*10*random()), this.photonPool));
+		}
+		if(random() < NEGATIVE_ENERGY) {
+			this.entities.push(new Void(mote.pos, mote.vel, ~~(DEATH_THRESHOLD*10*random())));
+		}
 		mut_copy(pos, mote.pos);
-		r = mote.r;
-		g = mote.g;
-		b = mote.b;
+		r = mote.photons[0];
+		g = mote.photons[1];
+		b = mote.photons[2];
 		sum = r+b+g;
 		c = 0;
 		for(i = 0; i < sum; ++i) {

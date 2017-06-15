@@ -258,26 +258,26 @@ const drawEntities = (function() {
 					}
 					// light patch
 					invertCtx.globalCompositeOperation = "soft-light";
-					sw = sc*0.8;
+					sw = sc*1.5;
 					swh = sw*0.5;
-					ox = sin(frameCount*0.05)*sc*entity.size*0.3;
-					oy = cos(frameCount*0.05)*sc*entity.size*0.3;
+					ox = sin(frameCount*0.0127)*sc*0.1;
+					oy = cos(frameCount*0.0127)*sc*0.1;
 					sprite = sprites.getMoteSprite(0xfff);
 					invertCtx.drawImage(sprite.canvas, px+ox-swh, py+oy-swh, sw, sw);
 					// smaller light patch
-					sw = sc*0.8;
+					sw = sc*1.2;
 					swh = sw*0.5;
-					ox = sin(frameCount*0.1)*sc*entity.size*0.26;
-					oy = cos(frameCount*0.1)*sc*entity.size*0.26;
+					ox = cos(frameCount*0.023)*sc*0.13;
+					oy = sin(frameCount*0.023)*sc*0.13;
 					sprite = sprites.getMoteSprite(index);
 					invertCtx.drawImage(sprite.canvas, px+ox-swh, py+oy-swh, sw, sw);
 					// dark patch
 					invertCtx.globalCompositeOperation = "multiply";
 					sprite = sprites.getMoteSprite(0x000);
-					sw = sc*0.9;
+					sw = sc*1.4;
 					swh = sw*0.5;
-					ox = cos(frameCount*0.09)*sc*entity.size*0.2;
-					oy = sin(frameCount*0.09)*sc*entity.size*0.2;
+					ox = sin(frameCount*0.0122)*sc*0.17;
+					oy = cos(frameCount*0.0122)*sc*0.17;
 					invertCtx.drawImage(sprite.canvas, px+ox-swh, py+oy-swh, sw, sw);
 				}
 			}

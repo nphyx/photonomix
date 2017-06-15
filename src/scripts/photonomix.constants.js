@@ -20,6 +20,8 @@ export const EMITTER_SIZE = 0.01;
 export const MAX_MOTES = 300;
 export const MAX_PHOTONS = ~~(MAX_MOTES * PREGNANT_THRESHOLD)/2;
 export const MAX_VOIDS = 7;
+export const POSITIVE_ENERGY = 0.01; // chance a dead mote will produce an emitter
+export const NEGATIVE_ENERGY = 0.01; // chance a dead mote will produce a void
 // general debug switch
 export const DEBUG = true;
 // toggles vector validation in various functions that tend to produce
