@@ -146,9 +146,9 @@ export function createVoidSprite(scale, spriteSize) {
 		pixelSize/2, pixelSize/2, pixelSize/2,
 		pixelSize/2, pixelSize/2, 0
 	);
-	g.addColorStop(1, "rgba(0,0,0,0.98)");
-	g.addColorStop(0.5, "rgba(0,0,0,0.98)");
-	g.addColorStop(0.449, "rgba(0,0,0,0.85)");
+	g.addColorStop(1, "rgba(0,0,0,1.0)");
+	g.addColorStop(0.50, "rgba(0,0,0,1.0)");
+	g.addColorStop(0.449, "rgba(0,0,0,0.8)");
 	g.addColorStop(0.44, "rgba(192,192,192,0.6)");
 	g.addColorStop(0.44, "rgba(192,192,192,0.6)");
 	g.addColorStop(0.42, "rgba(128,128,128,0.4)");

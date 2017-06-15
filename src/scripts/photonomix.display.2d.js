@@ -283,9 +283,9 @@ const drawEntities = (function() {
 			}
 			else if(entity instanceof Emitter) {
 				sc = entity.size * MIN_D * 0.9;
-				sc = sc + (sc*(sin(frameCount*0.2))/10);
+				sc = sc + (sc*(sin(frameCount*0.05))/100);
 				sch = sc*0.5;
-				sw = sc*1.1;
+				sw = sc*1.3;
 				swh = sw*0.5;
 				switch(entity.next) {
 					case COLOR_R:index = 0xf88; break;

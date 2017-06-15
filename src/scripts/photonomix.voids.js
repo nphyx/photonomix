@@ -7,7 +7,7 @@ import {Emitter} from "./photonomix.emitters";
 const {vec2, times, mut_times, distance} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
 import {VOID_SIZE, GLOBAL_DRAG} from "./photonomix.constants";
-const {sqrt, PI} = Math;
+const {random, sqrt, PI} = Math;
 const POS_C = vec2(0,0);
 
 export function Void(ipos = vec2(), ivel = vec2(), mass = 1) {
@@ -34,7 +34,7 @@ Void.prototype.tick = function(entities, delta) {
 	mut_plus(this.pos, times(this.vel, delta, scratchVec1));
 
 	// apply basic forces
-	mut_plus(this.vel, avoid(this.vel, this.pos, POS_C, 1.1, this.size, this.size, scratchVec1)); // don't go off the screen
+	mut_plus(this.vel, avoid(this.vel, this.pos, POS_C, 1.3, 0.01, 0.01, scratchVec1)); // don't go off the screen
 	// apply drag
 	mut_plus(this.vel, drag(this.vel, GLOBAL_DRAG));
 	limitVecMut(this.vel, 0, 1);
@@ -58,8 +58,9 @@ Void.prototype.tick = function(entities, delta) {
 				entity.lifetime = 0;
 			}
 		}
-		if(entity instanceof Mote && a_dist < this.size) {
-			entity.injured = entity.injured + 1;
+		if(entity instanceof Mote && a_dist < this.size*0.6) {
+			// probablistic injury, so they don't get shredded instantly
+			if((random()*30*a_dist) < 1) entity.injured = entity.injured + 1;
 		}
 		if(entity instanceof Void) {
 			if(entity.mass > 0 && a_dist < this.size) { // bigger ones eat smaller ones
