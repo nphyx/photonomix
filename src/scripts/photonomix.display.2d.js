@@ -138,6 +138,16 @@ function screenSpace(x) {
 }
 
 /**
+ * Checks if entity is out of screen space by more than 50%.
+ */
+function offscreen(x, y) {
+	return (
+		x < (W*-0.5) || x > W*1.5 ||
+		y < (H*-0.5) || y > H*1.5
+	)
+}
+
+/**
  * Draws plasma lines between a mote and its target.
  */
 const drawAttackLine = (function() {
@@ -186,122 +196,148 @@ const drawAttackLine = (function() {
 	}
 })();
 
+// these variables are shared by draw calls below
+let i, l, entity, px, py, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, sprite;
+let ox, oy, colorIndex = 0|0; 
+let fadeFillStyle = "rgba(0,0,0,0.3)";
+let invFillStyle = "rgba(255,255,255,0.1)";
+
+/**
+ * Draw a mote.
+ */
+const drawMote = (function() {
+	let pulse = 0|0, pregnant = 0|0, injured = 0|0, lastMeal = 0|0, size = 0.0;
+	return function drawMote(entity, ctx) {
+		({pulse, pregnant, injured, lastMeal} = entity);
+		size = entity.size * clamp(MIN_D, 300, 1200);
+		if(pregnant) {
+			sc = size * cos((frameCount+pulse) * 0.2) * (sqrt(pregnant)+1);
+			sw = size * sin((frameCount+pulse+tf) * 0.2) * (sqrt(pregnant)+1)*0.25;
+		}
+		else if(injured) {
+			sc = size * cos((frameCount+pulse) * (0.2+(1-1/injured)));
+			sw = size * sin((frameCount+pulse+tf) * 0.2) * 0.25; //* (0.2+(1-1/injured)))*0.25;
+		}
+		else {
+			sc = size * cos((frameCount+pulse) * 0.2);
+			sw = size * sin((frameCount+pulse+tf) * 0.2)*0.25;
+		}
+		sch = sc*0.5;
+		swh = sw*0.5;
+		colorIndex = sprites.colorIndex(entity.color[COLOR_R], entity.color[COLOR_G], entity.color[COLOR_B]);
+		sprite = sprites.getMoteSprite(colorIndex);
+		ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
+		ctx.drawImage(moteCenterSprite.canvas, px-swh, py-swh, sw, sw);
+		if(entity.target !== undefined && (entity.potential > 1 || entity.target.lifetime > 0)) 		drawAttackLine(ctx, entity, sprites.getColorString(colorIndex));
+	}
+})();
+
+/**
+ * Draws a photon.
+ */
+function drawPhoton(entity, ctx) {
+	sprite = photonSprites[entity.color];
+	sc = sprite.pixelSize * cos(frameCount*0.2);
+	sch = sc*0.5;
+	ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
+}
+
+/**
+ * Draws a void.
+ */
+function drawVoid(entity, ctx) {
+	sc = entity.size * MIN_D * 1+(sin(frameCount*0.2));
+	sch = sc*0.5;
+	sprite = voidSprite;
+	ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
+	if(entity.mass > 500) { // smaller than this and effects look janky
+		switch(entity.lastMeal) {
+			case -1:colorIndex = 0x888; break;
+			case COLOR_R:colorIndex = 0xf44; break;
+			case COLOR_G:colorIndex = 0x4f4; break;
+			case COLOR_B:colorIndex = 0x44f; break;
+		}
+		// light patch
+		ctx.globalCompositeOperation = "soft-light";
+		sw = sc*1.5;
+		swh = sw*0.5;
+		ox = sin(frameCount*0.0127)*sc*0.1;
+		oy = cos(frameCount*0.0127)*sc*0.1;
+		sprite = sprites.getMoteSprite(0xfff);
+		ctx.drawImage(sprite.canvas, px+ox-swh, py+oy-swh, sw, sw);
+		// smaller light patch
+		sw = sc*1.2;
+		swh = sw*0.5;
+		ox = cos(frameCount*0.023)*sc*0.13;
+		oy = sin(frameCount*0.023)*sc*0.13;
+		sprite = sprites.getMoteSprite(colorIndex);
+		ctx.drawImage(sprite.canvas, px+ox-swh, py+oy-swh, sw, sw);
+		// dark patch
+		ctx.globalCompositeOperation = "multiply";
+		sprite = sprites.getMoteSprite(0x000);
+		sw = sc*1.4;
+		swh = sw*0.5;
+		ox = sin(frameCount*0.0122)*sc*0.17;
+		oy = cos(frameCount*0.0122)*sc*0.17;
+		ctx.drawImage(sprite.canvas, px+ox-swh, py+oy-swh, sw, sw);
+	}
+}
+
+/**
+ * Draws an emitter.
+ */
+function drawEmitter(entity, ctx) {
+	sc = entity.size * MIN_D * 0.9;
+	sc = sc + (sc*(sin(frameCount*0.05))/100);
+	sch = sc*0.5;
+	sw = sc*1.3;
+	swh = sw*0.5;
+	switch(entity.next) {
+		case COLOR_R:colorIndex = 0xf88; break;
+		case COLOR_G:colorIndex = 0x8f8; break;
+		case COLOR_B:colorIndex = 0x88f; break;
+	}
+	sprite = emitterSprite;
+	ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
+	sprite = sprites.getMoteSprite(colorIndex);
+	ctx.drawImage(sprite.canvas, px-swh, py-swh, sw, sw);
+}
+
+/**
+ * Apply pre-draw effects to canvases and set composite modes before drawing entities.
+ */
+function prepareCanvases() {
+	gameCtx.globalCompositeOperation = "source-atop";
+	gameCtx.fillStyle = fadeFillStyle;
+	gameCtx.fillRect(0, 0, W, H);
+	gameCtx.globalCompositeOperation = "lighter";
+	invertCtx.globalCompositeOperation = "source-in";
+	invertCtx.fillStyle = invFillStyle;
+	invertCtx.fillRect(0, 0, W, H);
+	invertCtx.globalCompositeOperation = "source-over";
+}
+
 /**
  * Draw call for all entities. Loops through game entities and draws them according
  * to kind and properties.
  */
-const drawEntities = (function() {
-	let i, l, entity, px, py, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, sprite;
-	let ox, oy;
-	let pulse = 0|0, pregnant = 0|0, injured = 0|0, lastMeal = 0|0, size = 0.0, index = 0|0; 
-	let fadeFillStyle = "rgba(0,0,0,0.3)";
-	let invFillStyle = "rgba(255,255,255,0.1)";
-	return function drawEntities(ctx) {
-		ctx.globalCompositeOperation = "source-atop";
-		ctx.fillStyle = fadeFillStyle;
-		ctx.fillRect(0, 0, W, H);
-		invertCtx.globalCompositeOperation = "source-in";
-		//invertCtx.clearRect(0,0,W,H);
-		invertCtx.fillStyle = invFillStyle;
-		invertCtx.fillRect(0, 0, W, H);
-
-		ctx.globalCompositeOperation = "lighter";
-		for(i = 0, l = game.entities.length; i < l; ++i) {
-			entity = game.entities[i];
-			x = entity.pos[0];
-			y = entity.pos[1];
-			px = screenSpace(x);
-			py = screenSpace(y);
-			if(W > H) px = px + OFFSET_MAX_D;
-			else py = py + OFFSET_MAX_D;
-			if(entity instanceof Mote) {
-				({pulse, pregnant, injured, lastMeal} = entity);
-				size = entity.size * clamp(MIN_D, 300, 1200);
-				if(pregnant) {
-					sc = size * cos((frameCount+pulse) * 0.2) * (sqrt(pregnant)+1);
-					sw = size * sin((frameCount+pulse+tf) * 0.2) * (sqrt(pregnant)+1)*0.25;
-				}
-				else if(injured) {
-					sc = size * cos((frameCount+pulse) * (0.2+(1-1/injured)));
-					sw = size * sin((frameCount+pulse+tf) * 0.2) * 0.25; //* (0.2+(1-1/injured)))*0.25;
-				}
-				else {
-					sc = size * cos((frameCount+pulse) * 0.2);
-					sw = size * sin((frameCount+pulse+tf) * 0.2)*0.25;
-				}
-				sch = sc*0.5;
-				swh = sw*0.5;
-				index = sprites.colorIndex(entity.color[COLOR_R], entity.color[COLOR_G], entity.color[COLOR_B]);
-				sprite = sprites.getMoteSprite(index);
-				ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
-				ctx.drawImage(moteCenterSprite.canvas, px-swh, py-swh, sw, sw);
-				if(entity.target !== undefined && (entity.potential > 1 || entity.target.lifetime > 0)) drawAttackLine(ctx, entity, sprites.getColorString(index));
-			} // end mote draw
-			else if(entity instanceof Photon) {
-				sprite = photonSprites[entity.color];
-				sc = sprite.pixelSize * cos(frameCount*0.2);
-				sch = sc*0.5;
-				ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
-			} // end photon draw
-			else if(entity instanceof Void) {
-				sc = entity.size * MIN_D * 1+(sin(frameCount*0.2));
-				sch = sc*0.5;
-				invertCtx.globalCompositeOperation = "source-over";
-				sprite = voidSprite;
-				invertCtx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
-				if(entity.mass > 500) { // smaller than this and effects look janky
-					switch(entity.lastMeal) {
-						case -1:index = 0x888; break;
-						case COLOR_R:index = 0xf44; break;
-						case COLOR_G:index = 0x4f4; break;
-						case COLOR_B:index = 0x44f; break;
-					}
-					// light patch
-					invertCtx.globalCompositeOperation = "soft-light";
-					sw = sc*1.5;
-					swh = sw*0.5;
-					ox = sin(frameCount*0.0127)*sc*0.1;
-					oy = cos(frameCount*0.0127)*sc*0.1;
-					sprite = sprites.getMoteSprite(0xfff);
-					invertCtx.drawImage(sprite.canvas, px+ox-swh, py+oy-swh, sw, sw);
-					// smaller light patch
-					sw = sc*1.2;
-					swh = sw*0.5;
-					ox = cos(frameCount*0.023)*sc*0.13;
-					oy = sin(frameCount*0.023)*sc*0.13;
-					sprite = sprites.getMoteSprite(index);
-					invertCtx.drawImage(sprite.canvas, px+ox-swh, py+oy-swh, sw, sw);
-					// dark patch
-					invertCtx.globalCompositeOperation = "multiply";
-					sprite = sprites.getMoteSprite(0x000);
-					sw = sc*1.4;
-					swh = sw*0.5;
-					ox = sin(frameCount*0.0122)*sc*0.17;
-					oy = cos(frameCount*0.0122)*sc*0.17;
-					invertCtx.drawImage(sprite.canvas, px+ox-swh, py+oy-swh, sw, sw);
-				}
-			}
-			else if(entity instanceof Emitter) {
-				sc = entity.size * MIN_D * 0.9;
-				sc = sc + (sc*(sin(frameCount*0.05))/100);
-				sch = sc*0.5;
-				sw = sc*1.3;
-				swh = sw*0.5;
-				switch(entity.next) {
-					case COLOR_R:index = 0xf88; break;
-					case COLOR_G:index = 0x8f8; break;
-					case COLOR_B:index = 0x88f; break;
-				}
-				sprite = emitterSprite;
-				ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
-				sprite = sprites.getMoteSprite(index);
-				ctx.drawImage(sprite.canvas, px-swh, py-swh, sw, sw);
-			}
-
-		}
-		ctx.globalCompositeOperation = "source-over";
+function drawEntities(ctx) {
+	for(i = 0, l = game.entities.length; i < l; ++i) {
+		entity = game.entities[i];
+		x = entity.pos[0];
+		y = entity.pos[1];
+		px = screenSpace(x);
+		py = screenSpace(y);
+		if(W > H) px = px + OFFSET_MAX_D;
+		else py = py + OFFSET_MAX_D;
+		if(offscreen(px, py)) continue;
+		if(entity instanceof Mote) drawMote(entity, gameCtx);
+		else if(entity instanceof Photon) drawPhoton(entity, gameCtx);
+		else if(entity instanceof Void) drawVoid(entity, invertCtx);
+		else if(entity instanceof Emitter) drawEmitter(entity, gameCtx);
 	}
-})();
+	ctx.globalCompositeOperation = "source-over";
+}
 
 /**
  * Draws a colored circle.
@@ -357,6 +393,7 @@ function animate() {
 		if(GAME_STARTED) game.tick(interval/elapsed, frameCount);
 		bokeh.draw();
 		if(DEBUG_DRAW) debugMarkers(bokehCtx);
+		prepareCanvases();
 		drawEntities(gameCtx);
 		composite();
 	}
