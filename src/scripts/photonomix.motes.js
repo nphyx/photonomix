@@ -82,9 +82,10 @@ const VEC_VAL_LENGTH = F32_VEL + 2,
 	F32_AGRO = F32_SIGHT + 1,
 	F32_FEAR = F32_AGRO + 1,
 	F32_POTENTIAL = F32_FEAR + 1,
-	F32_RESISTANCE = F32_POTENTIAL + 1;
+	F32_RESISTANCE = F32_POTENTIAL + 1,
+	F32_MASS = F32_RESISTANCE + 1;
 
-const FLOAT_VAL_LENGTH = F32_RESISTANCE + 1;
+const FLOAT_VAL_LENGTH = F32_MASS + 1;
 export const BUFFER_LENGTH = F32_BYTE_OFFSET + (FLOAT_VAL_LENGTH*F32);
 
 
@@ -178,6 +179,7 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
 		"fear":{get: () => floatVals[F32_FEAR], set: (v) => floatVals[F32_FEAR] = v},
 		"potential":{get: () => floatVals[F32_POTENTIAL], set: (v) => floatVals[F32_POTENTIAL] = v},
 		"resistance":{get: () => floatVals[F32_RESISTANCE], set: (v) => floatVals[F32_RESISTANCE] = v},
+		"mass":{get: () => floatVals[F32_MASS], set: (v) => floatVals[F32_MASS] = v},
 		"base_speed":{get: () => bSpeed},
 		"base_sight":{get: () => bSight},
 		"base_agro":{get: () => bAgro},
@@ -222,15 +224,15 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
  * Updates derived properties for mote.
  */
 Mote.prototype.updateProperties = (function() {
-	let ud_sum = 0|0, r = 0|0, g = 0|0, b = 0|0, photons, color, ratios;
+	let  r = 0|0, g = 0|0, b = 0|0, photons, color, ratios;
 	return function updateProperties() {
 		({photons, ratios, color} = this);
 		r = photons[COLOR_R];
 		g = photons[COLOR_B];
 		b = photons[COLOR_G];
-		ud_sum = r + g + b;
-		if(ud_sum > 0) { // otherwise skip this stuff since the mote is dead anyway
-		this.size = clamp(ud_sum/(PREGNANT_THRESHOLD/3)*MOTE_BASE_SIZE, this.sizeMin, this.sizeMax);
+		this.mass = r + g + b;
+		if(this.mass > 0) { // otherwise skip this stuff since the mote is dead anyway
+		this.size = clamp(this.mass/(PREGNANT_THRESHOLD/3)*MOTE_BASE_SIZE, this.sizeMin, this.sizeMax);
 			ratios[COLOR_R] = ratio(r, g+b);
 			ratios[COLOR_G] = ratio(g, r+b);
 			ratios[COLOR_B] = ratio(b, g+r);
@@ -247,12 +249,12 @@ Mote.prototype.updateProperties = (function() {
 			}
 		} // end of stuff to do only if sum > 0
 
-		if((ud_sum > PREGNANT_THRESHOLD) && this.pregnant === 0) this.pregnant = PREGNANT_TIME;
-		if((ud_sum < DEATH_THRESHOLD) && this.dying === 0) this.dying = 1;
+		if((this.mass > PREGNANT_THRESHOLD) && this.pregnant === 0) this.pregnant = PREGNANT_TIME;
+		if((this.mass < DEATH_THRESHOLD) && this.dying === 0) this.dying = 1;
 
-		color[COLOR_R] = ~~(r/ud_sum*255);
-		color[COLOR_G] = ~~(g/ud_sum*255);
-		color[COLOR_B] = ~~(b/ud_sum*255);
+		color[COLOR_R] = ~~(r/this.mass*255);
+		color[COLOR_G] = ~~(g/this.mass*255);
+		color[COLOR_B] = ~~(b/this.mass*255);
 		this.needsUpdate = 0;
 	}
 })();
@@ -329,7 +331,7 @@ Mote.prototype.tick = function(surrounding, delta, frameCount) {
 			// don't get too close
 			if(a_dist < (size+entity.size)/2) {
 				mut_copy(scratchVec1, pos);
-				mut_plus(vel, rotate(scratchVec1, epos, 0.333, scratchVec1)); 
+				mut_plus(vel, rotate(scratchVec1, epos, 0.2, scratchVec1)); 
 				mut_plus(vel, accelerate(pos, scratchVec1, speed, scratchVec2));
 			}
 		} // end stuff to do if void

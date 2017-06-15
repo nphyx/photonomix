@@ -12,7 +12,8 @@ const O_VEL = F32*2;
 const FLOAT_LENGTH = O_VEL + F32*2;
 const O_COLOR = 0;
 const O_LIFE = O_COLOR + I8;
-const U8_LENGTH = O_LIFE + I8;
+const O_MASS = O_LIFE + I8;
+const U8_LENGTH = O_MASS + I8;
 export const BUFFER_LENGTH = (FLOAT_LENGTH + U8_LENGTH) + (F32 - (FLOAT_LENGTH + U8_LENGTH)%F32);
 
 export const COLOR_R = 0, COLOR_G = 1, COLOR_B = 2;
@@ -33,10 +34,12 @@ export function Photon(ipos, ivel, color, pool = undefined) {
 
 	Object.defineProperties(this, {
 		"color": {get:() => this.intVals[O_COLOR], set:(x) => this.intVals[O_COLOR] = x},
-		"lifetime": {get:() => this.intVals[O_LIFE], set:(x) => this.intVals[O_LIFE] = x}
+		"lifetime": {get:() => this.intVals[O_LIFE], set:(x) => this.intVals[O_LIFE] = x},
+		"mass": {get:() => this.intVals[O_MASS], set:(x) => this.intVals[O_MASS] = x}
 	});
 	this.color = color;
 	this.lifetime = PHOTON_LIFETIME;
+	this.mass = 1;
 }
 
 let tmpvec = vec2(), pos, vel;

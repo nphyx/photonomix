@@ -3,12 +3,9 @@ import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
 import {TARGET_FPS, GLOBAL_DRAG, EMITTER_SIZE} from "./photonomix.constants";
 import {rotate, limitVecMut, drag, gravitate, avoid} from "./photonomix.util";
 import {Photon} from "./photonomix.photons";
-import {Mote} from "./photonomix.motes";
-import {Void} from "./photonomix.voids";
 let {vec2, times, mut_times, distance} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
 let {random, sqrt, ceil, PI} = Math;
-const MASS_FACTOR = 1e+5;
 const POS_C = vec2(0,0);
 
 /**
@@ -57,22 +54,16 @@ Emitter.prototype.tick = function(entities, delta, frameCount) {
 		entity = entities[i];
 		if(entity === this) continue;
 		a_dist = distance(this.pos, entity.pos);
-		if(entity instanceof Photon || entity instanceof Mote) {
+		if(entity instanceof Emitter) {
 			mut_plus(entity.vel, mut_times(
-				gravitate(entity.pos, this.pos, -this.mass*MASS_FACTOR, scratchVec1),
-				delta)
+				gravitate(entity.pos, this.pos, this.mass*entity.mass, scratchVec1),
+				1/entity.mass)
 			);
 		}
-		else if(entity instanceof Void) {
+		else {
 			mut_plus(entity.vel, mut_times(
-				gravitate(entity.pos, this.pos, -(this.mass/entity.mass)*MASS_FACTOR, scratchVec1),
-				delta)
-			);
-		}
-		else if(entity instanceof Emitter) {
-			mut_plus(entity.vel, mut_times(
-				gravitate(entity.pos, this.pos, -(this.mass*entity.mass)*MASS_FACTOR, scratchVec1),
-				delta)
+				gravitate(entity.pos, this.pos, -this.mass*entity.mass, scratchVec1),
+				1/entity.mass)
 			);
 		}
 	}

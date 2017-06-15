@@ -7,7 +7,7 @@ import {Emitter} from "./photonomix.emitters";
 const {vec2, times, mut_times, distance} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
 import {VOID_SIZE, GLOBAL_DRAG} from "./photonomix.constants";
-const {random, sqrt, PI} = Math;
+const {random, sqrt, PI, ceil, min} = Math;
 const POS_C = vec2(0,0);
 
 export function Void(ipos = vec2(), ivel = vec2(), mass = 1) {
@@ -21,13 +21,12 @@ export function Void(ipos = vec2(), ivel = vec2(), mass = 1) {
 	return this;
 }
 
-const MASS_FACTOR = 1e+5;
-
-let scratchVec1 = vec2(), entity, i = 0|0, len = 0|0, a_dist = 0.0;
+let scratchVec1 = vec2(), entity, i = 0|0, len = 0|0, a_dist = 0.0, consume = 0|0;
 Void.prototype.tick = function(entities, delta) {
 	if(this.birthMass > 0) {
-		this.birthMass--;
-		this.mass++;
+		consume = min(this.birthMass, ceil(this.mass/100));
+		this.birthMass -= consume;
+		this.mass += consume;
 	}
 	if(this.eatTime > 30) this.eatTime--;
 	else this.lastMeal = -1;
@@ -48,12 +47,7 @@ Void.prototype.tick = function(entities, delta) {
 		entity = entities[i];
 		if(entity === this) continue;
 		a_dist = distance(this.pos, entity.pos);
-		if(entity instanceof Photon || entity instanceof Mote) {
-			mut_plus(entity.vel, mut_times(
-				gravitate(entity.pos, this.pos, this.mass*MASS_FACTOR, scratchVec1),
-				delta)
-			);
-		}
+
 		if(entity instanceof Photon && a_dist < this.size) {
 			entity.lifetime = entity.lifetime - 1;
 			if(entity.lifetime === 0 || a_dist < this.size*0.6) {
@@ -68,19 +62,25 @@ Void.prototype.tick = function(entities, delta) {
 			if((random()*30*a_dist) < 1) entity.injured = entity.injured + 1;
 		}
 		if(entity instanceof Void) {
-			if(entity.mass > 0 && a_dist < this.size) { // bigger ones eat smaller ones
-				if(this.mass > entity.mass) this.mass += entity.mass;
-				entity.mass = 0;
+			if(a_dist < (entity.size+this.size)*0.44) { // bigger ones eat smaller ones
+				if(this.mass > entity.mass) {
+					consume = min(entity.mass, ceil(this.birthMass + this.mass / 100));
+					this.birthMass += consume;
+					entity.mass -= consume;
+				}
 			}
+		}
+		// apply gravity
+		if(entity instanceof Emitter) { // emitters have negative & repelling mass
 			mut_plus(entity.vel, mut_times(
-				gravitate(entity.pos, this.pos, this.mass*entity.mass*MASS_FACTOR, scratchVec1),
-				delta)
+				gravitate(entity.pos, this.pos, (this.mass/entity.mass), scratchVec1),
+				(1/entity.mass))
 			);
 		}
-		if(entity instanceof Emitter) {
+		else {
 			mut_plus(entity.vel, mut_times(
-				gravitate(entity.pos, this.pos, (this.mass/entity.mass)*MASS_FACTOR, scratchVec1),
-				delta)
+				gravitate(entity.pos, this.pos, entity.mass*this.mass, scratchVec1), 
+				(1/entity.mass))
 			);
 		}
 	}
