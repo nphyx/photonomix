@@ -29,12 +29,11 @@ let game; // game environment object
 let lastFrame = 0;
 let bgCtx, bokehCtx, gameCtx, displayCtx, invertCtx;
 let bgCanvas, bokehCanvas, gameCanvas, displayCanvas, invertCanvas;
-let moteCenterSprite;
 let voidSprite;
 let emitterSprite;
 let markerSprites = Array(1);
 let photonSprites = Array(3);
-let moteCenterFillStyle = "rgba(255,255,255,0.7)";
+let moteCenterSprite;
 
 let PX = 1; // pixel size
 let W = 0; // screen width
@@ -107,11 +106,8 @@ function updateRatio() {
 		buffers[i].canvas.height = H;
 	}
 	bokeh.create(buffers[0], buffers[1], W, H);
-	sprites.setMoteSpriteDimensions(MIN_D, constants.MOTE_BASE_SIZE*4);
-	//moteSprite = sprites.createMoteSprite(MIN_D, constants.MOTE_BASE_SIZE*4);
 	voidSprite = sprites.createVoidSprite(MIN_D, 1);
 	emitterSprite = sprites.createEmitterSprite(MIN_D, constants.EMITTER_SIZE*10);
-	moteCenterSprite = sprites.createMoteCenterSprite(moteCenterFillStyle);
 	photonSprites[COLOR_R] = sprites.createPhotonSprite(MIN_D, constants.PHOTON_BASE_SIZE, "red");
 	photonSprites[COLOR_G] = sprites.createPhotonSprite(MIN_D, constants.PHOTON_BASE_SIZE, "green");
 	photonSprites[COLOR_B] = sprites.createPhotonSprite(MIN_D, constants.PHOTON_BASE_SIZE, "blue");
@@ -198,7 +194,7 @@ const drawAttackLine = (function() {
 
 // these variables are shared by draw calls below
 let i, l, entity, px, py, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, sprite;
-let ox, oy, colorIndex = 0|0; 
+let ox, oy, colorIndex = 0|0;
 let fadeFillStyle = "rgba(0,0,0,0.3)";
 let invFillStyle = "rgba(255,255,255,0.1)";
 
@@ -212,22 +208,23 @@ const drawMote = (function() {
 		size = entity.size * clamp(MIN_D, 300, 1200);
 		if(pregnant) {
 			sc = size * cos((frameCount+pulse) * 0.2) * (sqrt(pregnant)+1);
-			sw = size * sin((frameCount+pulse+tf) * 0.2) * (sqrt(pregnant)+1)*0.25;
+			sw = size * sin((frameCount+pulse+tf) * 0.2) * (sqrt(pregnant)+1)*0.1;
 		}
 		else if(injured) {
 			sc = size * cos((frameCount+pulse) * (0.2+(1-1/injured)));
-			sw = size * sin((frameCount+pulse+tf) * 0.2) * 0.25; //* (0.2+(1-1/injured)))*0.25;
+			sw = size * sin((frameCount+pulse+tf) * 0.2)*0.1; //* (0.2+(1-1/injured)))*0.25;
 		}
 		else {
 			sc = size * cos((frameCount+pulse) * 0.2);
-			sw = size * sin((frameCount+pulse+tf) * 0.2)*0.25;
+			sw = size * sin((frameCount+pulse+tf) * 0.2)*0.1;
 		}
 		sch = sc*0.5;
 		swh = sw*0.5;
 		colorIndex = sprites.colorIndex(entity.color[COLOR_R], entity.color[COLOR_G], entity.color[COLOR_B]);
 		sprite = sprites.getMoteSprite(colorIndex);
-		ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
-		ctx.drawImage(moteCenterSprite.canvas, px-swh, py-swh, sw, sw);
+		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-sch, py-sch, sc, sc);
+		sprite = moteCenterSprite; 
+		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-sch, py-sch, sc, sc);
 		if(entity.target !== undefined && (entity.potential > 1 || entity.target.lifetime > 0)) 		drawAttackLine(ctx, entity, sprites.getColorString(colorIndex));
 	}
 })();
@@ -264,14 +261,14 @@ function drawVoid(entity, ctx) {
 		ox = sin(frameCount*0.0127)*sc*0.1;
 		oy = cos(frameCount*0.0127)*sc*0.1;
 		sprite = sprites.getMoteSprite(0xfff);
-		ctx.drawImage(sprite.canvas, px+ox-swh, py+oy-swh, sw, sw);
+		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
 		// smaller light patch
 		sw = sc*1.2;
 		swh = sw*0.5;
 		ox = cos(frameCount*0.023)*sc*0.13;
 		oy = sin(frameCount*0.023)*sc*0.13;
 		sprite = sprites.getMoteSprite(colorIndex);
-		ctx.drawImage(sprite.canvas, px+ox-swh, py+oy-swh, sw, sw);
+		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
 		// dark patch
 		ctx.globalCompositeOperation = "multiply";
 		sprite = sprites.getMoteSprite(0x000);
@@ -279,7 +276,7 @@ function drawVoid(entity, ctx) {
 		swh = sw*0.5;
 		ox = sin(frameCount*0.0122)*sc*0.17;
 		oy = cos(frameCount*0.0122)*sc*0.17;
-		ctx.drawImage(sprite.canvas, px+ox-swh, py+oy-swh, sw, sw);
+		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
 	}
 }
 
@@ -300,7 +297,7 @@ function drawEmitter(entity, ctx) {
 	sprite = emitterSprite;
 	ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
 	sprite = sprites.getMoteSprite(colorIndex);
-	ctx.drawImage(sprite.canvas, px-swh, py-swh, sw, sw);
+	ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-swh, py-swh, sw, sw);
 }
 
 /**
@@ -355,12 +352,16 @@ function drawCircle(ctx, x, y, size, color) {
  * Composites game layers onto the display canvas.
  */
 function composite() {
+	/*
+	displayCtx.fillStyle = "white";
+	displayCtx.fillRect(0, 0, W, H);
+	displayCtx.drawImage(sprites.moteSpriteSheetCanvas, 0, 0, W, H);
+	*/
 	displayCtx.clearRect(0, 0, W, H);
 	displayCtx.globalCompositeOperation = "source-over";
 	displayCtx.drawImage(bgCanvas, 0, 0, W, H);
 	displayCtx.globalCompositeOperation = "lighter";
 	displayCtx.drawImage(bokehCanvas, 0, 0);
-	displayCtx.globalCompositeOperation = "lighter";
 	displayCtx.drawImage(gameCanvas, 0, 0);
 	displayCtx.globalCompositeOperation = "hard-light";
 	displayCtx.drawImage(invertCanvas, 0, 0);
@@ -454,6 +455,9 @@ export function init(env) {
 	document.addEventListener("keyup", pressEnter);
 	window.addEventListener("resize", updateRatio);
 	updateRatio();
+	// do these here so they only get created once; they don't need to update with res
+	sprites.initMoteSpriteSheet(MIN_D, constants.MOTE_BASE_SIZE*4);
+	moteCenterSprite = sprites.createMoteCenterSprite();
 	bokeh.create(buffers[0], buffers[1], W, H);
 	setup();
 	if(AUTO_FULLSCREEN) {
