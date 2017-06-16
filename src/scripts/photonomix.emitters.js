@@ -45,6 +45,7 @@ Emitter.prototype.tick = function(entities, delta, frameCount) {
 			}
 		}
 	}
+	else this.next = ~~(random()*3); // alternate colors anyway
 	// last turn's move, has to happen first
 	mut_plus(this.pos, times(this.vel, delta, scratchVec1));
 	// apply drag

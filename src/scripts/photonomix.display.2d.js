@@ -108,7 +108,7 @@ function updateRatio() {
 	}
 	bokeh.create(buffers[0], buffers[1], W, H);
 	voidSprite = sprites.createVoidSprite(MIN_D, 1);
-	emitterSprite = sprites.createEmitterSprite(MIN_D, constants.EMITTER_SIZE*10);
+	emitterSprite = sprites.createEmitterSprite(MIN_D, 1);
 	photonSprites[COLOR_R] = sprites.createPhotonSprite(MIN_D, constants.PHOTON_BASE_SIZE, "red");
 	photonSprites[COLOR_G] = sprites.createPhotonSprite(MIN_D, constants.PHOTON_BASE_SIZE, "green");
 	photonSprites[COLOR_B] = sprites.createPhotonSprite(MIN_D, constants.PHOTON_BASE_SIZE, "blue");
@@ -302,20 +302,37 @@ function drawVoid(entity, ctx) {
  * Draws an emitter.
  */
 function drawEmitter(entity, ctx) {
-	sc = entity.size * MIN_D * 0.9;
-	sc = sc + (sc*(sin(frameCount*0.05))/100);
+	sc = entity.size * MIN_D;
+	//sc = sc + (sc*(sin(frameCount*0.05))/100);
 	sch = sc*0.5;
-	sw = sc*1.3;
-	swh = sw*0.5;
-	switch(entity.next) {
-		case COLOR_R:colorIndex = 0xf88; break;
-		case COLOR_G:colorIndex = 0x8f8; break;
-		case COLOR_B:colorIndex = 0x88f; break;
-	}
+
 	sprite = emitterSprite;
 	ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
-	sprite = sprites.getMoteSprite(colorIndex);
+
+
+	sw = cos((frameCount)*0.2)*sc*1.7;
+	swh = sw*0.5;
+
+	sprite = sprites.getMoteSprite(0x333);
 	ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-swh, py-swh, sw, sw);
+
+
+	sw = sc*1.3;
+	swh = sw*0.5;
+	ox = sin(frameCount*0.08)*sc*0.1;
+	oy = cos(frameCount*0.08)*sc*0.1;
+	sprite = sprites.getMoteSprite(0x500);
+	ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
+
+	ox = sin(frameCount*0.08+2.094394)*sc*0.1;
+	oy = cos(frameCount*0.08+2.094394)*sc*0.1;
+	sprite = sprites.getMoteSprite(0x050);
+	ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
+
+	ox = sin(frameCount*0.08+4.188789)*sc*0.1;
+	oy = cos(frameCount*0.08+4.188789)*sc*0.1;
+	sprite = sprites.getMoteSprite(0x005);
+	ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
 }
 
 /**

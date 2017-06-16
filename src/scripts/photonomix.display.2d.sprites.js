@@ -226,9 +226,14 @@ export function createEmitterSprite(scale, spriteSize) {
 		pixelSize/2, pixelSize/2, pixelSize/2,
 		pixelSize/2, pixelSize/2, 0
 	);
-	g.addColorStop(1, "rgba(255,255,255,0.25");
-	g.addColorStop(0.9, "rgba(255,255,255,0.25)");
-	g.addColorStop(0.0, "rgba(255,255,255,0.0)");
+	g.addColorStop(1, "rgba(255,255,255,0.3)");
+	g.addColorStop(0.78, "rgba(255,255,255,0.3)");
+	g.addColorStop(0.58, "rgba(255,255,255,0.22)");
+	g.addColorStop(0.48, "rgba(255,255,255,0.17)");
+	g.addColorStop(0.44, "rgba(255,255,255,0.22)");
+	g.addColorStop(0.40, "rgba(255,255,255,0.19)");
+	g.addColorStop(0.2, "rgba(255,255,255,0.09)");
+	g.addColorStop(0.1, "rgba(255,255,255,0.0)");
 	ctx.fillStyle = g;
 	ctx.fillRect(0, 0, pixelSize, pixelSize);
 	return {
