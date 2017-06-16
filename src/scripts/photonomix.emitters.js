@@ -18,7 +18,7 @@ export function Emitter(ipos = vec2(), ivel = vec2(), mass = 1, photonPool = und
 	this.mass = 1;
 	this.initialMass = mass;
 	this.photonPool = photonPool;
-	this.arms = arms||1+~~(random()*6);
+	this.arms = arms||(ceil(random()*random()*50));
 	this.size = 0;
 	this.next = ~~(random()*3);
 	return this;
@@ -35,7 +35,7 @@ Emitter.prototype.tick = function(entities, delta, frameCount) {
 	}
 	this.size = sqrt(this.mass/PI) * EMITTER_SIZE;
 	if(this.birthMass === 0) { // don't start producing until finished spawning
-		emissionsPerSecond = this.mass/20;
+		emissionsPerSecond = this.initialMass/20;
 		targetFrame = ceil(TARGET_FPS/emissionsPerSecond);
 		emissionsPerFrame = emissionsPerSecond/TARGET_FPS;
 		if(frameCount % targetFrame === 0) {
@@ -45,7 +45,6 @@ Emitter.prototype.tick = function(entities, delta, frameCount) {
 			}
 		}
 	}
-	else this.next = ~~(random()*3); // alternate colors anyway
 	// last turn's move, has to happen first
 	mut_plus(this.pos, times(this.vel, delta, scratchVec1));
 	// apply drag
