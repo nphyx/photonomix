@@ -4,18 +4,19 @@ import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
 import * as bokeh from "./photonomix.display.2d.bokeh";
 import * as sprites from "./photonomix.display.2d.sprites";
 import * as markers from "./photonomix.markers";
+import * as motes from "./photonomix.motes";
 import {rotate} from "./photonomix.util";
 //const Marker = markers.Marker;
-const {vec2, lerp} = vectrix.vectors;
-const {mut_plus} = vectrix.matrices;
+const {distance, vec2, lerp, times} = vectrix.vectors;
+const {mut_plus, plus} = vectrix.matrices;
 import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.photons";
-import {Mote} from "./photonomix.motes";
 import {Void} from "./photonomix.voids";
 import {Emitter} from "./photonomix.emitters";
-let {min, max, cos, sin, sqrt} = Math;
+let {min, max, cos, sin, sqrt, tan, round} = Math;
 const clamp = vectrix.vectors.mut_clamp;
 const AUTO_FULLSCREEN = false;
 const DEBUG_DRAW = false;
+const Mote = motes.Mote;
 
 let GAME_STARTED = false; //  whether the game has started
 let startTime; // time game started
@@ -146,49 +147,66 @@ function offscreen(x, y) {
 /**
  * Draws plasma lines between a mote and its target.
  */
-const drawAttackLine = (function() {
-	let a = vec2(), b = vec2(), ra = vec2(), rb = vec2();
-	let sx = 0|0, sy = 0|0, rax = 0|0, ray = 0|0, rbx = 0|0, rby = 0|0, tx = 0|0, ty = 0|0;
-	return function drawAttackLine(ctx, entity, color) {
-		// nothing special about the constants used below, they just looked nice
-		lerp(entity.pos, entity.target.pos, 0.331, a);
-		lerp(entity.pos, entity.target.pos, 0.692, b);
-		rotate(a, entity.pos, cos((frameCount+entity.pulse)*0.772), ra);
-		mut_plus(ra, a);
-		rotate(b, entity.target.pos, sin((frameCount+entity.pulse)*0.373), rb);
-		mut_plus(rb, b);
+const drawPlasmaLine = (function() {
+	let a  = vec2(), b  = vec2(), c  = vec2(), d  = vec2(),
+			ra = vec2(), rb = vec2(), 
+			rax = 0|0, ray = 0|0, speeda = 0.0, ta = 0.0, tc = 0.0,
+			rbx = 0|0, rby = 0|0, speedb = 0.0, tb = 0.0, td = 0.0,
+			sx = 0|0, sy = 0|0, tx = 0|0, ty = 0|0, pulsea = 0|0, pulseb = 0|0;
+	return function drawPlasmaLine(ctx, entity, color) {
+		// only these acts get lines
+		if(entity.action != motes.ACT_ATTACK) return;
+		if(distance(entity.pos, entity.target.pos > entity.sight)) return;
+		ta = 0.6;
+		tc = 0.9;
+		tb = 0.7;
+		td = 0.9;
+		speeda = 0.57121;
+		speedb = 0.71213;
+		pulsea = entity.pulse;
+		pulseb = entity.target.pulse;
+		lerp(entity.pos, entity.target.pos, ta, a);
+		lerp(entity.pos, entity.target.pos, tb, b);
+		lerp(entity.pos, entity.target.pos, tc, c);
+		lerp(entity.pos, entity.target.pos, td, d);
 
-		sx = screenSpace(entity.pos[0]);
-		sy = screenSpace(entity.pos[1]);
-		rax = screenSpace(ra[0]);
-		ray = screenSpace(ra[1]);
-		rbx = screenSpace(rb[0]);
-		rby = screenSpace(rb[1]);
-		tx = screenSpace(entity.target.pos[0]);
-		ty = screenSpace(entity.target.pos[1]);
+		
+		mut_plus(rotate(a, c, tan(cos((frameCount+pulsea)*speeda)), ra), a);
+		mut_plus(rotate(b, d, tan(sin((frameCount+pulsea)*speedb)), rb), b);
+
+		sx = screenSpace(entity.pos[0]); sy = screenSpace(entity.pos[1]);
+		tx = screenSpace(entity.target.pos[0]); ty = screenSpace(entity.target.pos[1]);
+		rax = screenSpace(ra[0]); ray = screenSpace(ra[1]);
+		rbx = screenSpace(rb[0]); rby = screenSpace(rb[1]);
 		if(W > H) {
-			sx = sx + OFFSET_MAX_D;
+			sx = sx   + OFFSET_MAX_D;
+			tx = tx   + OFFSET_MAX_D;
 			rax = rax + OFFSET_MAX_D;
 			rbx = rbx + OFFSET_MAX_D;
-			tx = tx + OFFSET_MAX_D;
 		}
 		else {
-			sy = sy + OFFSET_MAX_D;
+			sy = sy   + OFFSET_MAX_D;
+			ty = ty   + OFFSET_MAX_D;
 			ray = ray + OFFSET_MAX_D;
 			rby = rby + OFFSET_MAX_D;
-			ty = ty + OFFSET_MAX_D;
 		}
-		ctx.beginPath();
-		ctx.moveTo(sx, sy);
-		ctx.bezierCurveTo(rax, ray, rbx, rby, tx, ty);
-		ctx.strokeStyle = color;
-		ctx.lineWidth = 4;
-		ctx.stroke();
-		ctx.moveTo(sx, sy);
-		ctx.bezierCurveTo(rax, ray, rbx, rby, tx, ty);
-		ctx.strokeStyle = "white";
-		ctx.lineWidth = 0.5;
-		ctx.stroke();
+		if(entity.action === motes.ACT_ATTACK) {
+			ctx.beginPath();
+			ctx.moveTo(sx, sy);
+			ctx.bezierCurveTo(rax, ray, rbx, rby, tx, ty);
+			ctx.strokeStyle = color;
+			ctx.lineWidth = round(cos((frameCount+pulsea)*speeda)*4);
+			ctx.stroke();
+			ctx.closePath();
+
+			ctx.beginPath();
+			ctx.moveTo(sx, sy);
+			ctx.bezierCurveTo(rax, ray, rbx, rby, tx, ty);
+			ctx.strokeStyle = "white";
+			ctx.lineWidth = round(cos((frameCount+pulsea)*speeda));
+			ctx.stroke();
+			ctx.closePath();
+		}
 	}
 })();
 
@@ -225,7 +243,7 @@ const drawMote = (function() {
 		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-sch, py-sch, sc, sc);
 		sprite = moteCenterSprite; 
 		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-sch, py-sch, sc, sc);
-		if(entity.target !== undefined && (entity.potential > 1 || entity.target.lifetime > 0)) 		drawAttackLine(ctx, entity, sprites.getColorString(colorIndex));
+		if(entity.target) drawPlasmaLine(ctx, entity, sprites.getColorString(colorIndex));
 	}
 })();
 
@@ -247,7 +265,7 @@ function drawVoid(entity, ctx) {
 	sch = sc*0.5;
 	sprite = voidSprite;
 	ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
-	if(entity.mass > 500) { // smaller than this and effects look janky
+	if(1) {// sc > 50) { // smaller than this and effects look janky
 		switch(entity.lastMeal) {
 			case -1:colorIndex = 0x888; break;
 			case COLOR_R:colorIndex = 0xf44; break;

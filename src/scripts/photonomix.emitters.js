@@ -1,11 +1,11 @@
 "use strict";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
 import {TARGET_FPS, GLOBAL_DRAG, EMITTER_SIZE} from "./photonomix.constants";
-import {rotate, limitVecMut, drag, gravitate, avoid} from "./photonomix.util";
+import {rotate, drag, gravitate, avoid} from "./photonomix.util";
 import {Photon} from "./photonomix.photons";
 let {vec2, times, mut_times, distance} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
-let {random, sqrt, ceil, PI} = Math;
+let {random, sqrt, ceil, min, PI} = Math;
 const POS_C = vec2(0,0);
 
 /**
@@ -25,21 +25,24 @@ export function Emitter(ipos = vec2(), ivel = vec2(), mass = 1, photonPool = und
 }
 
 let scratchVec1 = vec2(), emissionsPerSecond = 0|0, emissionsPerFrame = 0|0, 
-		targetFrame = 0|0, i = 0|0, len = 0|0, entity, a_dist = 0.0;
+		targetFrame = 0|0, i = 0|0, len = 0|0, entity, a_dist = 0.0, consume = 0|0;
 Emitter.prototype.tick = function(entities, delta, frameCount) {
 	/* jshint unused:false */
 	if(this.birthMass > 0) {
-		this.birthMass--;
-		this.mass++;
+		consume = min(this.birthMass, ceil(this.mass/100));
+		this.birthMass -= consume;
+		this.mass += consume;
 	}
 	this.size = sqrt(this.mass/PI) * EMITTER_SIZE;
-	emissionsPerSecond = this.mass/10;
-	targetFrame = ceil(TARGET_FPS/emissionsPerSecond);
-	emissionsPerFrame = emissionsPerSecond/TARGET_FPS;
-	if(frameCount % targetFrame === 0) {
-		while((emissionsPerFrame-- > 0) && this.mass > 0) {
-			this.mass--;
-			entities.push(this.emitPhoton());
+	if(this.birthMass === 0) { // don't start producing until finished spawning
+		emissionsPerSecond = this.mass/10;
+		targetFrame = ceil(TARGET_FPS/emissionsPerSecond);
+		emissionsPerFrame = emissionsPerSecond/TARGET_FPS;
+		if(frameCount % targetFrame === 0) {
+			while((emissionsPerFrame-- > 0) && this.mass > 0) {
+				this.mass--;
+				entities.push(this.emitPhoton());
+			}
 		}
 	}
 	// last turn's move, has to happen first
@@ -47,8 +50,7 @@ Emitter.prototype.tick = function(entities, delta, frameCount) {
 	// apply drag
 	mut_plus(this.vel, drag(this.vel, GLOBAL_DRAG));
 	// avoid edge
-	mut_plus(this.vel, avoid(this.vel, this.pos, POS_C, 1.3, 0.001, 0.001, scratchVec1)); // don't go off the screen
-	limitVecMut(this.vel, 0, 1);
+	mut_plus(this.vel, avoid(this.vel, this.pos, POS_C, 1.3, 0.001, scratchVec1));
 
 	for(i = 0, len = entities.length; i < len; ++i) {
 		entity = entities[i];

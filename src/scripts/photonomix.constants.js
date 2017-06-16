@@ -6,6 +6,7 @@ export const START_POP = 20;
 export const MOTE_BASE_SIZE = 0.025;
 export const MOTE_BASE_ALPHA = 1;
 export const MOTE_BASE_SPEED = 0.0005;
+export const MOTE_BASE_SIGHT = 0.15;
 export const PREGNANT_THRESHOLD = 172;
 export const PREGNANT_TIME = 30;
 export const DEATH_THRESHOLD = 18;

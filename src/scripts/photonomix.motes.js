@@ -1,6 +1,6 @@
 "use strict";
-let {random, max, min, floor, ceil, sin} = Math;
-import {TARGET_FPS, MOTE_BASE_SPEED, MOTE_BASE_SIZE, PREGNANT_THRESHOLD, 
+let {random, max, floor, ceil, sin} = Math;
+import {TARGET_FPS, MOTE_BASE_SPEED, MOTE_BASE_SIZE, MOTE_BASE_SIGHT, PREGNANT_THRESHOLD, 
 				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG} from "./photonomix.constants";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
 import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, outOfBounds, rotate} from "./photonomix.util";
@@ -11,34 +11,19 @@ import {Void} from "./photonomix.voids";
 const clamp = mut_clamp;
 // Center of the playfield is at 0,0 (ranging from -1 to 1 on X and Y axis)
 const POS_C  = vec2(0.0, 0.0);
+// activity type constants
+export const ACT_IDLE   = 0;
+export const ACT_SEARCH = 1;
+export const ACT_CHASE  = 2;
+export const ACT_AVOID  = 3;
+export const ACT_ATTACK = 4;
+export const ACT_LINK   = 5;
+
 // twiddle to slightly offset the values, avoids divide by zero and other errors
 // inherent to acceleration, friction, drag and gravity equations
 twiddleVec(POS_C);
 // relative color values derived from a Mote's photons, used to produce color string
 // for rendering
-
-/**
- * Determines the food value of object b to mote a. Roughly, a mote prefers to eat 
- * photons and other motes unlike itself, and prefers objects smaller than itself
- * than those that are larger. Red motes are weighted to be the most predatory,
- * and green motes are weighted to be the least.
- */
-const targetValue = (function() {
-	return function targetValue(a, b) {
-		let rat_argb = ratio(a.r, a.g+a.b);
-		let rat_agrb = ratio(a.g, a.r+a.b);
-		let rat_abrg = ratio(a.b, a.r+a.g);
-		let rat_brgb = ratio(b.r, b.g+b.b);
-		let rat_bgrb = ratio(b.g, b.r+b.b);
-		let rat_bbrg = ratio(b.b, b.r+b.g);
-		let deltaA = rat_argb - rat_brgb;
-		let deltaB = rat_agrb - rat_bgrb;
-		let deltaC = rat_abrg - rat_bbrg;
-		let maxr = max(deltaA, deltaB, deltaC);
-		let minr = min(deltaA, deltaB, deltaC);
-		return maxr - minr;
-	}
-})();
 
 // various consts below are indexes and byte counts for mote data
 // byte length of these value types
@@ -46,47 +31,50 @@ const I8 = 1;
 const F32 = 4;
 
 // uint8 values = photons[3]
-const U8_PHO = 0; 
-const U8_RAT = U8_PHO + I8*3; 
-const U8_COL = U8_RAT + I8*3; 
-const U8_PREF = U8_COL + I8*3; 
-const U8_VAL_LENGTH = U8_PREF + I8*3;
-const I8_BYTE_OFFSET = U8_VAL_LENGTH;
+const U8_PHO  = 0,
+			U8_RAT  = U8_PHO        + I8*3,
+			U8_COL  = U8_RAT        + I8*3, 
+			U8_PREF = U8_COL        + I8*3, 
+			U8_VAL_LENGTH = U8_PREF + I8*3,
+			I8_BYTE_OFFSET = U8_VAL_LENGTH;
 // int8 values =  dying, pregnant, injured, lastMeal, pulse
-const	I8_DYING = 0,
-	I8_PREG = I8_DYING + I8,
-	I8_INJURED = I8_PREG + I8,
-	I8_LAST_INJURY = I8_INJURED + I8,
-	I8_MEAL = I8_LAST_INJURY + I8,
-	I8_UPD = I8_MEAL + I8,
-	I8_PULSE = I8_UPD + I8;
-
-const I8_VAL_LENGTH = I8_PULSE + I8;
-
-const INT_VAL_LENGTH = U8_VAL_LENGTH + I8_VAL_LENGTH;
+const	I8_DYING       = 0,
+			I8_PREG        = I8_DYING       + I8,
+			I8_INJURED     = I8_PREG        + I8,
+			I8_LAST_INJURY = I8_INJURED     + I8,
+			I8_MEAL        = I8_LAST_INJURY + I8,
+			I8_UPD         = I8_MEAL        + I8,
+			I8_PULSE       = I8_UPD         + I8,
+			I8_ACT         = I8_PULSE       + I8,
+			I8_VAL_LENGTH  = I8_ACT         + I8,
+			INT_VAL_LENGTH = U8_VAL_LENGTH  + I8_VAL_LENGTH;
 
 // float32 values = p[3], v[3], color[4], size, sizeMin, sizeMax, speed, sight, agro, fear, potential, resistance
+// from here on, increments of value * 4
+// vectors
 const VEC_BYTE_OFFSET = INT_VAL_LENGTH + (F32-(INT_VAL_LENGTH % F32)), // float32 offsets must be multiples of 4
-	// from here on, increments of value * 4
-	// vectors
-	F32_POS = 0,
-	F32_VEL = F32_POS + 2;
-const VEC_VAL_LENGTH = F32_VEL + 2,
-	F32_BYTE_OFFSET = VEC_BYTE_OFFSET + (VEC_VAL_LENGTH*F32),
-	// scalars
-	F32_SIZE = 0,
-	F32_SIZE_MIN = F32_SIZE + 1,
-	F32_SIZE_MAX = F32_SIZE_MIN + 1,
-	F32_SPEED = F32_SIZE_MAX + 1,
-	F32_SIGHT = F32_SPEED + 1,
-	F32_AGRO = F32_SIGHT + 1,
-	F32_FEAR = F32_AGRO + 1,
-	F32_POTENTIAL = F32_FEAR + 1,
-	F32_RESISTANCE = F32_POTENTIAL + 1,
-	F32_MASS = F32_RESISTANCE + 1;
+			F32_POS = 0,
+			F32_VEL = F32_POS + 2;
+const VEC_VAL_LENGTH = F32_VEL + 2;
 
-const FLOAT_VAL_LENGTH = F32_MASS + 1;
+const F32_BYTE_OFFSET = VEC_BYTE_OFFSET + (VEC_VAL_LENGTH*F32),
+			// scalars
+			F32_SIZE         = 0,
+			F32_SIZE_MIN     = F32_SIZE       + 1,
+			F32_SIZE_MAX     = F32_SIZE_MIN   + 1,
+			F32_SPEED        = F32_SIZE_MAX   + 1,
+			F32_SIGHT        = F32_SPEED      + 1,
+			F32_AGRO         = F32_SIGHT      + 1,
+			F32_FEAR         = F32_AGRO       + 1,
+			F32_POTENTIAL    = F32_FEAR       + 1,
+			F32_RESISTANCE   = F32_POTENTIAL  + 1,
+			F32_MASS         = F32_RESISTANCE + 1,
+			FLOAT_VAL_LENGTH = F32_MASS       + 1;
+
 export const BUFFER_LENGTH = F32_BYTE_OFFSET + (FLOAT_VAL_LENGTH*F32);
+
+// scratch vectors used in various functions
+const scratch1 = vec2(), scratch2 = vec2();
 
 
 /**
@@ -110,6 +98,7 @@ export const BUFFER_LENGTH = F32_BYTE_OFFSET + (FLOAT_VAL_LENGTH*F32);
  * @property {Int8} lastInjury strength of most recent injury taken
  * @property {Int8} pulse frame offset for pulse animation
  * @property {Int8} lastMeal color value for last meal (see R, G, B constants)
+ * @property {Int8} action action choice in relation to target 
  * @property {Float32} speed derived acceleration speed based on Mote properties
  * @property {Float32} sight derived vision radius based on Mote properties 
  * @property {Float32} agro derived aggression factor based on Mote properties 
@@ -126,7 +115,7 @@ export const BUFFER_LENGTH = F32_BYTE_OFFSET + (FLOAT_VAL_LENGTH*F32);
  * @property {Float32Array} floatVals direct access to float value array (for debug)
  * @return {Mote}
  */
-export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), pool = undefined, bSpeed = MOTE_BASE_SPEED, bSight = 0.1, bAgro = 1.0, bFear = 1.0) {
+export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), pool = undefined, bSpeed = MOTE_BASE_SPEED, bSight = MOTE_BASE_SIGHT, bAgro = 1.0, bFear = 1.0) {
 	let buffer, offset = 0|0;
 	if(pool) {
 		buffer = pool.buffer;
@@ -164,6 +153,7 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
 		"prefs":{get: () => prefs},
 		"color":{get: () => color},
 		"dying":{get: () => intVals[I8_DYING], set: (v) => intVals[I8_DYING] = v},
+		"action":{get: () => intVals[I8_ACT], set: (v) => intVals[I8_ACT] = v},
 		"pregnant":{get: () => intVals[I8_PREG], set: (v) => intVals[I8_PREG] = v},
 		"injured":{get: () => intVals[I8_INJURED], set: (v) => intVals[I8_INJURED] = v},
 		"lastInjury":{get: () => intVals[I8_LAST_INJURY], set: (v) => intVals[I8_LAST_INJURY] = v},
@@ -260,119 +250,166 @@ Mote.prototype.updateProperties = (function() {
 })();
 
 /**
+ * Maintenance tasks to be done each tick
+ */
+Mote.prototype.runMaintenance = (function() {
+	let pregnant = 0|0, dying = 0|0, tmpPot = 0.0, tmpRes = 0.0,
+			agro = 0.0, fear = 0.0, size = 0.0, speed = 0.0, sight = 0.0,
+			pos, vel, target;
+	return function runMaintenance(delta) {
+		({pos, vel, pregnant, dying, agro, fear, size, sight, target} = this);
+		if(pregnant > 0) this.pregnant = pregnant - 1;
+		if(dying > 0) this.dying = dying + 1; // start counting up
+		if(this.needsUpdate) this.updateProperties();
+		// build potential and resistance each tick
+		tmpPot = agro * (size*100);
+		tmpRes = fear * (size*100);
+		this.potential = clamp(this.potential + agro*delta, -tmpPot, tmpPot);
+		this.resistance = clamp(this.resistance + fear*delta, -tmpRes, tmpRes);
+
+		// last turn's move, has to happen first to avoid prediction inaccuracy
+		// during chases
+		mut_plus(pos, times(vel, delta, scratch1));
+
+		// don't go off the screen
+		mut_plus(vel, avoid(vel, pos, POS_C, 1.1, speed, scratch1)); 
+		// apply drag
+		mut_plus(vel, drag(vel, GLOBAL_DRAG));
+	}
+})();
+
+/**
+ * Checks if a target is valid.
+ * @param {Object} entity any game object that can be targeted
+ * @return {float} distance if valid, otherwise -1
+ */
+Mote.prototype.validateTarget = (function() {
+	let dist = 0.0, sight = 0.0, pos;
+	return function(entity) {
+		({pos, sight} = this);
+		dist = distance(pos, entity.pos);
+		// these targets are invalid
+		if(entity === this) return -1;
+		if(entity.dying) return -1;
+		if(entity.lifetime && entity.lifetime < 3) return -1;
+		if(entity.mass < 1) return -1;
+		if(dist > (sight+entity.size*0.5)) return -1;
+		if(outOfBounds(entity, 0.7)) return -1;
+		return dist;
+	}
+})();
+
+/**
+ * Search for a target and decide how to act toward it.
+ */
+Mote.prototype.search = (function() {
+	let i = 0|0, len = 0|0, sight = 0.0, cur = 0.0, pos, vel, highest, dist, entity;
+	return function search(entities) {
+		({pos, vel, sight} = this);
+		highest = -Infinity;
+		dist = 0;
+		if(this.pregnant || this.dying) {
+			this.action = ACT_IDLE;
+			highest = Infinity;
+		}
+
+		for(i = 0, len = entities.length; (i < len) && (highest < Infinity); ++i) {
+			entity = entities[i];
+			let dist = this.validateTarget(entity);
+			if(dist === -1) continue;
+			// ignore things outside sight range
+			if(entity instanceof Mote) {
+				cur = 3*(1/dist);
+				if(cur > highest) {
+					this.target = entity;
+					if(entity.target === this || dist < (this.size+entity.size)*0.5) {
+						this.action = ACT_AVOID;
+					}
+					else this.action = ACT_CHASE;
+					highest = cur;
+				}
+			}
+			else if(entity instanceof Void) {
+				this.target = entity;
+				this.action = ACT_AVOID;
+				highest = Infinity;
+			}
+			else if(entity instanceof Photon && entity.lifetime > 3) {
+				cur = 10*(1/dist);
+				if(cur > highest) {
+					this.target = entity;
+					this.action = ACT_CHASE;
+					highest = cur;
+				}
+			}
+		}
+		if(highest < 0) return false;
+		return true;
+	}
+})();
+
+/**
  * Decide how to act each tick based on nearby objects.
  * @param Array surrounding array of nearby objects to consider in movement
  * @param Float delta time delta
  */
-let vel, size, sight, speed, agro, fear, scratchVec2 = vec2(),
-	scratchVec1 = vec2(), weight, mainTarget, predicted = vec2(), 
-	highestWeight, mainTargetDist, a_dist, value, 
-	a_i, a_len, entity, pos, handling, tmpPot = 0.0, tmpRes = 0.0, 
-	potential = 0.0, resistance = 0.0, pregnant = 0|0, dying = 0|0,
-	epos;
-Mote.prototype.tick = function(surrounding, delta, frameCount) {
-	/* jshint unused:false */
-	({pregnant, dying} = this);
-	if(pregnant > 0) this.pregnant = pregnant - 1;
-	if(dying > 0) this.dying = dying + 1; // start counting up
-	if(this.needsUpdate) this.updateProperties();
-	({pos, vel, size, sight, speed, agro, fear, resistance, potential} = this);
-	// decrement counters
-	handling = (1/size)*sight*speed;
-	// build potential and resistance each tick
-	tmpPot = agro * (size*100);
-	tmpRes = fear * (size*100);
-	this.potential = clamp(potential + agro*delta, -tmpPot, tmpPot);
-	this.resistance = clamp(resistance + fear*delta, -tmpRes, tmpRes);
+Mote.prototype.tick = (function() {
+	let pos, vel, size, sight, speed, agro, fear, resistance, potential, target, dist;
+	return function tick(entities, delta, frameCount) {
+		({pos, vel, size, sight, speed, agro, fear, resistance, potential, target} = this);
+		this.runMaintenance(delta);
 
-	// last turn's move, has to happen first to avoid prediction inaccuracy
-	// during chases
-	mut_plus(pos, times(vel, delta, scratchVec1));
+		// validate current target 
+		if(target && (dist = this.validateTarget(target)) === -1) {
+			this.action = ACT_IDLE;
+		}
 
-	// apply basic forces
-	mut_plus(vel, avoid(vel, pos, POS_C, 1.1, speed, handling, scratchVec1)); // don't go off the screen
-	// apply drag
-	mut_plus(vel, drag(vel, GLOBAL_DRAG));
-	// put an absolute limit on velocity
-	//limitVecMut(vel, 0, 2);
-	// drop target if invalid, too far away or out of bounds
-	mainTarget = this.target;
-	if(mainTarget && (
-			outOfBounds(mainTarget, 0.7) ||
-			(distance(pos, mainTarget.pos) > sight) ||
-			(mainTarget instanceof Photon && mainTarget.lifetime < 1)
-		)) this.target = mainTarget = undefined; 
-	else if(mainTarget instanceof Photon) this.eatPhoton(mainTarget);
-	else if(mainTarget instanceof Mote) {
-		plus(mainTarget.pos, times(mainTarget.vel, delta, scratchVec1), predicted);
-		if(this.resistance < (fear*3)) { // run away
-			mut_plus(vel, accelerate(predicted, pos, handling, scratchVec1));
-			mut_plus(vel, accelerate(pos, predicted, -speed, scratchVec1));
-		}
-		else { // chase target
-			if(distance(pos, mainTarget.pos) < sight &&
-				this.potential > agro*3) this.discharge(mainTarget);
-			mut_plus(vel, accelerate(predicted, pos, -handling, scratchVec1));
-			mut_plus(vel, accelerate(pos, predicted, speed, scratchVec1));
-		}
-	} // end what to do if target is mote 
-	// reset scratch memory that may not be initialized
-	//weightCount = 0; 
-	highestWeight = -Infinity;
-	mainTargetDist = 0;
-	for(a_i = 0, a_len = surrounding.length; a_i < a_len; ++a_i) {
-		entity = surrounding[a_i];
-		dying = entity.dying; // safe to reuse here since we're done with this.dying
-		epos = entity.pos;
-		if(entity === this) continue;
-		if(dying !== undefined && dying > 0) continue; // leave dying motes alone, avoids bugs
-		// ignore things outside sight range
-		if((a_dist = distance(pos, epos)) > (sight+(entity.size*0.5))) continue;
-		// don't get too close
-		if(entity instanceof Mote && a_dist < (size+entity.size)*0.5) {
-				mut_copy(scratchVec1, pos);
-				mut_plus(vel, rotate(scratchVec1, epos, handling, scratchVec1)); 
-				mut_plus(vel, accelerate(pos, scratchVec1, speed, scratchVec2));
-		} // end stuff to do if void
-		else if(entity instanceof Void) {
-				mut_copy(scratchVec1, pos);
-				//mut_plus(vel, rotate(epos, scratchVec1, 0.1, scratchVec1)); 
-				mut_plus(vel, accelerate(epos, pos, speed, scratchVec2));
-		}
-		if(highestWeight < Infinity && this.injured === 0) { // else a hard choice has been made
-			if(entity instanceof Photon && entity.lifetime > 2) {
-				// need some energy to eat, and can't eat while injured
-				mainTarget = entity;
-				highestWeight = Infinity;
-			} // end stuff to do if photon
-			else if(entity instanceof Mote &&
-					this.potential > agro*3) { // save up a good charge
-				value = targetValue(this, entity)||0;
-				// target value is the weighted difference between food and fear values
-				weight = a_dist*(value*agro + value*fear);
-				if(weight > highestWeight) {
-					highestWeight = weight;
-					mainTarget = entity;
-					mainTargetDist = a_dist;
+		switch(this.action) {
+			case ACT_IDLE: // lost target, gave up, or completed task
+				this.target = undefined;
+				if(magnitude(vel) < 0.001) { // not going anywhere, so pick a random direction
+					scratch1[0] = random()*2-1;
+					scratch1[1] = random()*2-1;
 				}
-			} // end stuff to do if mote
-		} // end if highest weight < Infinity
-	} // end surrounding entities loop
-	// new target acquired?
-	if(mainTarget) this.target = mainTarget;
-	else { // wander
-		if(magnitude(vel) < 0.001) { // not going anywhere, so pick a random direction
-			scratchVec1[0] = random()*2-1;
-			scratchVec1[1] = random()*2-1;
+				else {
+					mut_copy(scratch1, pos);
+					mut_plus(scratch1, times(vel, delta, scratch2));
+					mut_plus(scratch1, rotate(scratch1, pos, sin((frameCount+this.pulse)*speed), scratch2));
+				}
+				mut_plus(vel, accelerate(pos, scratch1, speed, scratch2));
+				this.action = ACT_SEARCH;
+			break;
+			case ACT_CHASE: // chasing a target
+				// predict target's next move
+				plus(target.pos, times(target.vel, delta, scratch1), scratch2);
+				mut_plus(vel, accelerate(pos, scratch2, speed, scratch1));
+				if(dist < sight) {
+					if(target instanceof Mote && this.potential > this.agro*3) 
+						this.action = ACT_ATTACK;
+					else this.action = ACT_ATTACK;
+				}
+			break;
+			case ACT_AVOID: // avoiding a target
+				// predict target's next move
+				plus(target.pos, times(target.vel, delta, scratch1), scratch2);
+				mut_plus(vel, accelerate(scratch2, pos, speed, scratch1));
+				if(this.resistance > fear*3) this.action = ACT_IDLE;
+			break;
+			case ACT_ATTACK: // attacking a target
+				if(target instanceof Mote) this.discharge(target);
+				else if(target instanceof Photon) this.eatPhoton(target);
+			break;
+			case ACT_LINK: // linking with a target
+			break;
+			case ACT_SEARCH:
+				if(!this.search(entities)) this.action = ACT_IDLE;
+			break;
+			default:
+			break;
 		}
-		else {
-			mut_copy(scratchVec1, pos);
-			mut_plus(scratchVec1, times(vel, delta, scratchVec2));
-			mut_plus(scratchVec1, rotate(scratchVec1, pos, sin((frameCount+this.pulse)*handling), scratchVec2));
-		}
-		mut_plus(vel, accelerate(pos, scratchVec1, speed, scratchVec2));
 	}
-}
+})();
+
 
 let delta = 0.0;
 Mote.prototype.discharge = function(target) {
@@ -380,9 +417,7 @@ Mote.prototype.discharge = function(target) {
 	target.resistance -= max(this.agro, delta*this.agro);
 	this.potential -= max(this.fear, delta*this.fear);
 	target.injure(this, max(0, ~~(delta)));
-	if(this.potential < (this.fear*3) ||
-		target.injured > this.agro
-	) this.target = undefined;
+	if(this.potential < 0) this.action = ACT_IDLE;
 }
 
 Mote.prototype.injure = function(by, strength) {
@@ -444,9 +479,9 @@ Mote.prototype.split = (function() {
 Mote.prototype.eatPhoton = (function() {
 	let photons;
 	return function eatPhotons(photon) {
-		photons = this.photons;
-		if(photon.lifetime > 0) {
-			photon.lifetime = 0;
+		if(photon.lifetime > 2 && distance(this.pos, photon.pos) < this.sight) {
+			photons = this.photons;
+			photon.lifetime = 2;
 			switch(photon.color) {
 				case COLOR_R: photons[COLOR_R]+=1; break;
 				case COLOR_G: photons[COLOR_G]+=1; break;
@@ -457,7 +492,7 @@ Mote.prototype.eatPhoton = (function() {
 			this.resistance -= this.fear*0.5;
 			this.needsUpdate = 1;
 		}
-		this.target = undefined;
+		this.action = ACT_IDLE;
 	}
 })();
 

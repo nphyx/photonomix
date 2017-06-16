@@ -38,7 +38,8 @@ Void.prototype.tick = function(entities, delta) {
 	mut_plus(this.pos, times(this.vel, delta, scratchVec1));
 
 	// apply basic forces
-	mut_plus(this.vel, avoid(this.vel, this.pos, POS_C, 1.3, 0.01, 0.01, scratchVec1)); // don't go off the screen
+	// don't go off the screen
+	mut_plus(this.vel, avoid(this.vel, this.pos, POS_C, 1.3, 0.01, scratchVec1));
 	// apply drag
 	mut_plus(this.vel, drag(this.vel, GLOBAL_DRAG));
 	limitVecMut(this.vel, 0, 1);

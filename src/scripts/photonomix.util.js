@@ -201,13 +201,12 @@ export const drag = (function() {
 
 export const avoid = (function() {
 	let aev = vec2(), dist = 0.0;
-	return function avoid(vel, pos, opposite, maxDist, speed, handling, out) {
+	return function avoid(vel, pos, opposite, maxDist, speed, out) {
 		dist = distance(pos, opposite)*maxDist;
 		out = out||aev;
 		out[0] = 0.0;
 		out[1] = 0.0;
 		if(dist > 1) {
-			accelerate(opposite, pos, -handling, out);
 			accelerate(pos, opposite, speed*dist*dist, out);
 		}
 		return out;
