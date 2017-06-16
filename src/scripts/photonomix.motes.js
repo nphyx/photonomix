@@ -273,7 +273,7 @@ Mote.prototype.runMaintenance = (function() {
 		mut_plus(pos, times(vel, delta, scratch1));
 
 		// don't go off the screen
-		mut_plus(vel, avoid(vel, pos, POS_C, 1.1, speed, scratch1)); 
+		mut_plus(vel, avoid(vel, pos, POS_C, 1.3, speed, scratch1)); 
 		// apply drag
 		mut_plus(vel, drag(vel, GLOBAL_DRAG));
 	}
