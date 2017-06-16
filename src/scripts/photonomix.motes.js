@@ -1,5 +1,5 @@
 "use strict";
-let {random, max, floor, ceil, sin} = Math;
+let {random, max, min, floor, ceil, sin} = Math;
 import {TARGET_FPS, MOTE_BASE_SPEED, MOTE_BASE_SIZE, MOTE_BASE_SIGHT, PREGNANT_THRESHOLD, 
 				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG} from "./photonomix.constants";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
@@ -32,10 +32,8 @@ const F32 = 4;
 
 // uint8 values = photons[3]
 const U8_PHO  = 0,
-			U8_RAT  = U8_PHO        + I8*3,
-			U8_COL  = U8_RAT        + I8*3, 
-			U8_PREF = U8_COL        + I8*3, 
-			U8_VAL_LENGTH = U8_PREF + I8*3,
+			U8_COL  = U8_PHO        + I8*3, 
+			U8_VAL_LENGTH = U8_COL  + I8*3,
 			I8_BYTE_OFFSET = U8_VAL_LENGTH;
 // int8 values =  dying, pregnant, injured, lastMeal, pulse
 const	I8_DYING       = 0,
@@ -53,9 +51,11 @@ const	I8_DYING       = 0,
 // from here on, increments of value * 4
 // vectors
 const VEC_BYTE_OFFSET = INT_VAL_LENGTH + (F32-(INT_VAL_LENGTH % F32)), // float32 offsets must be multiples of 4
-			F32_POS = 0,
-			F32_VEL = F32_POS + 2;
-const VEC_VAL_LENGTH = F32_VEL + 2;
+			F32_POS  = 0,
+			F32_VEL  = F32_POS + 2,
+			F32_RAT  = F32_VEL + 2,
+			F32_PREF = F32_RAT + 3,
+			VEC_VAL_LENGTH = F32_PREF + 3;
 
 const F32_BYTE_OFFSET = VEC_BYTE_OFFSET + (VEC_VAL_LENGTH*F32),
 			// scalars
@@ -109,9 +109,10 @@ const scratch1 = vec2(), scratch2 = vec2();
  * @property {Float32} sizeMin minimum size the mote can reach as it shrinks
  * @property {Float32} sizeMax maximum size the mote can reach as it grows
  * @property {UintClamped8Array} photons current photon values (R, G, B)
- * @property {UintClamped8Array} ratios current photon ratios (R, G, B)
  * @property {UintClamped8Array} color current mote color (R, G, B)
  * @property {Int8Array} intVals direct access to integer value array (for debug)
+ * @property {Float32Array} ratios current photon ratios (R, G, B)
+ * @property {Float32Array} prefs preferred photon ratios
  * @property {Float32Array} floatVals direct access to float value array (for debug)
  * @return {Mote}
  */
@@ -129,10 +130,8 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
 	// "private" properties
 	// use a single buffer for properties so that they're guaranteed to be contiguous
 	// in memory and typed
-	let photons = new Uint8ClampedArray(buffer, U8_PHO+offset, I8*3);
-	let ratios  = new Uint8ClampedArray(buffer, U8_RAT+offset, I8*3);
-	let prefs   = new Uint8ClampedArray(buffer, U8_PREF+offset, I8*3);
-	let color = new Uint8ClampedArray(buffer, U8_COL+offset, I8*3);
+	let photons = new Uint8ClampedArray(buffer, U8_PHO+offset, 3);
+	let color = new Uint8ClampedArray(buffer, U8_COL+offset, 3);
 	photons[COLOR_R] = _photons[COLOR_R];
 	photons[COLOR_G] = _photons[COLOR_G];
 	photons[COLOR_B] = _photons[COLOR_B];
@@ -140,6 +139,8 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
 	let floatVals = new Float32Array(buffer, F32_BYTE_OFFSET+offset, FLOAT_VAL_LENGTH);
 	this.pos = vec2(pos, buffer, F32_POS*F32+VEC_BYTE_OFFSET+offset);
 	this.vel = vec2(0.0, 0.0, buffer, F32_VEL*F32+VEC_BYTE_OFFSET+offset);
+	let ratios  = new Float32Array(buffer, F32_RAT*F32+VEC_BYTE_OFFSET+offset, 3);
+	let prefs   = new Float32Array(buffer, F32_PREF*F32+VEC_BYTE_OFFSET+offset, 3);
 	this.target = undefined;
 	this.color_string = "";
 	bSpeed = bSpeed+adjRand(0.0005);
@@ -149,8 +150,6 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
 
 	Object.defineProperties(this, {
 		"photons":{get: () => photons},
-		"ratios":{get: () => ratios},
-		"prefs":{get: () => prefs},
 		"color":{get: () => color},
 		"dying":{get: () => intVals[I8_DYING], set: (v) => intVals[I8_DYING] = v},
 		"action":{get: () => intVals[I8_ACT], set: (v) => intVals[I8_ACT] = v},
@@ -175,7 +174,9 @@ export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), po
 		"base_agro":{get: () => bAgro},
 		"base_fear":{get: () => bFear},
 		"pool":{get: () => pool},
-		"offset":{get: () => offset}
+		"offset":{get: () => offset},
+		"ratios":{get: () => ratios},
+		"prefs":{get: () => prefs}
 	});
 
 	/*
@@ -303,7 +304,8 @@ Mote.prototype.validateTarget = (function() {
  * Search for a target and decide how to act toward it.
  */
 Mote.prototype.search = (function() {
-	let i = 0|0, len = 0|0, sight = 0.0, cur = 0.0, pos, vel, highest, dist, entity;
+	let i = 0|0, len = 0|0, sight = 0.0, cur = 0.0, pos, vel, highest, dist, entity,
+			deltar = 0.0, deltag = 0.0, deltab = 0.0, mind = 0.0, maxd = 0.0, weight = 0.0;
 	return function search(entities) {
 		({pos, vel, sight} = this);
 		highest = -Infinity;
@@ -335,7 +337,19 @@ Mote.prototype.search = (function() {
 				highest = Infinity;
 			}
 			else if(entity instanceof Photon && entity.lifetime > 3) {
-				cur = 10*(1/dist);
+				deltar = (this.prefs[COLOR_R] - this.ratios[COLOR_R]);	
+				deltag = (this.prefs[COLOR_G] - this.ratios[COLOR_G]);	
+				deltab = (this.prefs[COLOR_B] - this.ratios[COLOR_B]);	
+				maxd = max(deltar, deltag, deltab);
+				mind = min(deltar, deltag, deltab);
+				if((maxd == deltar && entity.color == COLOR_R) ||
+						(maxd == deltag && entity.color == COLOR_G) ||
+						(maxd == deltab && entity.color == COLOR_B)) weight = 30;
+				if((mind == deltar && entity.color == COLOR_R) ||
+						(mind == deltag && entity.color == COLOR_G) ||
+						(mind == deltab && entity.color == COLOR_B)) weight = 10;
+				else weight = 20;
+				cur = weight*(1/dist);
 				if(cur > highest) {
 					this.target = entity;
 					this.action = ACT_CHASE;
