@@ -219,8 +219,8 @@ Mote.prototype.updateProperties = (function() {
 	return function updateProperties() {
 		({photons, ratios, color} = this);
 		r = photons[COLOR_R];
-		g = photons[COLOR_B];
-		b = photons[COLOR_G];
+		g = photons[COLOR_G];
+		b = photons[COLOR_B];
 		this.mass = r + g + b;
 		if(this.mass > 0) { // otherwise skip this stuff since the mote is dead anyway
 		this.size = clamp(this.mass/(PREGNANT_THRESHOLD/3)*MOTE_BASE_SIZE, this.sizeMin, this.sizeMax);
