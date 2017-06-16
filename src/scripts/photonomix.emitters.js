@@ -35,7 +35,7 @@ Emitter.prototype.tick = function(entities, delta, frameCount) {
 	}
 	this.size = sqrt(this.mass/PI) * EMITTER_SIZE;
 	if(this.birthMass === 0) { // don't start producing until finished spawning
-		emissionsPerSecond = this.mass/10;
+		emissionsPerSecond = this.mass/20;
 		targetFrame = ceil(TARGET_FPS/emissionsPerSecond);
 		emissionsPerFrame = emissionsPerSecond/TARGET_FPS;
 		if(frameCount % targetFrame === 0) {
@@ -73,15 +73,15 @@ Emitter.prototype.tick = function(entities, delta, frameCount) {
 }
 
 Emitter.prototype.emitPhoton = (function() {
-	let pos = vec2(), radians = 0.0, mmi = 0.0, color = 0|0;
+	let pos = vec2(), radians = 0.0, mim = 0.0, color = 0|0;
 	return function emitPhoton() {
 		color = this.next;
 		pos[0] = this.size/5;
 		pos[1] = this.size/5;
 		mut_plus(pos, this.pos);
-		mmi = (this.mass%this.initialMass);
-		radians = (mmi/(this.initialMass/2));
-		radians = radians + (mmi%this.arms)*(2/this.arms); // split across arms
+		mim = (this.mass%this.initialMass);
+		radians = (mim/(this.initialMass/2));
+		radians = radians + (mim%this.arms)*(2/this.arms); // split across arms
 		mut_plus(rotate(pos, this.pos, radians, pos), this.pos);
 		this.next = ~~(random()*3);
 		// introduce some jitter
