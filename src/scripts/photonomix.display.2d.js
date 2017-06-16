@@ -7,11 +7,12 @@ import * as markers from "./photonomix.markers";
 import * as motes from "./photonomix.motes";
 import {rotate} from "./photonomix.util";
 //const Marker = markers.Marker;
-const {distance, vec2, lerp, times} = vectrix.vectors;
-const {mut_plus, plus} = vectrix.matrices;
+const {distance, vec2, lerp} = vectrix.vectors;
+const {mut_plus} = vectrix.matrices;
 import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.photons";
 import {Void} from "./photonomix.voids";
 import {Emitter} from "./photonomix.emitters";
+import {AntiGravitonCluster} from "./photonomix.antigravitons";
 let {min, max, cos, sin, sqrt, tan, round} = Math;
 const clamp = vectrix.vectors.mut_clamp;
 const AUTO_FULLSCREEN = false;
@@ -336,6 +337,22 @@ function drawEmitter(entity, ctx) {
 }
 
 /**
+ * Draws an antigraviton cluster.
+ */
+const drawAntiGravitonCluster = (function() {
+	let size = 0.0;
+	return function drawAntiGravitonCluster(entity, ctx) {
+		size = entity.size * clamp(MIN_D, 300, 1200);
+		sc = size * cos((frameCount) * 0.2);
+		sw = size * sin((frameCount+tf) * 0.2)*0.1;
+		sch = sc*0.5;
+		swh = sw*0.5;
+		sprite = sprites.getMoteSprite(0x000);
+		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-sch, py-sch, sc, sc);
+	}
+})();
+
+/**
  * Apply pre-draw effects to canvases and set composite modes before drawing entities.
  */
 function prepareCanvases() {
@@ -367,6 +384,7 @@ function drawEntities(ctx) {
 		else if(entity instanceof Photon) drawPhoton(entity, gameCtx);
 		else if(entity instanceof Void) drawVoid(entity, invertCtx);
 		else if(entity instanceof Emitter) drawEmitter(entity, gameCtx);
+		else if(entity instanceof AntiGravitonCluster) drawAntiGravitonCluster(entity, invertCtx);
 	}
 	ctx.globalCompositeOperation = "source-over";
 }

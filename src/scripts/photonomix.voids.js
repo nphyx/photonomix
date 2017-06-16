@@ -4,6 +4,7 @@ import {gravitate, drag, outOfBounds, limitVecMut, avoid} from  "./photonomix.ut
 import {Mote} from "./photonomix.motes";
 import {Photon} from "./photonomix.photons";
 import {Emitter} from "./photonomix.emitters";
+import {AntiGravitonCluster} from "./photonomix.antigravitons";
 const {vec2, times, mut_times, distance} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
 import {VOID_SIZE, GLOBAL_DRAG} from "./photonomix.constants";
@@ -79,7 +80,7 @@ Void.prototype.tick = function(entities, delta) {
 				(1/entity.mass))
 			);
 		}
-		else {
+		else if(!(entity instanceof AntiGravitonCluster)) {
 			mut_plus(entity.vel, mut_times(
 				gravitate(entity.pos, this.pos, entity.mass*this.mass, scratchVec1), 
 				(1/entity.mass))

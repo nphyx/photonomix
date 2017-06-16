@@ -4,6 +4,7 @@ import * as motes from "./photonomix.motes";
 import * as markers from "./photonomix.markers";
 import * as photons from "./photonomix.photons";
 import * as voids from "./photonomix.voids";
+import * as antigravitons from "./photonomix.antigravitons";
 import * as constants from "./photonomix.constants";
 import * as state from "./photonomix.state";
 import * as emitters from "./photonomix.emitters";
@@ -17,6 +18,7 @@ var photonomix = {
 	voids:voids,
 	emitters:emitters,
 	sprites:sprites,
+	antigravitons:antigravitons,
 	util:util,
 	constants:constants
 }

@@ -83,7 +83,7 @@ State.prototype.tick = (function() {
 					markpos++;
 				}
 			}
-			else if((entity instanceof Void || entity instanceof Emitter) && (entity.mass === 0)) {
+			else if(entity.mass <= 0) {
 				marks[markpos] = i;
 				markpos++;
 			}
