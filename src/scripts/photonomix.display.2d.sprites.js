@@ -38,8 +38,8 @@ export function initMoteSpriteSheet(scale, size) {
 		motePixelSize/2, motePixelSize/2, 0
 	);
 	g.addColorStop(1, "rgba(255,255,255,1.0");
-	g.addColorStop(0.8, "rgba(255,255,255,0.5)");
-	g.addColorStop(0.3, "rgba(255,255,255,0.0)");
+	g.addColorStop(0.7, "rgba(255,255,255,0.5)");
+	g.addColorStop(0.1, "rgba(255,255,255,0.0)");
 	moteMaskContext.fillStyle = g;
 	moteMaskContext.fillRect(0, 0, motePixelSize, motePixelSize);
 	for(let i = 0; i < 4096; ++i) {
@@ -63,7 +63,7 @@ export function createMoteCenterSprite() {
 	context.globalCompositeOperation = "copy";
 	context.drawImage(moteMaskCanvas, 0, 0, w, h);
 	context.globalCompositeOperation = "source-in";
-	context.fillStyle = "rgba(255,255,255,0.4)";
+	context.fillStyle = "rgba(255,255,255,0.25)";
 	context.fillRect(0, 0, w, h);
 	return {
 		canvas:canvas,
