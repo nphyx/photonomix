@@ -7,13 +7,13 @@ import * as markers from "./photonomix.markers";
 import * as motes from "./photonomix.motes";
 import {rotate} from "./photonomix.util";
 //const Marker = markers.Marker;
-const {distance, vec2, lerp} = vectrix.vectors;
+const {vec2, lerp} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
 import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.photons";
 import {Void} from "./photonomix.voids";
 import {Emitter} from "./photonomix.emitters";
 import {AntiGravitonCluster} from "./photonomix.antigravitons";
-let {min, max, cos, sin, sqrt, tan, round} = Math;
+let {min, max, cos, sin, sqrt, tan, round, PI} = Math;
 const clamp = vectrix.vectors.mut_clamp;
 const AUTO_FULLSCREEN = false;
 const DEBUG_DRAW = false;
@@ -98,11 +98,11 @@ return n >> 1 << 1;
 function updateRatio() {
 	W = evenNumber(document.body.clientWidth);
 	H = evenNumber(document.body.clientHeight);
-	MIN_D = min(W, H);
-	OFFSET_MAX_D = ~~((max(W, H)-MIN_D)/2);
 	OR = W > H?0:1;
 	W = W - (W%PX);
 	H = H - (H%PX);
+	MIN_D = min(W, H);
+	OFFSET_MAX_D = (max(W, H)-MIN_D)/2;
 	for(let i = 0, len = buffers.length; i < len; ++i) {
 		buffers[i].canvas.width = W;
 		buffers[i].canvas.height = H;
@@ -132,7 +132,7 @@ function pressEnter(event) {
  * range used in game position vectors.
  */
 function screenSpace(x) {
-	return ~~(((x+1)/2) * MIN_D);
+	return ((x+1)/2) * MIN_D;
 }
 
 /**
@@ -153,61 +153,56 @@ const drawPlasmaLine = (function() {
 			ra = vec2(), rb = vec2(), 
 			rax = 0|0, ray = 0|0, speeda = 0.0, ta = 0.0, tc = 0.0,
 			rbx = 0|0, rby = 0|0, speedb = 0.0, tb = 0.0, td = 0.0,
-			sx = 0|0, sy = 0|0, tx = 0|0, ty = 0|0, pulsea = 0|0, pulseb = 0|0;
-	return function drawPlasmaLine(ctx, entity, color) {
+			sx = 0|0, sy = 0|0, tx = 0|0, ty = 0|0;
+	return function drawPlasmaLine(ctx, source, target, outerColor, innerColor, lineSize = 4, frameOffset = 0) {
 		// only these acts get lines
-		if(entity.action != motes.ACT_ATTACK) return;
-		if(distance(entity.pos, entity.target.pos > entity.sight)) return;
 		ta = 0.6;
 		tc = 0.9;
 		tb = 0.7;
 		td = 0.9;
 		speeda = 0.57121;
 		speedb = 0.71213;
-		pulsea = entity.pulse;
-		pulseb = entity.target.pulse;
-		lerp(entity.pos, entity.target.pos, ta, a);
-		lerp(entity.pos, entity.target.pos, tb, b);
-		lerp(entity.pos, entity.target.pos, tc, c);
-		lerp(entity.pos, entity.target.pos, td, d);
-
+		lerp(source, target, ta, a);
+		lerp(source, target, tb, b);
+		lerp(source, target, tc, c);
+		lerp(source, target, td, d);
 		
-		mut_plus(rotate(a, c, tan(cos((frameCount+pulsea)*speeda)), ra), a);
-		mut_plus(rotate(b, d, tan(sin((frameCount+pulsea)*speedb)), rb), b);
+		mut_plus(rotate(a, c, tan(cos((frameCount+frameOffset)*speeda)), ra), a);
+		mut_plus(rotate(b, d, tan(sin((frameCount+frameOffset)*speedb)), rb), b);
 
-		sx = screenSpace(entity.pos[0]); sy = screenSpace(entity.pos[1]);
-		tx = screenSpace(entity.target.pos[0]); ty = screenSpace(entity.target.pos[1]);
-		rax = screenSpace(ra[0]); ray = screenSpace(ra[1]);
-		rbx = screenSpace(rb[0]); rby = screenSpace(rb[1]);
+		sx = source[0]; sy = source[1];
+		tx = target[0]; ty = target[1];
+		rax = ra[0]; ray = ra[1];
+		rbx = rb[0]; rby = rb[1];
 		if(W > H) {
-			sx = sx   + OFFSET_MAX_D;
-			tx = tx   + OFFSET_MAX_D;
-			rax = rax + OFFSET_MAX_D;
-			rbx = rbx + OFFSET_MAX_D;
+			sx = sx;
+			tx = tx;
+			rax = rax;
+			rbx = rbx;
 		}
 		else {
-			sy = sy   + OFFSET_MAX_D;
-			ty = ty   + OFFSET_MAX_D;
-			ray = ray + OFFSET_MAX_D;
-			rby = rby + OFFSET_MAX_D;
+			sy = sy;
+			ty = ty;
+			ray = ray;
+			rby = rby;
 		}
-		if(entity.action === motes.ACT_ATTACK) {
-			ctx.beginPath();
-			ctx.moveTo(sx, sy);
-			ctx.bezierCurveTo(rax, ray, rbx, rby, tx, ty);
-			ctx.strokeStyle = color;
-			ctx.lineWidth = round(cos((frameCount+pulsea)*speeda)*4);
-			ctx.stroke();
-			ctx.closePath();
+		ctx.beginPath();
+		ctx.moveTo(sx, sy);
+		ctx.bezierCurveTo(rax, ray, rbx, rby, tx, ty);
+		ctx.strokeStyle = outerColor;
+		ctx.lineWidth = round(cos((frameCount+frameOffset)*speeda)*lineSize);
+		ctx.lineCap = "round";
+		ctx.stroke();
+		ctx.closePath();
 
-			ctx.beginPath();
-			ctx.moveTo(sx, sy);
-			ctx.bezierCurveTo(rax, ray, rbx, rby, tx, ty);
-			ctx.strokeStyle = "white";
-			ctx.lineWidth = round(cos((frameCount+pulsea)*speeda));
-			ctx.stroke();
-			ctx.closePath();
-		}
+		ctx.beginPath();
+		ctx.moveTo(sx, sy);
+		ctx.bezierCurveTo(rax, ray, rbx, rby, tx, ty);
+		ctx.strokeStyle = innerColor;
+		ctx.lineWidth = round(cos((frameCount+frameOffset)*speeda)*~~(lineSize/4));
+		ctx.lineCap = "round";
+		ctx.stroke();
+		ctx.closePath();
 	}
 })();
 
@@ -221,7 +216,8 @@ let invFillStyle = "rgba(255,255,255,0.1)";
  * Draw a mote.
  */
 const drawMote = (function() {
-	let pulse = 0|0, pregnant = 0|0, injured = 0|0, lastMeal = 0|0, size = 0.0;
+	let pulse = 0|0, pregnant = 0|0, injured = 0|0, lastMeal = 0|0, size = 0.0,
+	plasmaSource = vec2(), plasmaTarget = vec2();
 	return function drawMote(entity, ctx) {
 		({pulse, pregnant, injured, lastMeal} = entity);
 		size = entity.size * clamp(MIN_D, 300, 1200);
@@ -244,7 +240,16 @@ const drawMote = (function() {
 		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-sch, py-sch, sc, sc);
 		sprite = moteCenterSprite; 
 		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-sch, py-sch, sc, sc);
-		if(entity.target) drawPlasmaLine(ctx, entity, sprites.getColorString(colorIndex));
+		if(entity.target && entity.action == motes.ACT_ATTACK) {
+			// need vectors but in screen space, not absolute space
+			plasmaSource[0] = px;
+			plasmaSource[1] = py;
+			plasmaTarget[0] = screenSpace(entity.target.pos[0]);
+			plasmaTarget[1] = screenSpace(entity.target.pos[1]);
+			if(W > H) plasmaTarget[0] += OFFSET_MAX_D;
+			else      plasmaTarget[1] += OFFSET_MAX_D;
+	drawPlasmaLine(ctx, plasmaSource, plasmaTarget, sprites.getColorString(colorIndex), "white", 5, pulse);
+		}
 	}
 })();
 
@@ -310,13 +315,11 @@ function drawEmitter(entity, ctx) {
 	sprite = emitterSprite;
 	ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
 
-
 	sw = cos((frameCount)*0.2)*sc*1.7;
 	swh = sw*0.5;
 
 	sprite = sprites.getMoteSprite(0x333);
 	ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-swh, py-swh, sw, sw);
-
 
 	sw = sc*1.3;
 	swh = sw*0.5;
@@ -340,13 +343,46 @@ function drawEmitter(entity, ctx) {
  * Draws an antigraviton cluster.
  */
 const drawAntiGravitonCluster = (function() {
-	let size = 0.0;
+	let size = 0.0, plasmaSource = vec2(), plasmaTarget = vec2(), lw = 0,
+			outerColor = "rgba(0,0,0,0.3)", innerColor = "rgba(0,0,0,0.7)",
+			pi3rd = PI*(1/3);
+	function drawAntiPlasma(ctx, offset, length) {
+		ox = sin(frameCount*0.08+offset)*sc*length;
+		oy = cos(frameCount*0.08+offset)*sc*length;
+		plasmaTarget[0] = px+ox;
+		plasmaTarget[1] = py+oy;
+		drawPlasmaLine(ctx, plasmaSource, plasmaTarget, outerColor, innerColor, lw);
+	}
 	return function drawAntiGravitonCluster(entity, ctx) {
 		size = entity.size * clamp(MIN_D, 300, 1200);
-		sc = size * cos((frameCount) * 0.2);
-		sw = size * sin((frameCount+tf) * 0.2)*0.1;
+		sc = size;
+		lw = min(4, ~~(sc/2));
 		sch = sc*0.5;
-		swh = sw*0.5;
+		plasmaSource[0] = px;
+		plasmaSource[1] = py;
+
+		drawAntiPlasma(ctx, 0, 0.5);
+		drawAntiPlasma(ctx, pi3rd*2, 0.5);
+		drawAntiPlasma(ctx, pi3rd*4, 0.5);
+		drawAntiPlasma(ctx, pi3rd, 0.25);
+		drawAntiPlasma(ctx, pi3rd*3, 0.25);
+		drawAntiPlasma(ctx, pi3rd*5, 0.25);
+
+		/*
+		ox = sin(frameCount*0.08)*sc*0.5;
+		oy = cos(frameCount*0.08)*sc*0.5;
+
+		plasmaTarget[0] = px+ox;
+		plasmaTarget[1] = py+oy;
+		drawPlasmaLine(ctx, plasmaSource, plasmaTarget, outerColor, innerColor, lw);
+
+		ox = sin(frameCount*0.08+(offset*4))*sc*0.5;
+		oy = cos(frameCount*0.08+(offset*4))*sc*0.5;
+		plasmaTarget[0] = px+ox;
+		plasmaTarget[1] = py+oy;
+		drawPlasmaLine(ctx, plasmaSource, plasmaTarget, outerColor, innerColor, lw);
+		*/
+
 		sprite = sprites.getMoteSprite(0x000);
 		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-sch, py-sch, sc, sc);
 	}
@@ -384,7 +420,8 @@ function drawEntities(ctx) {
 		else if(entity instanceof Photon) drawPhoton(entity, gameCtx);
 		else if(entity instanceof Void) drawVoid(entity, invertCtx);
 		else if(entity instanceof Emitter) drawEmitter(entity, gameCtx);
-		else if(entity instanceof AntiGravitonCluster) drawAntiGravitonCluster(entity, invertCtx);
+		else if(entity instanceof AntiGravitonCluster) 
+			drawAntiGravitonCluster(entity, invertCtx);
 	}
 	ctx.globalCompositeOperation = "source-over";
 }

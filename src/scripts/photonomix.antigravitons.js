@@ -28,7 +28,7 @@ AntiGravitonCluster.prototype.tick = function(entities, delta, frameCount) {
 		this.birthMass -= consume;
 		this.mass += consume;
 	}
-	this.size = sqrt(this.mass*0.2/PI) * MOTE_BASE_SIZE;
+	this.size = sqrt(this.mass*0.05/PI) * MOTE_BASE_SIZE;
 	// last turn's move, has to happen first
 	mut_plus(this.pos, times(this.vel, delta, scratch));
 	this.initialMass = max(this.mass, this.initialMass);
@@ -62,7 +62,8 @@ AntiGravitonCluster.prototype.tick = function(entities, delta, frameCount) {
 				entity.mass -= consume;
 				this.instability += consume*0.07;
 			}
-			if(dist < this.size*10) mut_plus(this.vel, accelerate(this.pos, entity.pos, this.size*dist*3, scratch));
+			if(dist < this.size*10) mut_plus(this.vel, accelerate(this.pos, entity.pos, this.size*dist*5, scratch));
+			return;
 		}
 	}
 }
