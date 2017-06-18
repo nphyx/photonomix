@@ -10,6 +10,7 @@ import * as state from "./photonomix.state";
 import * as emitters from "./photonomix.emitters";
 import * as util from "./photonomix.util";
 import * as sprites from "./photonomix.display.2d.sprites";
+import * as controls from "./photonomix.controls";
 
 var photonomix = {
 	motes:motes,
@@ -29,4 +30,5 @@ window.photonomix = photonomix;
 window.addEventListener("load", function() {
 	photonomix.state = new state.State();
 	display.init(photonomix.state);
+	controls.init(photonomix.state);
 });

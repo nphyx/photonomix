@@ -299,3 +299,11 @@ export const shuffle = (function() {
 		}
 	}
 })();
+
+/**
+ * Round to nearest even number.
+ */
+export function evenNumber(n) {
+return n >> 1 << 1;
+}
+

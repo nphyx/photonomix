@@ -25,6 +25,12 @@ let mark = 0;
 export function State() {
 	this.entities = [];
 	this.photonBuffer = null;
+	this.player = {
+		mouseDown:vec2(),
+		mouseUp:vec2(),
+		pointerPos:vec2(),
+		mouseIsDown:0
+	}
 	this.stats = {
 		pop:0,
 		born:0,

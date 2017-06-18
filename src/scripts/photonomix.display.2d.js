@@ -5,7 +5,7 @@ import * as bokeh from "./photonomix.display.2d.bokeh";
 import * as sprites from "./photonomix.display.2d.sprites";
 import * as markers from "./photonomix.markers";
 import * as motes from "./photonomix.motes";
-import {rotate} from "./photonomix.util";
+import {rotate, evenNumber} from "./photonomix.util";
 //const Marker = markers.Marker;
 const {vec2, lerp} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
@@ -29,13 +29,14 @@ let buffers = Array(3);
 let fullscreen = false; // whether the game is in fullscreen mode
 let game; // game environment object
 let lastFrame = 0;
-let bgCtx, bokehCtx, gameCtx, displayCtx, invertCtx;
-let bgCanvas, bokehCanvas, gameCanvas, displayCanvas, invertCanvas;
+let bgCtx, bokehCtx, gameCtx, displayCtx, invertCtx, uiCtx;
+let bgCanvas, bokehCanvas, gameCanvas, displayCanvas, invertCanvas, uiCanvas;
 let voidSprite;
 let emitterSprite;
 let markerSprites = Array(1);
 let photonSprites = Array(3);
 let moteCenterSprite;
+let tf = constants.TARGET_FPS;
 
 let PX = 1; // pixel size
 let W = 0; // screen width
@@ -43,6 +44,12 @@ let H = 0; // screen height
 let OR = 0; // orientation (0 = landscape, 1 = portrait)
 let MIN_D = 0; // lesser of width or height
 let OFFSET_MAX_D = 0; // greater of width or height
+let OFFSET_X = 0; // offset for X positions to center game space 
+let OFFSET_Y = 0; // offset for Y positions to center game space 
+
+const agClusterIcon = new AntiGravitonCluster([0.0,0.96],[0,0],1);
+agClusterIcon.mass = 100;
+agClusterIcon.tick([], 0, 0);
 
 /**
  * Toggles fullscreen on.
@@ -86,13 +93,6 @@ function fullscreenOff(ev) {
 }
 
 /**
- * Round to nearest even number.
- */
-function evenNumber(n) {
-return n >> 1 << 1;
-}
-
-/**
  * Updates screen ratio.
  */
 function updateRatio() {
@@ -103,6 +103,8 @@ function updateRatio() {
 	H = H - (H%PX);
 	MIN_D = min(W, H);
 	OFFSET_MAX_D = (max(W, H)-MIN_D)/2;
+	if(OR) OFFSET_Y = OFFSET_MAX_D;
+	else   OFFSET_X = OFFSET_MAX_D;
 	for(let i = 0, len = buffers.length; i < len; ++i) {
 		buffers[i].canvas.width = W;
 		buffers[i].canvas.height = H;
@@ -206,19 +208,17 @@ const drawPlasmaLine = (function() {
 	}
 })();
 
-// these variables are shared by draw calls below
-let i, l, entity, px, py, tf = constants.TARGET_FPS, sc, sch, sw, swh, x, y, sprite;
-let ox, oy, colorIndex = 0|0;
-let fadeFillStyle = "rgba(0,0,0,0.3)";
-let invFillStyle = "rgba(255,255,255,0.1)";
-
 /**
  * Draw a mote.
  */
 const drawMote = (function() {
 	let pulse = 0|0, pregnant = 0|0, injured = 0|0, lastMeal = 0|0, size = 0.0,
-	plasmaSource = vec2(), plasmaTarget = vec2();
+	plasmaSource = vec2(), plasmaTarget = vec2(), sc = 0.0, sw = 0.0, sch = 0.0, 
+	swh = 0.0, colorIndex = 0|0, px = 0.0, py = 0.0, sprite;
 	return function drawMote(entity, ctx) {
+		px = screenSpace(entity.pos[0])+OFFSET_X;
+		py = screenSpace(entity.pos[1])+OFFSET_Y;
+
 		({pulse, pregnant, injured, lastMeal} = entity);
 		size = entity.size * clamp(MIN_D, 300, 1200);
 		if(pregnant) {
@@ -256,22 +256,35 @@ const drawMote = (function() {
 /**
  * Draws a photon.
  */
-function drawPhoton(entity, ctx) {
-	sprite = photonSprites[entity.color];
-	sc = sprite.pixelSize * cos(frameCount*0.2);
-	sch = sc*0.5;
-	ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
-}
+const drawPhoton = (function() {
+	let sc = 0.0, sch = 0.0, px = 0.0, py = 0.0, sprite;
+	return function drawPhoton(entity, ctx) {
+		px = screenSpace(entity.pos[0])+OFFSET_X;
+		py = screenSpace(entity.pos[1])+OFFSET_Y;
+
+		sprite = photonSprites[entity.color];
+		sc = sprite.pixelSize * cos(frameCount*0.2);
+		sch = sc*0.5;
+		ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
+	}
+})();
 
 /**
  * Draws a void.
  */
-function drawVoid(entity, ctx) {
-	sc = entity.size * MIN_D * 1+(sin(frameCount*0.2));
-	sch = sc*0.5;
-	sprite = voidSprite;
-	ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
-	if(1) {// sc > 50) { // smaller than this and effects look janky
+const drawVoid = (function() {
+	let sc = 0.0, sch = 0.0, px = 0.0, py = 0.0, ox = 0.0, oy = 0.0, sprite, 
+	    sw = 0.0, swh = 0.0, colorIndex = 0|0;
+	return function drawVoid(entity, ctx) {
+		px = screenSpace(entity.pos[0])+OFFSET_X;
+		py = screenSpace(entity.pos[1])+OFFSET_Y;
+
+		sc = entity.size * MIN_D * 1+(sin(frameCount*0.2));
+		sch = sc*0.5;
+		sprite = voidSprite;
+
+		ctx.globalCompositeOperation = "source-over";
+		ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
 		switch(entity.lastMeal) {
 			case -1:colorIndex = 0x888; break;
 			case COLOR_R:colorIndex = 0xf44; break;
@@ -302,50 +315,58 @@ function drawVoid(entity, ctx) {
 		oy = cos(frameCount*0.0122)*sc*0.17;
 		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
 	}
-}
+})();
 
 /**
  * Draws an emitter.
  */
-function drawEmitter(entity, ctx) {
-	sc = entity.size * MIN_D;
-	//sc = sc + (sc*(sin(frameCount*0.05))/100);
-	sch = sc*0.5;
+const drawEmitter = (function() {
+	let sc = 0.0, sch = 0.0, px = 0.0, py = 0.0, ox = 0.0, oy = 0.0, sprite, 
+	    sw = 0.0, swh = 0.0;
+	return function drawEmitter(entity, ctx) {
+		px = screenSpace(entity.pos[0])+OFFSET_X;
+		py = screenSpace(entity.pos[1])+OFFSET_Y;
 
-	sprite = emitterSprite;
-	ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
+		sc = entity.size * MIN_D;
+		//sc = sc + (sc*(sin(frameCount*0.05))/100);
+		sch = sc*0.5;
 
-	sw = cos((frameCount)*0.2)*sc*1.7;
-	swh = sw*0.5;
+		sprite = emitterSprite;
+		ctx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
 
-	sprite = sprites.getMoteSprite(0x333);
-	ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-swh, py-swh, sw, sw);
+		sw = cos((frameCount)*0.2)*sc*1.7;
+		swh = sw*0.5;
 
-	sw = sc*1.3;
-	swh = sw*0.5;
-	ox = sin(frameCount*0.08)*sc*0.1;
-	oy = cos(frameCount*0.08)*sc*0.1;
-	sprite = sprites.getMoteSprite(0x500);
-	ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
+		sprite = sprites.getMoteSprite(0x333);
+		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-swh, py-swh, sw, sw);
 
-	ox = sin(frameCount*0.08+2.094394)*sc*0.1;
-	oy = cos(frameCount*0.08+2.094394)*sc*0.1;
-	sprite = sprites.getMoteSprite(0x050);
-	ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
+		sw = sc*1.3;
+		swh = sw*0.5;
+		ox = sin(frameCount*0.08)*sc*0.1;
+		oy = cos(frameCount*0.08)*sc*0.1;
+		sprite = sprites.getMoteSprite(0x500);
+		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
 
-	ox = sin(frameCount*0.08+4.188789)*sc*0.1;
-	oy = cos(frameCount*0.08+4.188789)*sc*0.1;
-	sprite = sprites.getMoteSprite(0x005);
-	ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
-}
+		ox = sin(frameCount*0.08+2.094394)*sc*0.1;
+		oy = cos(frameCount*0.08+2.094394)*sc*0.1;
+		sprite = sprites.getMoteSprite(0x050);
+		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
+
+		ox = sin(frameCount*0.08+4.188789)*sc*0.1;
+		oy = cos(frameCount*0.08+4.188789)*sc*0.1;
+		sprite = sprites.getMoteSprite(0x005);
+		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
+	}
+})();
 
 /**
  * Draws an antigraviton cluster.
  */
 const drawAntiGravitonCluster = (function() {
-	let size = 0.0, plasmaSource = vec2(), plasmaTarget = vec2(), lw = 0,
+	let size = 0.0, plasmaSource = vec2(), plasmaTarget = vec2(), lw = 4,
 			outerColor = "rgba(0,0,0,0.3)", innerColor = "rgba(0,0,0,0.7)",
-			pi3rd = PI*(1/3);
+			pi3rd = PI*(1/3), px = 0.0, py = 0.0, ox = 0.0, oy = 0.0,
+			sc = 0.0, sch = 0.0, sprite;
 	function drawAntiPlasma(ctx, offset, length) {
 		ox = sin(frameCount*0.08+offset)*sc*length;
 		oy = cos(frameCount*0.08+offset)*sc*length;
@@ -354,6 +375,9 @@ const drawAntiGravitonCluster = (function() {
 		drawPlasmaLine(ctx, plasmaSource, plasmaTarget, outerColor, innerColor, lw);
 	}
 	return function drawAntiGravitonCluster(entity, ctx) {
+		px = screenSpace(entity.pos[0])+OFFSET_X;
+		py = screenSpace(entity.pos[1])+OFFSET_Y;
+
 		size = entity.size * clamp(MIN_D, 300, 1200);
 		sc = size;
 		lw = min(4, ~~(sc/2));
@@ -368,63 +392,117 @@ const drawAntiGravitonCluster = (function() {
 		drawAntiPlasma(ctx, pi3rd*3, 0.25);
 		drawAntiPlasma(ctx, pi3rd*5, 0.25);
 
-		/*
-		ox = sin(frameCount*0.08)*sc*0.5;
-		oy = cos(frameCount*0.08)*sc*0.5;
-
-		plasmaTarget[0] = px+ox;
-		plasmaTarget[1] = py+oy;
-		drawPlasmaLine(ctx, plasmaSource, plasmaTarget, outerColor, innerColor, lw);
-
-		ox = sin(frameCount*0.08+(offset*4))*sc*0.5;
-		oy = cos(frameCount*0.08+(offset*4))*sc*0.5;
-		plasmaTarget[0] = px+ox;
-		plasmaTarget[1] = py+oy;
-		drawPlasmaLine(ctx, plasmaSource, plasmaTarget, outerColor, innerColor, lw);
-		*/
-
 		sprite = sprites.getMoteSprite(0x000);
 		ctx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-sch, py-sch, sc, sc);
 	}
 })();
 
 /**
- * Apply pre-draw effects to canvases and set composite modes before drawing entities.
- */
-function prepareCanvases() {
-	gameCtx.globalCompositeOperation = "source-atop";
-	gameCtx.fillStyle = fadeFillStyle;
-	gameCtx.fillRect(0, 0, W, H);
-	gameCtx.globalCompositeOperation = "lighter";
-	invertCtx.globalCompositeOperation = "source-in";
-	invertCtx.fillStyle = invFillStyle;
-	invertCtx.fillRect(0, 0, W, H);
-	invertCtx.globalCompositeOperation = "source-over";
-}
-
-/**
  * Draw call for all entities. Loops through game entities and draws them according
  * to kind and properties.
  */
-function drawEntities(ctx) {
-	for(i = 0, l = game.entities.length; i < l; ++i) {
-		entity = game.entities[i];
-		x = entity.pos[0];
-		y = entity.pos[1];
-		px = screenSpace(x);
-		py = screenSpace(y);
-		if(W > H) px = px + OFFSET_MAX_D;
-		else py = py + OFFSET_MAX_D;
-		if(offscreen(px, py)) continue;
-		if(entity instanceof Mote) drawMote(entity, gameCtx);
-		else if(entity instanceof Photon) drawPhoton(entity, gameCtx);
-		else if(entity instanceof Void) drawVoid(entity, invertCtx);
-		else if(entity instanceof Emitter) drawEmitter(entity, gameCtx);
-		else if(entity instanceof AntiGravitonCluster) 
-			drawAntiGravitonCluster(entity, invertCtx);
+const drawEntities = (function() {
+	// these variables are shared by draw calls below
+	let i, l, entity, px, py;
+
+	return function drawEntities(ctx) {
+		for(i = 0, l = game.entities.length; i < l; ++i) {
+			entity = game.entities[i];
+			px = screenSpace(entity.pos[0])+OFFSET_X;
+			py = screenSpace(entity.pos[1])+OFFSET_Y;
+			if(offscreen(px, py)) continue;
+			if(entity instanceof Mote) drawMote(entity, gameCtx);
+			else if(entity instanceof Photon) drawPhoton(entity, gameCtx);
+			else if(entity instanceof Void) drawVoid(entity, invertCtx);
+			else if(entity instanceof Emitter) drawEmitter(entity, gameCtx);
+			else if(entity instanceof AntiGravitonCluster) 
+				drawAntiGravitonCluster(entity, invertCtx);
+		}
+		ctx.globalCompositeOperation = "source-over";
 	}
-	ctx.globalCompositeOperation = "source-over";
+})();
+
+function drawEdgeButton(ctx, x, y, w, h) {
+	let halfButtonWidth = w*0.5; //*0.5;
+	let buttonHeight = h; //buttonWidth*0.47;
+	let cpXScale = w*0.122;
+	let beginX = x-halfButtonWidth;
+	let beginY = y;
+	let topX = x;
+	let topY = y-buttonHeight;
+	let endX = x+halfButtonWidth;
+	let endY = y;
+	let aCPX = beginX + cpXScale;
+	let aCPY = beginY - cpXScale;
+	let bCPX = beginX + cpXScale;
+	let bCPY = topY;
+	let cCPX = endX - cpXScale;
+	let cCPY = topY;
+	let dCPX = endX - cpXScale;
+	let dCPY = endY - cpXScale;
+	let color = "rgba(255,255,255,0.1)";
+
+	ctx.beginPath();
+	ctx.moveTo(beginX, beginY);
+	ctx.bezierCurveTo(aCPX, aCPY, bCPX, bCPY, topX, topY);
+	ctx.bezierCurveTo(cCPX, cCPY, dCPX, dCPY, endX, endY);
+	ctx.fillStyle = color;
+	ctx.strokeStyle = color;
+	ctx.lineWidth = 4;
+	//ctx.stroke();
+	ctx.fill();
+	ctx.closePath();
+
 }
+/**
+ * Draws UI elements.
+ */
+function drawUI(ctx) {
+	drawEdgeButton(ctx, screenSpace(0.00)+OFFSET_X,  
+	                    screenSpace(1.00)+OFFSET_Y, W*0.1, W*0.047);
+	drawAntiGravitonCluster(agClusterIcon, ctx);
+	drawEdgeButton(ctx, screenSpace(-0.3)+OFFSET_X, 
+	                    screenSpace(1.05)+OFFSET_Y, W*0.1, W*0.047);
+	drawEdgeButton(ctx, screenSpace(0.30)+OFFSET_X,  
+	                    screenSpace(1.05)+OFFSET_Y, W*0.1, W*0.047);
+	drawCircle(ctx, 
+		screenSpace(game.player.pointerPos[0]), 
+		screenSpace(game.player.pointerPos[1]),
+		5,
+		"white"
+	);
+	if(game.player.mouseIsDown) {
+		ctx.beginPath();
+		ctx.moveTo(screenSpace(game.player.mouseDown[0]),
+		           screenSpace(game.player.mouseDown[1]));
+		ctx.lineTo(screenSpace(game.player.pointerPos[0]),
+		           screenSpace(game.player.pointerPos[1]));
+		ctx.strokeStyle = "white";
+		ctx.lineWidth = 2;
+		ctx.stroke();
+		ctx.closePath();
+
+	}
+}
+/**
+ * Apply pre-draw effects to canvases and set composite modes before drawing entities.
+ */
+const prepareCanvases = (function() {
+	let fadeFillStyle = "rgba(0,0,0,0.3)";
+	let invFillStyle = "rgba(255,255,255,0.1)";
+
+	return function prepareCanvases() {
+		gameCtx.globalCompositeOperation = "source-atop";
+		gameCtx.fillStyle = fadeFillStyle;
+		gameCtx.fillRect(0, 0, W, H);
+		gameCtx.globalCompositeOperation = "lighter";
+		invertCtx.globalCompositeOperation = "source-in";
+		invertCtx.fillStyle = invFillStyle;
+		invertCtx.fillRect(0, 0, W, H);
+		invertCtx.globalCompositeOperation = "source-over";
+		uiCtx.clearRect(0, 0, W, H);
+	}
+})();
 
 /**
  * Draws a colored circle.
@@ -432,7 +510,7 @@ function drawEntities(ctx) {
 function drawCircle(ctx, x, y, size, color) {
 	ctx.globalCompositeOperation = "source-over";
 	ctx.beginPath();
-	ctx.arc(screenSpace(x), screenSpace(y), size, 2 * Math.PI, false);
+	ctx.arc(x, y, size, 2 * Math.PI, false);
 	ctx.fillStyle = color;
 	ctx.fill();
 	ctx.closePath();
@@ -442,11 +520,6 @@ function drawCircle(ctx, x, y, size, color) {
  * Composites game layers onto the display canvas.
  */
 function composite() {
-	/*
-	displayCtx.fillStyle = "white";
-	displayCtx.fillRect(0, 0, W, H);
-	displayCtx.drawImage(sprites.moteSpriteSheetCanvas, 0, 0, W, H);
-	*/
 	displayCtx.clearRect(0, 0, W, H);
 	displayCtx.globalCompositeOperation = "source-over";
 	displayCtx.drawImage(bgCanvas, 0, 0, W, H);
@@ -455,6 +528,8 @@ function composite() {
 	displayCtx.drawImage(gameCanvas, 0, 0);
 	displayCtx.globalCompositeOperation = "hard-light";
 	displayCtx.drawImage(invertCanvas, 0, 0);
+	displayCtx.globalCompositeOperation = "source-over";
+	displayCtx.drawImage(uiCanvas, 0, 0);
 }
 
 /**
@@ -486,6 +561,7 @@ function animate() {
 		if(DEBUG_DRAW) debugMarkers(bokehCtx);
 		prepareCanvases();
 		drawEntities(gameCtx);
+		drawUI(uiCtx);
 		composite();
 	}
 }
@@ -530,6 +606,7 @@ export function init(env) {
 	buffers[2] = initCtx("game"); 
 	buffers[3] = initCtx("display", body); 
 	buffers[4] = initCtx("inverted"); 
+	buffers[5] = initCtx("ui"); 
 	bgCtx = buffers[0].context;
 	bgCanvas = buffers[0].canvas;
 	bokehCtx = buffers[1].context;
@@ -540,6 +617,8 @@ export function init(env) {
 	displayCanvas = buffers[3].canvas;
 	invertCtx = buffers[4].context;
 	invertCanvas = buffers[4].canvas;
+	uiCtx = buffers[5].context;
+	uiCanvas = buffers[5].canvas;
 	displayCanvas.style.display = "block";
 	body.addEventListener("click", startGame);
 	document.addEventListener("keyup", pressEnter);
