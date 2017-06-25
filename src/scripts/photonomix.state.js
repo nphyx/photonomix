@@ -4,11 +4,12 @@ import * as voids from "./photonomix.voids";
 import * as emitters from "./photonomix.emitters";
 import * as markers from "./photonomix.markers";
 import * as photons from "./photonomix.photons";
+import * as antigravitons from "./photonomix.antigravitons";
 import {shuffle, rotate, outOfBounds} from "./photonomix.util";
 import {BufferPool} from "./photonomix.bufferPools";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
-//const {plus, mut_plus} = vectrix.matrices;
-const {vec2, mut_copy} = vectrix.vectors;
+const {minus} = vectrix.matrices;
+const {vec2, mut_times, mut_copy} = vectrix.vectors;
 import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS, PREGNANT_TIME, DEATH_THRESHOLD,
 	POSITIVE_ENERGY, NEGATIVE_ENERGY} from "./photonomix.constants";
 let {random} = Math;
@@ -17,6 +18,7 @@ const Photon = photons.Photon;
 const Mote = motes.Mote;
 const Void = voids.Void;
 const Emitter = emitters.Emitter;
+const AntiGravitonCluster = antigravitons.AntiGravitonCluster;
 
 const marks = new Uint16Array(MAX_MOTES+MAX_PHOTONS+100);
 let markpos = 0;
@@ -37,6 +39,8 @@ export function State() {
 		died:0,
 		target:0
 	}
+	this.actions = {};
+	this.registerActions();
 	return this;
 }
 
@@ -46,10 +50,6 @@ State.prototype.start = function() {
 	for(let i = 0; i < START_POP; ++i) {
 		this.entities.push(new Mote.random(this.motePool))
 	}
-	/*
-	this.entities.push(new Void(vec2(0.5, 0.5), vec2(0,0)));
-	this.entities.push(new Void(vec2(-0.5, -0.5), vec2(0,0)));
-	*/
 }
 
 State.prototype.tick = (function() {
@@ -160,3 +160,20 @@ State.prototype.killMote = (function() {
 		}
 	}
 })();
+
+/**
+ * Actions are callbacks accepting the following parameters:
+ * @param {vec2} center center of the click region for the action (i.e. the UI element)
+ * @param {float} dist the distance from region center to mouseUp position
+ */
+State.prototype.registerAction = function(name, callback) {
+	this.actions[name] = callback.bind(this);
+}
+
+let delta = vec2();
+State.prototype.registerActions = function() {
+	this.registerAction("launchAntiGravitonCluster", function(center) {
+		minus(this.player.mouseUp, center, delta);
+		this.entities.push(new AntiGravitonCluster(center, delta, 148));
+	});
+}

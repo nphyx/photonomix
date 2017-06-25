@@ -423,8 +423,8 @@ const drawEntities = (function() {
 })();
 
 function drawEdgeButton(ctx, x, y, w, h) {
-	let halfButtonWidth = w*0.5; //*0.5;
-	let buttonHeight = h; //buttonWidth*0.47;
+	let halfButtonWidth = w*0.5;
+	let buttonHeight = h;
 	let cpXScale = w*0.122;
 	let beginX = x-halfButtonWidth;
 	let beginY = y;
@@ -458,13 +458,15 @@ function drawEdgeButton(ctx, x, y, w, h) {
  * Draws UI elements.
  */
 function drawUI(ctx) {
+	let bw = max(100, W*0.1);
+	let bh = max(47, W*0.047);
 	drawEdgeButton(ctx, screenSpace(0.00)+OFFSET_X,  
-	                    screenSpace(1.00)+OFFSET_Y, W*0.1, W*0.047);
+	                    screenSpace(1.00)+OFFSET_Y, bw, bh);
 	drawAntiGravitonCluster(agClusterIcon, ctx);
 	drawEdgeButton(ctx, screenSpace(-0.3)+OFFSET_X, 
-	                    screenSpace(1.05)+OFFSET_Y, W*0.1, W*0.047);
+	                    screenSpace(1.05)+OFFSET_Y, bw, bh);
 	drawEdgeButton(ctx, screenSpace(0.30)+OFFSET_X,  
-	                    screenSpace(1.05)+OFFSET_Y, W*0.1, W*0.047);
+	                    screenSpace(1.05)+OFFSET_Y, bw, bh);
 	drawCircle(ctx, 
 		screenSpace(game.player.pointerPos[0]), 
 		screenSpace(game.player.pointerPos[1]),
