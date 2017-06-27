@@ -1,62 +1,23 @@
 "use strict";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
-import {evenNumber} from "./photonomix.util";
-const {vec2, distance} = vectrix.vectors;
-let {min, max} = Math;
+import {gameSpaceVec} from "./photonomix.display.js";
+import {Events} from "./photonomix.events.js";
+const {vec2} = vectrix.vectors;
 
-let W = 0; // screen width
-let H = 0; // screen height
-let OR = 0; // screen orientation (0 = landscape, 1 = portrait);
-let MIN_D = 0; // size of minimum dimension
-let OFFSET_MAX_D = 0; // offset for the larger dimension
-let PX = 1; // pixel size multiplier
 let game; // game state
+let controlEvents = new Events();
 let clickRegions = [];
 
-function gameSpaceX(x) {
-	return 2*(x/MIN_D)-1;
+export const pointer = {
+	down:vec2(),
+	up:vec2(),
+	move:vec2(),
 }
+export const keys = Array(256);
+export const buttons = Array(5);
 
-function gameSpaceY(y) {
-	return 2*(y/MIN_D)-1;
-}
-
-function updateRatio() {
-	W = evenNumber(document.body.clientWidth);
-	H = evenNumber(document.body.clientHeight);
-	OR = W > H?0:1;
-	W = W - (W%PX);
-	H = H - (H%PX);
-	MIN_D = min(W, H);
-	OFFSET_MAX_D = (max(W, H)-MIN_D)/2;
-}
-
-function mouseDown(event) {
-	game.player.mouseDown[0] = gameSpaceX(event.clientX);
-	game.player.mouseDown[1] = gameSpaceY(event.clientY);
-	game.player.mouseIsDown = 1;
-}
-
-function mouseUp(event) {
-	game.player.mouseUp[0] = gameSpaceX(event.clientX);
-	game.player.mouseUp[1] = gameSpaceY(event.clientY);
-	game.player.mouseIsDown = 0;
-	handleClickRegions();	
-}
-
-function mouseMove(event) {
-	game.player.pointerPos[0] = gameSpaceX(event.clientX);
-	game.player.pointerPos[1] = gameSpaceY(event.clientY);
-}
-
-let i, len, mouseDownLocation, region, dist;
-function handleClickRegions() {
-	mouseDownLocation = game.player.mouseDown;
-	for(i = 0, len = clickRegions.length; i < len; ++i) {
-		region = clickRegions[i];
-		dist = distance(region.center, mouseDownLocation);
-		if(dist < region.radius) region.callback(region.center, dist);
-	}
+function updateCursorState(event, v) {
+	gameSpaceVec([event.clientX, event.clientY], v);
 }
 
 function registerClickRegion(center, radius, callback) {
@@ -65,10 +26,38 @@ function registerClickRegion(center, radius, callback) {
 
 export function init(env) {
 	game = env;
-	window.addEventListener("resize", updateRatio);
-	window.addEventListener("mousedown", mouseDown);
-	window.addEventListener("mouseup", mouseUp);
-	window.addEventListener("mousemove", mouseMove);
-	updateRatio();
-	registerClickRegion([0.0, 0.95], 0.1, game.actions.launchAntiGravitonCluster);
+	window.addEventListener("mousedown", function mouseDown(event) {
+		updateCursorState(event, pointer.down);
+		buttons[event.button] = 1;
+		controlEvents.fire("mousedown");
+	});
+	window.addEventListener("mouseup", function mouseUp(event) {
+		updateCursorState(event, pointer.up);
+		buttons[event.button] = 0;
+		controlEvents.fire("mouseup");
+	});
+	window.addEventListener("mousemove", function mouseMove(event) {
+		updateCursorState(event, pointer.move);
+	});
+	window.addEventListener("keydown", function keyDown(event) {
+		keys[event.keyCode] = 1;
+	});
+	window.addEventListener("keyup", function keyDown(event) {
+		keys[event.keyCode] = 0;
+	});
+
+	/*
+	controlEvents.on("mouseup", function(position) {
+		dist = distance(position, game.player.mouseDown);
+		if(dist < region.radius) region.callback(region.center, dist);
+	});
+
+	controlEvents.on("mousedown", function() {
+	});
+
+	controlEvents.on("mousemove", function() {
+	});
+	*/
+
+	//registerClickRegion([0.0, 0.95], 0.1, game.actions.launchAntiGravitonCluster);
 }

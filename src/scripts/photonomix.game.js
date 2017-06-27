@@ -1,15 +1,17 @@
 "use strict";
-import * as motes from "./photonomix.motes";
-import * as voids from "./photonomix.voids";
-import * as emitters from "./photonomix.emitters";
-import * as markers from "./photonomix.markers";
-import * as photons from "./photonomix.photons";
-import * as antigravitons from "./photonomix.antigravitons";
+import * as motes from "./photonomix.game.motes";
+import * as voids from "./photonomix.game.voids";
+import * as emitters from "./photonomix.game.emitters";
+import * as markers from "./photonomix.game.markers";
+import * as photons from "./photonomix.game.photons";
+import * as antigravitons from "./photonomix.game.antigravitons";
+export {motes, voids, emitters, markers, photons, antigravitons};
+
 import {shuffle, rotate, outOfBounds} from "./photonomix.util";
 import {BufferPool} from "./photonomix.bufferPools";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
 const {minus} = vectrix.matrices;
-const {vec2, mut_times, mut_copy} = vectrix.vectors;
+const {vec2, mut_copy} = vectrix.vectors;
 import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS, PREGNANT_TIME, DEATH_THRESHOLD,
 	POSITIVE_ENERGY, NEGATIVE_ENERGY} from "./photonomix.constants";
 let {random} = Math;
@@ -24,15 +26,9 @@ const marks = new Uint16Array(MAX_MOTES+MAX_PHOTONS+100);
 let markpos = 0;
 let mark = 0;
 
-export function State() {
+export function Game() {
 	this.entities = [];
 	this.photonBuffer = null;
-	this.player = {
-		mouseDown:vec2(),
-		mouseUp:vec2(),
-		pointerPos:vec2(),
-		mouseIsDown:0
-	}
 	this.stats = {
 		pop:0,
 		born:0,
@@ -44,7 +40,7 @@ export function State() {
 	return this;
 }
 
-State.prototype.start = function() {
+Game.prototype.start = function() {
 	this.motePool = new BufferPool(motes.BUFFER_LENGTH, MAX_MOTES);
 	this.photonPool = new BufferPool(photons.BUFFER_LENGTH, MAX_PHOTONS);
 	for(let i = 0; i < START_POP; ++i) {
@@ -52,7 +48,7 @@ State.prototype.start = function() {
 	}
 }
 
-State.prototype.tick = (function() {
+Game.prototype.tick = (function() {
 	let entities, entity, i = 0|0, len = 0|0, tick_delta = 0.0;
 	return function tick(delta, frameCount) {
 		entities = this.entities;
@@ -114,11 +110,11 @@ State.prototype.tick = (function() {
 		}
 
 		// shuffling helps action lock issues and reduces first in list advantage
-		shuffle(entities);
+		//shuffle(entities);
 	}
 })();
 
-State.prototype.emitPhoton = (function() {
+Game.prototype.emitPhoton = (function() {
 	let pos = vec2(), vel = vec2(), center = vec2(), p_c = 0, 
 		base_vel = vec2(0.05, 0.05);
 	return function emitPhoton(ipos, ivel, color, count = p_c, max = 12) {
@@ -138,7 +134,7 @@ State.prototype.emitPhoton = (function() {
 	}
 })();
 
-State.prototype.killMote = (function() {
+Game.prototype.killMote = (function() {
 	let sum = 0|0, c = 0|0, i = 0|0, pos = vec2(), r = 0|0, g = 0|0, b = 0|0;
 	return function killMote(mote) {
 		if(random() < POSITIVE_ENERGY) {
@@ -166,12 +162,12 @@ State.prototype.killMote = (function() {
  * @param {vec2} center center of the click region for the action (i.e. the UI element)
  * @param {float} dist the distance from region center to mouseUp position
  */
-State.prototype.registerAction = function(name, callback) {
+Game.prototype.registerAction = function(name, callback) {
 	this.actions[name] = callback.bind(this);
 }
 
 let delta = vec2();
-State.prototype.registerActions = function() {
+Game.prototype.registerActions = function() {
 	this.registerAction("launchAntiGravitonCluster", function(center) {
 		minus(this.player.mouseUp, center, delta);
 		this.entities.push(new AntiGravitonCluster(center, delta, 148));

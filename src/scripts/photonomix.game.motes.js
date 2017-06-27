@@ -6,8 +6,8 @@ import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
 import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, outOfBounds, rotate} from "./photonomix.util";
 const {vec2, times, mut_clamp, magnitude, distance, mut_copy, mut_times} = vectrix.vectors;
 const {plus, mut_plus} = vectrix.matrices;
-import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.photons";
-import {Void} from "./photonomix.voids";
+import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.game.photons";
+import {Void} from "./photonomix.game.voids";
 const clamp = mut_clamp;
 // Center of the playfield is at 0,0 (ranging from -1 to 1 on X and Y axis)
 const POS_C  = vec2(0.0, 0.0);

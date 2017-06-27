@@ -2,16 +2,16 @@
  * Derived from bokeh generator by Jack Rugile at [CodePen](http://codepen.io/jackrugile/pen/gaFub)
  */
 "use strict";
-import * as sprites from "./photonomix.display.2d.sprites";
-let c1, c2, ctx1, ctx2,
+import {getProperties} from "./photonomix.display";
+//import * as sprites from "./photonomix.display.sprites";
+let c1, c2, ctx1, ctx2, cw, ch,
 	tau = Math.PI * 2,
 	parts = [],
 	sizeBase,
-	cw,
-	ch,
 	hue,
 	opt,
 	count;
+let properties;
 
 function rand( min, max ) {
 	return Math.random() * (max - min) + min;
@@ -21,13 +21,14 @@ function hsla( h, s, l, a ) {
 	return "hsla(" + h + "," + s + "%," + l + "%," + a + ")";
 }
 	
-export function create(screen1, screen2, w, h) {
+export function init(screen1, screen2) {
 	c1 = screen1.canvas;
 	ctx1 = screen1.context;
 	c2 = screen2.canvas;
 	ctx2 = screen2.context;
-	cw = w;
-	ch = h;
+	properties = getProperties();
+	cw = properties.width;
+	ch = properties.height;
 
 	sizeBase = cw + ch;
 	count = Math.floor(sizeBase * 0.1);
@@ -87,6 +88,8 @@ export function draw() {
 	ctx2.clearRect(0,0,cw,ch);
 	ctx2.shadowBlur = 15;
 	ctx2.shadowColor = "#fff";
+	cw = properties.width;
+	ch = properties.height;
 	while(i--) {
 		var part = parts[i];
 		

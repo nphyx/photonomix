@@ -2,7 +2,7 @@
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
 import {TARGET_FPS, GLOBAL_DRAG, EMITTER_SIZE} from "./photonomix.constants";
 import {rotate, drag, gravitate, avoid} from "./photonomix.util";
-import {Photon} from "./photonomix.photons";
+import {Photon} from "./photonomix.game.photons";
 let {vec2, times, mut_times, distance} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
 let {random, sqrt, ceil, min, PI} = Math;

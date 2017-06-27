@@ -1,10 +1,10 @@
 "use strict";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
 import {gravitate, drag, outOfBounds, limitVecMut, avoid} from  "./photonomix.util";
-import {Mote} from "./photonomix.motes";
-import {Photon} from "./photonomix.photons";
-import {Emitter} from "./photonomix.emitters";
-import {AntiGravitonCluster} from "./photonomix.antigravitons";
+import {Mote} from "./photonomix.game.motes";
+import {Photon} from "./photonomix.game.photons";
+import {Emitter} from "./photonomix.game.emitters";
+import {AntiGravitonCluster} from "./photonomix.game.antigravitons";
 const {vec2, times, mut_times, distance} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
 import {VOID_SIZE, GLOBAL_DRAG} from "./photonomix.constants";

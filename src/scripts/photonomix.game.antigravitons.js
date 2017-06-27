@@ -1,8 +1,8 @@
 "use strict";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
 import {rotate, drag, avoid, accelerate} from  "./photonomix.util";
-import {Void} from "./photonomix.voids";
-import {Photon} from "./photonomix.photons";
+import {Void} from "./photonomix.game.voids";
+import {Photon} from "./photonomix.game.photons";
 const {vec2, times, distance, mut_copy} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
 import {TARGET_FPS, MOTE_BASE_SIZE, GLOBAL_DRAG} from "./photonomix.constants";
@@ -40,9 +40,9 @@ AntiGravitonCluster.prototype.tick = function(entities, delta, frameCount) {
 	mut_plus(this.vel, drag(this.vel, GLOBAL_DRAG));
 
 	if(this.birthMass === 0) {
-		this.instability += this.mass*0.006;
+		this.instability += this.mass*0.003;
 	}
-	if((frameCount % ceil(TARGET_FPS*0.1)) === 0) {
+	if((frameCount % ceil(TARGET_FPS*0.05)) === 0) {
 		while((this.instability > 0) && (this.mass > 0)) {
 			entities.push(this.emitPhoton());
 			this.mass -= min(this.mass, 7);
