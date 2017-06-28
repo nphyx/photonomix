@@ -16,9 +16,7 @@ import {Emitter} from "./photonomix.game.emitters";
 import {AntiGravitonCluster} from "./photonomix.game.antigravitons";
 
 let {min, cos, sin, sqrt, tan, round, PI} = Math;
-const clamp = vectrix.vectors.mut_clamp;
 const tf = constants.TARGET_FPS;
-const MIN_D = 700;
 
 let lightBuffer, darkBuffer, lightCtx, darkCtx, frameCount, displayProps;
 
@@ -98,7 +96,7 @@ const drawMote = (function() {
 		py = screenSpace(entity.pos[1]);
 
 		({pulse, pregnant, injured, lastMeal} = entity);
-		size = entity.size * 300; //clamp(MIN_D, 300, 1200);
+		size = entity.size * displayProps.minDimension;
 		if(pregnant) {
 			sc = size * cos((frameCount+pulse) * 0.2) * (sqrt(pregnant)+1);
 			sw = size * sin((frameCount+pulse+tf) * 0.2) * (sqrt(pregnant)+1)*0.1;
@@ -156,7 +154,7 @@ const drawVoid = (function() {
 		px = screenSpace(entity.pos[0]);
 		py = screenSpace(entity.pos[1]);
 
-		sc = entity.size * 1000 * 1+(sin(frameCount*0.2));
+		sc = entity.size * displayProps.minDimension * 1+(sin(frameCount*0.2));
 		sch = sc*0.5;
 
 		sprite = voidSprite;
@@ -205,7 +203,7 @@ const drawEmitter = (function() {
 		px = screenSpace(entity.pos[0]);
 		py = screenSpace(entity.pos[1]);
 
-		sc = entity.size * MIN_D;
+		sc = entity.size * displayProps.minDimension;
 		//sc = sc + (sc*(sin(frameCount*0.05))/100);
 		sch = sc*0.5;
 
@@ -257,7 +255,7 @@ const drawAntiGravitonCluster = (function() {
 		px = screenSpace(entity.pos[0]);
 		py = screenSpace(entity.pos[1]);
 
-		size = entity.size * clamp(MIN_D, 300, 1200);
+		size = entity.size * displayProps.minDimension;
 		sc = size;
 		lw = min(4, ~~(sc/2));
 		sch = sc*0.5;
@@ -285,10 +283,10 @@ export const init = function(buffer1, buffer2, props) {
 	updateProps();
 	displayProps.events.on("resize", updateProps);
 	voidSprite = sprites.createVoidSprite(1000, 1);
-	emitterSprite = sprites.createEmitterSprite(700, 1);
-	photonSprites[COLOR_R] = sprites.createPhotonSprite(700, constants.PHOTON_BASE_SIZE, "red");
-	photonSprites[COLOR_G] = sprites.createPhotonSprite(700, constants.PHOTON_BASE_SIZE, "green");
-	photonSprites[COLOR_B] = sprites.createPhotonSprite(700, constants.PHOTON_BASE_SIZE, "blue");
+	emitterSprite = sprites.createEmitterSprite(displayProps.minDimension, 1);
+	photonSprites[COLOR_R] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "red");
+	photonSprites[COLOR_G] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "green");
+	photonSprites[COLOR_B] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "blue");
 	sprites.initMoteSpriteSheet(1000, constants.MOTE_BASE_SIZE*4);
 	mask = sprites.createGameSpaceMask();
 	moteCenterSprite = sprites.createMoteCenterSprite();
