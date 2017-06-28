@@ -1,12 +1,34 @@
 "use strict";
-import {drawCircle, screenSpace, getProperties} from "./photonomix.display";
+import {drawCircle} from "./photonomix.display";
+import {DEBUG} from "./photonomix.constants";
 import * as controls from "./photonomix.controls";
 const {max} = Math;
 
-let ctx;
-let properties;
-let OFFSET_X = 0;
-let OFFSET_Y = 0;
+let ctx, uiBuffer;
+let displayProps;
+
+/**
+ * Creates debug markers on screen to show the center, top, left, bottom, right, topleft
+ * and topright extremes of the main game area.
+ */
+const debugMarkers = (function() {
+	let w, h, wh, hh;
+	return function debugMarkers() {
+		w = displayProps.width;
+		h = displayProps.height;
+		wh = w/2; 
+		hh = h/2;
+		drawCircle(ctx,  0,  0, 4, "yellow", 1, "white");
+		drawCircle(ctx, wh,  0, 4, "orange", 1, "white");
+		drawCircle(ctx,  w,  0, 4, "red", 1, "white");
+		drawCircle(ctx,  0, hh, 4, "white", 1, "white");
+		drawCircle(ctx, wh, hh, 4, "gray", 1, "white");
+		drawCircle(ctx,  w, hh, 4, "black", 1, "white");
+		drawCircle(ctx,  0,  h, 4, "blue", 1, "white");
+		drawCircle(ctx, wh,  h, 4, "cyan", 1, "white");
+		drawCircle(ctx,  w,  h, 4, "green", 1, "white");
+	}
+})();
 
 /**
  * Draws an edge button.
@@ -46,41 +68,42 @@ function drawEdgeButton(ctx, x, y, w, h) {
  * Draws UI elements.
  */
 export function draw() {
-	properties = getProperties();
-	ctx.clearRect(0, 0, properties.width, properties.height);
-	let bw = max(100, properties.width*0.1);
-	let bh = max(47,  properties.width*0.047);
-	drawEdgeButton(ctx, screenSpace(0.00)+OFFSET_X,  
-	                    screenSpace(1.00)+OFFSET_Y, bw, bh);
-	//drawAntiGravitonCluster(agClusterIcon, ctx);
-	drawEdgeButton(ctx, screenSpace(-0.3)+OFFSET_X, 
-	                    screenSpace(1.05)+OFFSET_Y, bw, bh);
-	drawEdgeButton(ctx, screenSpace(0.30)+OFFSET_X,  
-	                    screenSpace(1.05)+OFFSET_Y, bw, bh);
-	drawCircle(ctx, 
-		screenSpace(controls.pointer.move[0]),
-		screenSpace(controls.pointer.move[1]),
-		5,
-		"white"
-	);
+	let w = displayProps.width;
+	let h = displayProps.height;
+	let bw = max(100, w*0.1);
+	let bh = max(47,  w*0.047);
+	let {move, down} = controls.pointer;
+	ctx.clearRect(0, 0, w, h);
+	drawEdgeButton(ctx, w*0.5, h, bw, bh);
+	drawEdgeButton(ctx, w*0.333, h, bw, bh); 
+	drawEdgeButton(ctx, w*0.666, h, bw, bh);  
+	drawCircle(ctx, move[0], move[1], 5, "white");
 	if(controls.buttons[0]) {
 		ctx.beginPath();
-		ctx.moveTo(screenSpace(controls.pointer.down[0]),
-		           screenSpace(controls.pointer.down[1]));
-		ctx.lineTo(screenSpace(controls.pointer.move[0]),
-		           screenSpace(controls.pointer.move[1]));
+		ctx.moveTo(down[0], down[1]);
+		ctx.lineTo(move[0], move[1]);
 		ctx.strokeStyle = "white";
 		ctx.lineWidth = 2;
 		ctx.stroke();
 		ctx.closePath();
-
 	}
+	//drawAntiGravitonCluster(agClusterIcon, ctx);
+	if(DEBUG) debugMarkers();
 }
 
 /**
  * Initializes the UI submodule.
  * @param {DrawBuffer} buffer
  */
-export function init(buffer) {
-	ctx = buffer.context;
+export function init(buffer, props) {
+	displayProps = props;
+	uiBuffer = buffer;
+	updateProps();
+	displayProps.events.on("resize", updateProps);
+	ctx = uiBuffer.context;
+}
+
+function updateProps() {
+	uiBuffer.width = displayProps.width;
+	uiBuffer.height = displayProps.height;
 }

@@ -6,8 +6,7 @@ import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
 import * as sprites from "./photonomix.display.sprites";
 import * as constants from "./photonomix.constants";
 import {rotate} from "./photonomix.util";
-import {offscreen, getFrameCount, screenSpace, updateCompositeOperation} 
-        from "./photonomix.display";
+import {offscreen, getFrameCount, screenSpace, updateCompositeOperation} from "./photonomix.display";
 const {vec2, lerp} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
 import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.game.photons";
@@ -21,11 +20,9 @@ const clamp = vectrix.vectors.mut_clamp;
 const tf = constants.TARGET_FPS;
 const MIN_D = 700;
 
-let lightBuffer, darkBuffer, lightCtx, darkCtx, frameCount;
-let OFFSET_X = 0;
-let OFFSET_Y = 0;
+let lightBuffer, darkBuffer, lightCtx, darkCtx, frameCount, displayProps;
 
-let voidSprite, emitterSprite, moteCenterSprite, photonSprites = Array(3);
+let voidSprite, emitterSprite, moteCenterSprite, photonSprites = Array(3), mask;
 
 /**
  * Draws plasma lines between a mote and its target.
@@ -97,8 +94,8 @@ const drawMote = (function() {
 	swh = 0.0, colorIndex = 0|0, px = 0.0, py = 0.0, sprite;
 	return function drawMote(entity) {
 		lightCtx.globalCompositeOperation = "lighter";
-		px = screenSpace(entity.pos[0])+OFFSET_X;
-		py = screenSpace(entity.pos[1])+OFFSET_Y;
+		px = screenSpace(entity.pos[0]);
+		py = screenSpace(entity.pos[1]);
 
 		({pulse, pregnant, injured, lastMeal} = entity);
 		size = entity.size * 300; //clamp(MIN_D, 300, 1200);
@@ -125,8 +122,8 @@ const drawMote = (function() {
 			// need vectors but in screen space, not absolute space
 			plasmaSource[0] = px;
 			plasmaSource[1] = py;
-			plasmaTarget[0] = screenSpace(entity.target.pos[0])+OFFSET_X;
-			plasmaTarget[1] = screenSpace(entity.target.pos[1])+OFFSET_Y;
+			plasmaTarget[0] = screenSpace(entity.target.pos[0]);
+			plasmaTarget[1] = screenSpace(entity.target.pos[1]);
 	drawPlasmaLine(lightCtx, plasmaSource, plasmaTarget, sprites.getColorString(colorIndex), "white", 5, pulse);
 		}
 	}
@@ -139,8 +136,8 @@ const drawPhoton = (function() {
 	let sc = 0.0, sch = 0.0, px = 0.0, py = 0.0, sprite;
 	return function drawPhoton(entity) {
 		updateCompositeOperation(lightCtx, "lighter");
-		px = screenSpace(entity.pos[0])+OFFSET_X;
-		py = screenSpace(entity.pos[1])+OFFSET_Y;
+		px = screenSpace(entity.pos[0]);
+		py = screenSpace(entity.pos[1]);
 
 		sprite = photonSprites[entity.color];
 		sc = sprite.pixelSize * cos(frameCount*0.2);
@@ -156,8 +153,8 @@ const drawVoid = (function() {
 	let sc = 0.0, sch = 0.0, px = 0.0, py = 0.0, ox = 0.0, oy = 0.0, sprite, 
 	    sw = 0.0, swh = 0.0, colorIndex = 0|0;
 	return function drawVoid(entity) {
-		px = screenSpace(entity.pos[0])+OFFSET_X;
-		py = screenSpace(entity.pos[1])+OFFSET_Y;
+		px = screenSpace(entity.pos[0]);
+		py = screenSpace(entity.pos[1]);
 
 		sc = entity.size * 1000 * 1+(sin(frameCount*0.2));
 		sch = sc*0.5;
@@ -205,8 +202,8 @@ const drawEmitter = (function() {
 	    sw = 0.0, swh = 0.0;
 	return function drawEmitter(entity) {
 		updateCompositeOperation(lightCtx, "lighter");
-		px = screenSpace(entity.pos[0])+OFFSET_X;
-		py = screenSpace(entity.pos[1])+OFFSET_Y;
+		px = screenSpace(entity.pos[0]);
+		py = screenSpace(entity.pos[1]);
 
 		sc = entity.size * MIN_D;
 		//sc = sc + (sc*(sin(frameCount*0.05))/100);
@@ -257,8 +254,8 @@ const drawAntiGravitonCluster = (function() {
 	}
 	return function drawAntiGravitonCluster(entity) {
 		updateCompositeOperation(darkCtx, "multiply");
-		px = screenSpace(entity.pos[0])+OFFSET_X;
-		py = screenSpace(entity.pos[1])+OFFSET_Y;
+		px = screenSpace(entity.pos[0]);
+		py = screenSpace(entity.pos[1]);
 
 		size = entity.size * clamp(MIN_D, 300, 1200);
 		sc = size;
@@ -279,9 +276,27 @@ const drawAntiGravitonCluster = (function() {
 	}
 })();
 
+export const init = function(buffer1, buffer2, props) {
+	displayProps = props;
+	lightBuffer = buffer1;
+	darkBuffer = buffer2;
+	lightCtx = lightBuffer.context;
+	darkCtx = darkBuffer.context;
+	updateProps();
+	displayProps.events.on("resize", updateProps);
+	voidSprite = sprites.createVoidSprite(1000, 1);
+	emitterSprite = sprites.createEmitterSprite(700, 1);
+	photonSprites[COLOR_R] = sprites.createPhotonSprite(700, constants.PHOTON_BASE_SIZE, "red");
+	photonSprites[COLOR_G] = sprites.createPhotonSprite(700, constants.PHOTON_BASE_SIZE, "green");
+	photonSprites[COLOR_B] = sprites.createPhotonSprite(700, constants.PHOTON_BASE_SIZE, "blue");
+	sprites.initMoteSpriteSheet(1000, constants.MOTE_BASE_SIZE*4);
+	mask = sprites.createGameSpaceMask();
+	moteCenterSprite = sprites.createMoteCenterSprite();
+}
+
 /**
  * Draw call for all entities. Loops through game entities and draws them according
- * to kind and properties.
+ * to kind and displayProps.
  */
 export const draw = (function() {
 	// these variables are shared by draw calls below
@@ -299,8 +314,8 @@ export const draw = (function() {
 		frameCount = getFrameCount();
 		for(i = 0, l = state.entities.length; i < l; ++i) {
 			entity = state.entities[i];
-			px = screenSpace(entity.pos[0])+OFFSET_X;
-			py = screenSpace(entity.pos[1])+OFFSET_Y;
+			px = screenSpace(entity.pos[0]);
+			py = screenSpace(entity.pos[1]);
 			if(offscreen(px, py)) continue;
 			if(entity instanceof Mote) drawMote(entity);
 			else if(entity instanceof Photon) drawPhoton(entity);
@@ -309,19 +324,26 @@ export const draw = (function() {
 			else if(entity instanceof AntiGravitonCluster) 
 				drawAntiGravitonCluster(entity);
 		}
+		updateCompositeOperation(lightCtx, "destination-out");
+		lightCtx.drawImage(mask.canvas, 0, 0, displayProps.minDimension, displayProps.minDimension);
+		updateCompositeOperation(darkCtx, "destination-out");
+		darkCtx.drawImage(mask.canvas, 0, 0, displayProps.minDimension, displayProps.minDimension);
 	}
 })();
 
-export const init = function(buffer1, buffer2) {
-	lightBuffer = buffer1;
-	darkBuffer = buffer2;
-	lightCtx = lightBuffer.context;
-	darkCtx = darkBuffer.context;
-	voidSprite = sprites.createVoidSprite(1000, 1);
-	emitterSprite = sprites.createEmitterSprite(700, 1);
-	photonSprites[COLOR_R] = sprites.createPhotonSprite(700, constants.PHOTON_BASE_SIZE, "red");
-	photonSprites[COLOR_G] = sprites.createPhotonSprite(700, constants.PHOTON_BASE_SIZE, "green");
-	photonSprites[COLOR_B] = sprites.createPhotonSprite(700, constants.PHOTON_BASE_SIZE, "blue");
-	sprites.initMoteSpriteSheet(1000, constants.MOTE_BASE_SIZE*4);
-	moteCenterSprite = sprites.createMoteCenterSprite();
+function updateProps() {
+	let {width, height, minDimension, orientation} = displayProps;
+	let ox, oy;
+	lightBuffer.width = darkBuffer.width = minDimension;
+	lightBuffer.height = darkBuffer.height = minDimension;
+	if(orientation) {
+		ox = 0;
+		oy = (height-width)/2;	
+	}
+	else {
+		ox = (width-height)/2;
+		oy = 0;
+	}
+	lightBuffer.offsetX = darkBuffer.offsetX = ox;
+	lightBuffer.offsetY = darkBuffer.offsetY = oy;
 }

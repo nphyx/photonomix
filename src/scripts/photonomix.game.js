@@ -102,7 +102,7 @@ Game.prototype.tick = (function() {
 			markpos--;
 			mark = marks[markpos];
 			entity = entities[mark];
-			if(entity.pool !== undefined) {
+			if(entity && (entity.pool !== undefined)) {
 				entity.destroy();
 			}
 			entities.splice(mark, 1);

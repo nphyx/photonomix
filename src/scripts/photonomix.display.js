@@ -3,6 +3,7 @@ import * as bokeh from "./photonomix.display.bokeh";
 import * as buffers from "./photonomix.display.buffers";
 import * as entities from "./photonomix.display.entities";
 import * as sprites from "./photonomix.display.sprites";
+import * as events from "./photonomix.events";
 import * as ui from "./photonomix.display.ui";
 export {bokeh, buffers, entities, sprites, ui};
 import * as constants from "./photonomix.constants";
@@ -23,15 +24,14 @@ let lastFrame = 0;
 let fullscreenBuffers;
 let compositeBuffer;
 
-export const properties = {
+export const displayProps = {
 	width:0,
 	height:0,
 	orientation:0,
-	minDimension:0
-}
-
-export function getProperties() {
-	return properties;
+	aspect:0,
+	minDimension:0,
+	maxDimension:0,
+	events:new events.Events()
 }
 
 /**
@@ -41,16 +41,6 @@ export function getProperties() {
 export function updateCompositeOperation(ctx, op) {
 	if(ctx.globalCompositeOperation !== op) ctx.globalCompositeOperation = op;
 }
-
-let OFFSET_MAX_D = 0; // greater of width or height
-let OFFSET_X = 0; // offset for X positions to center game space 
-let OFFSET_Y = 0; // offset for Y positions to center game space 
-
-/*
-const agClusterIcon = new AntiGravitonCluster([0.0,0.96],[0,0],1);
-agClusterIcon.mass = 100;
-agClusterIcon.tick([], 0, 0);
-*/
 
 /**
  * Toggles fullscreen on.
@@ -71,12 +61,14 @@ function toggleFullScreen() {
       document.documentElement.mozRequestFullScreen();
     else if (document.documentElement.webkitRequestFullscreen)
       document.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+		displayProps.events.fire("fullscreen-on");
   } 
 	else {
     if (document.exitFullscreen) document.exitFullscreen();
     else if (document.msExitFullscreen) document.msExitFullscreen();
     else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
     else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+		displayProps.events.fire("fullscreen-off");
   }
 }
 
@@ -100,22 +92,12 @@ export function getFrameCount() {
  * Updates screen ratio.
  */
 function updateProperties() {
-	properties.width  = evenNumber(document.body.clientWidth);
-	properties.height = evenNumber(document.body.clientHeight);
-	properties.orientation = properties.width > properties.height?0:1;
-	/*
-	properties.width  = properties.width - (properties.width%properties.pixelRatio);
-	propertiew.height = properties.height - (properties.height%properties.pixelRatio);
-	*/
-	properties.minDimension = min(properties.width, properties.height);
-	OFFSET_MAX_D = (max(properties.height, properties.height)-properties.minDimension)/2;
-	if(properties.orientation) OFFSET_Y = OFFSET_MAX_D;
-	else OFFSET_X = OFFSET_MAX_D;
-	for(let i = 0, len = fullscreenBuffers.length; i < len; ++i) {
-		fullscreenBuffers[i].width = properties.width;
-		fullscreenBuffers[i].height = properties.height;
-	}
-	bokeh.init(fullscreenBuffers[0], fullscreenBuffers[1],properties.width, properties.height);
+	compositeBuffer.width  = displayProps.width  = evenNumber(document.body.clientWidth);
+	compositeBuffer.height = displayProps.height = evenNumber(document.body.clientHeight);
+	displayProps.orientation = displayProps.width > displayProps.height?0:1;
+	displayProps.minDimension = min(displayProps.width, displayProps.height);
+	displayProps.maxDimension = max(displayProps.width, displayProps.height);
+	displayProps.events.fire("resize");
 }
 
 /**
@@ -123,7 +105,7 @@ function updateProperties() {
  * range used in game position vectors.
  */
 export function screenSpace(x) {
-	return ((x+1)/2) * properties.minDimension;
+	return ((x+1)/2) * displayProps.minDimension;
 }
 
 /**
@@ -134,8 +116,8 @@ export function screenSpace(x) {
  */
 
 export function screenSpaceVec(v, out) {
-	out[0] = (((v[0]+1)/2)*properties.minDimension)+OFFSET_X;
-	out[1] = (((v[1]+1)/2)*properties.minDimension)+OFFSET_Y;
+	out[0] = (((v[0]+1)/2)*displayProps.minDimension);
+	out[1] = (((v[1]+1)/2)*displayProps.minDimension);
 	return out;
 }
 
@@ -146,8 +128,8 @@ export function screenSpaceVec(v, out) {
  * @return {out}
  */
 export function gameSpaceVec(v, out) {
-	out[0] = 2*((v[0]-OFFSET_X)/properties.minDimension)-1;
-	out[1] = 2*((v[1]-OFFSET_Y)/properties.minDimension)-1;
+	out[0] = 2*((v[0])/displayProps.minDimension)-1;
+	out[1] = 2*((v[1])/displayProps.minDimension)-1;
 }
 
 /**
@@ -155,8 +137,8 @@ export function gameSpaceVec(v, out) {
  */
 export function offscreen(x, y) {
 	return (
-		x < (properties.width  * -0.5) || x >properties.width   * 1.5 ||
-		y < (properties.height * -0.5) || y > properties.height * 1.5
+		x < (displayProps.width  * -0.5) || x >displayProps.width   * 1.5 ||
+		y < (displayProps.height * -0.5) || y > displayProps.height * 1.5
 	)
 }
 
@@ -168,7 +150,7 @@ const prepareCanvases = (function() {
 	/*
 		invertCtx.globalCompositeOperation = "source-in";
 		invertCtx.fillStyle = invFillStyle;
-		invertCtx.fillRect(0, 0,properties.width, properties.height);
+		invertCtx.fillRect(0, 0,displayProps.width, displayProps.height);
 		invertCtx.globalCompositeOperation = "source-over";
 		*/
 	}
@@ -177,29 +159,20 @@ const prepareCanvases = (function() {
 /**
  * Draws a colored circle.
  */
-export function drawCircle(ctx, x, y, size, color) {
+export function drawCircle(ctx, x, y, size, fillStyle, lineWidth = 0, strokeStyle = undefined) {
 	ctx.globalCompositeOperation = "source-over";
 	ctx.beginPath();
 	ctx.arc(x, y, size, 2 * Math.PI, false);
-	ctx.fillStyle = color;
+	ctx.fillStyle = fillStyle;
 	ctx.fill();
+	if(strokeStyle) {
+		ctx.strokeStyle = strokeStyle;
+		ctx.lineWidth = lineWidth;
+		ctx.stroke();
+	}
 	ctx.closePath();
 }
 
-/**
- * Creates debug markers on screen to show the center, top, left, bottom, right, topleft
- * and topright extremes of the main game area.
- *
-function debugMarkers(ctx) {
-	drawCircle(ctx, 0.0, 0.0, 10, "gray");
-	drawCircle(ctx, -1.0, 0.0, 10, "green");
-	drawCircle(ctx, 1.0, 0.0, 10, "red");
-	drawCircle(ctx, 0.0, -1.0, 10, "yellow");
-	drawCircle(ctx, 0.0, 1.0, 10, "blue");
-	drawCircle(ctx, 1.0, 1.0, 10, "orange");
-	drawCircle(ctx, -1.0, -1.0, 10, "brown");
-}
-*/
 
 /**
  * Main animation loop.
@@ -214,21 +187,10 @@ function animate() {
 		if(GAME_STARTED) game.tick(interval/elapsed, frameCount);
 		prepareCanvases();
 		bokeh.draw();
-		entities.draw(game); //drawEntities(entityLayer);
+		entities.draw(game);
 		ui.draw();
-		buffers.composite(fullscreenBuffers, compositeBuffer);
+		buffers.composite(fullscreenBuffers, compositeBuffer, displayProps);
 	}
-}
-
-/**
- * Initializes a game session and starts animation.
- */
-export function setup() {
-	startTime = Date.now();
-	lastFrame = startTime;
-	interval = 1000 / constants.TARGET_FPS;
-	if(!animating) requestAnimationFrame(animate);
-	animating = true;
 }
 
 /**
@@ -240,20 +202,20 @@ export function init(state) {
 	body = document.getElementsByTagName("body")[0];
 	body.classList.add("2d");
 	compositeBuffer = new buffers.CompositeBuffer(body);
-	fullscreenBuffers = [
-		new buffers.DrawBuffer("source-over"), // background
-		new buffers.DrawBuffer("lighter"),     // bokeh spots
-		new buffers.DrawBuffer("lighter"),     // motes and other "light" objects
-		new buffers.DrawBuffer("hard-light"),  // voids and other "dark" objects
-		new buffers.DrawBuffer("source-over")      // UI layer
-	]
+	body.width = compositeBuffer.width  = evenNumber(document.body.clientWidth);
+	body.height = compositeBuffer.height = evenNumber(document.body.clientHeight);
 	updateProperties();
-	entities.init(fullscreenBuffers[2], fullscreenBuffers[3]);
-	ui.init(fullscreenBuffers[4]);
-	compositeBuffer.width  = properties.width;
-	compositeBuffer.height = properties.height;
+	fullscreenBuffers = [
+		new buffers.DrawBuffer("source-over", buffers.SCALE_KEEP_ASPECT),
+		new buffers.DrawBuffer("lighter", buffers.SCALE_NONE),
+		new buffers.DrawBuffer("lighter", buffers.SCALE_NONE),
+		new buffers.DrawBuffer("hard-light", buffers.SCALE_NONE),
+		new buffers.DrawBuffer("source-over", buffers.SCALE_NONE)
+	]
+	bokeh.init(fullscreenBuffers[0], fullscreenBuffers[1], displayProps);
+	entities.init(fullscreenBuffers[2], fullscreenBuffers[3], displayProps);
+	ui.init(fullscreenBuffers[4], displayProps);
 	// do these here so they only get created once; they don't need to update with res
-	setup();
 	window.addEventListener("resize", updateProperties);
 	if(AUTO_FULLSCREEN) {
 		body.addEventListener("click", toggleFullScreen);
@@ -262,6 +224,11 @@ export function init(state) {
 		document.addEventListener("msfullscreenchange", fullscreenOff);
 		document.addEventListener("webkitfullscreenchange", fullscreenOff);
 	}
+	startTime = Date.now();
+	lastFrame = startTime;
+	interval = 1000 / constants.TARGET_FPS;
+	if(!animating) requestAnimationFrame(animate);
+	animating = true;
 }
 
 /**

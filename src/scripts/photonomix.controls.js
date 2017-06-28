@@ -6,7 +6,7 @@ const {vec2} = vectrix.vectors;
 
 let game; // game state
 let controlEvents = new Events();
-let clickRegions = [];
+//let clickRegions = [];
 
 export const pointer = {
 	down:vec2(),
@@ -17,12 +17,15 @@ export const keys = Array(256);
 export const buttons = Array(5);
 
 function updateCursorState(event, v) {
-	gameSpaceVec([event.clientX, event.clientY], v);
+	v[0] = event.clientX;
+	v[1] = event.clientY;
 }
 
+/*
 function registerClickRegion(center, radius, callback) {
 	clickRegions.push({center:vec2(center), radius:radius, callback:callback});
 }
+*/
 
 export function init(env) {
 	game = env;

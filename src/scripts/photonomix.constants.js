@@ -24,7 +24,7 @@ export const MAX_VOIDS = 7;
 export const POSITIVE_ENERGY = 0.01; // chance a dead mote will produce an emitter
 export const NEGATIVE_ENERGY = 0.01; // chance a dead mote will produce a void
 // general debug switch
-export const DEBUG = false;
+export const DEBUG = true;
 // toggles vector validation in various functions that tend to produce
 // infinite or NaN results; when enabled, vectors are checked and if invalid
 // the function is rerun step by step and logged to identify trouble spots
