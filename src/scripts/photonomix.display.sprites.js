@@ -123,7 +123,7 @@ function scaleSprite(scale, spriteSize) {
  * Creates a photon sprite.
  */
 export function createPhotonSprite(scale, spriteSize, color) {
-	let pixelSize = scaleSprite(scale, spriteSize);
+	let pixelSize = 17; //scaleSprite(scale, spriteSize);
 	let hps = ~~(pixelSize/2);
 	let qps = ~~(pixelSize/4);
 	let canvas = document.createElement("canvas");

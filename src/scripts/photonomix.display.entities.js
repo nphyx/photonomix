@@ -137,12 +137,12 @@ const drawPhoton = (function() {
 		px = screenSpace(entity.pos[0]);
 		py = screenSpace(entity.pos[1]);
 		sprite = photonSprites[entity.color];
-		ps = sprite.pixelSize;
+		ps = constants.PHOTON_BASE_SIZE * displayProps.minDimension; //sprite.pixelSize;
 		pulse = entity.pulse;
 		sw = (ps * 0.75 * (cos((frameCount+pulse)*0.3) * sin((frameCount+pulse)*0.1))) + 
 		     (ps * 0.25);
 		swh = sw*0.5;
-		lightCtx.drawImage(sprite.canvas, 0, 0, ps, ps, px-swh, py-swh, sw, sw);
+		lightCtx.drawImage(sprite.canvas, 0, 0, sprite.pixelSize, sprite.pixelSize, px-swh, py-swh, sw, sw);
 	}
 })();
 
