@@ -131,16 +131,18 @@ const drawMote = (function() {
  * Draws a photon.
  */
 const drawPhoton = (function() {
-	let sc = 0.0, sch = 0.0, px = 0.0, py = 0.0, sprite;
+	let sw = 0.0, swh = 0.0, px = 0.0, py = 0.0, ps = 0.0, pulse = 0|0, sprite;
 	return function drawPhoton(entity) {
 		updateCompositeOperation(lightCtx, "lighter");
 		px = screenSpace(entity.pos[0]);
 		py = screenSpace(entity.pos[1]);
-
 		sprite = photonSprites[entity.color];
-		sc = sprite.pixelSize * cos(frameCount*0.2);
-		sch = sc*0.5;
-		lightCtx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
+		ps = sprite.pixelSize;
+		pulse = entity.pulse;
+		sw = (ps * 0.75 * (cos((frameCount+pulse)*0.3) * sin((frameCount+pulse)*0.1))) + 
+		     (ps * 0.25);
+		swh = sw*0.5;
+		lightCtx.drawImage(sprite.canvas, 0, 0, ps, ps, px-swh, py-swh, sw, sw);
 	}
 })();
 

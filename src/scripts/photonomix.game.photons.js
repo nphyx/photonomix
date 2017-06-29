@@ -1,9 +1,10 @@
 "use strict";
 import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
 import {drag} from "./photonomix.util";
-import {GLOBAL_DRAG, PHOTON_LIFETIME, PHOTON_BASE_SIZE} from "./photonomix.constants";
+import {TARGET_FPS, GLOBAL_DRAG, PHOTON_LIFETIME, PHOTON_BASE_SIZE} from "./photonomix.constants";
 let {vec2, times} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
+const {random} = Math;
 
 const I8 = 1;
 const F32 = 4;
@@ -41,6 +42,7 @@ export function Photon(ipos, ivel, color, pool = undefined) {
 	this.lifetime = PHOTON_LIFETIME;
 	this.size = PHOTON_BASE_SIZE;
 	this.mass = 1;
+	this.pulse = ~~(TARGET_FPS*random());
 }
 
 let tmpvec = vec2(), pos, vel;

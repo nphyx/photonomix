@@ -125,13 +125,17 @@ function scaleSprite(scale, spriteSize) {
 export function createPhotonSprite(scale, spriteSize, color) {
 	let pixelSize = scaleSprite(scale, spriteSize);
 	let hps = ~~(pixelSize/2);
+	let qps = ~~(pixelSize/4);
 	let canvas = document.createElement("canvas");
 	canvas.width = canvas.height = pixelSize;
 	let context = canvas.getContext("2d");
+	let g;
+	/*
 	let mask = document.createElement("canvas");
 	mask.width = mask.height = pixelSize; 
 	let maskCtx = mask.getContext("2d");
-	let g;
+	*/
+	/*
 	g = maskCtx.createRadialGradient(hps, hps, hps, hps, hps, 0);
 	g.addColorStop(0.0, "rgba(255,255,255,0.0)");
 	g.addColorStop(0.09, "rgba(255,255,255,1.0)");
@@ -141,12 +145,30 @@ export function createPhotonSprite(scale, spriteSize, color) {
 	context.drawImage(mask, hps, hps, pixelSize, pixelSize);
 	context.drawImage(mask, hps, -hps, pixelSize, pixelSize);
 	context.drawImage(mask, -hps, hps, pixelSize, pixelSize);
+	*/
 	g = context.createRadialGradient(hps, hps, hps, hps, hps, 0);
 	g.addColorStop(0.7, color);
 	g.addColorStop(1.0, "white");
-	context.globalCompositeOperation = "source-out";
+	context.globalCompositeOperation = "source-over";
+	context.beginPath();
+	context.moveTo(hps, 0);
+	context.quadraticCurveTo(hps, hps, 0, hps);
+	context.quadraticCurveTo(hps, hps, hps, pixelSize);
+	context.quadraticCurveTo(hps, hps, pixelSize, hps);
+	context.quadraticCurveTo(hps, hps, hps, 0);
 	context.fillStyle = g;
-	context.fillRect(0, 0, pixelSize, pixelSize);
+	context.fill();
+	context.closePath();
+	context.beginPath();
+	context.moveTo(hps, qps);
+	context.lineTo(hps, pixelSize-qps);
+	context.moveTo(qps, hps);
+	context.lineTo(pixelSize-qps, hps);
+	context.strokeStyle = "white";
+	context.lineWidth = 1;
+	context.stroke();
+	context.closePath();
+	//context.fillRect(0, 0, pixelSize, pixelSize);
 	return {
 		canvas:canvas,
 		context:context,
