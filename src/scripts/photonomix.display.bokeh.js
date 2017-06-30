@@ -69,7 +69,7 @@ export function init(buffer1, buffer2, props) {
 	parts.length = 0;
 	for( var i = 0; i < Math.floor( ( w + h ) * 0.01 ); i++ ) {
 		parts.push({
-			radius: rand( sizeBase * 0.01, sizeBase * 0.04 ),
+			radius: rand( sizeBase * 0.005, sizeBase * 0.02 ),
 			x: rand( 0, w ),
 			y: rand( 0, h ),
 			angle: rand( 0, tau ),
