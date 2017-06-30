@@ -258,7 +258,7 @@ Mote.prototype.runMaintenance = (function() {
 			agro = 0.0, fear = 0.0, size = 0.0, speed = 0.0, sight = 0.0,
 			pos, vel, target;
 	return function runMaintenance(delta) {
-		({pos, vel, pregnant, dying, agro, fear, size, sight, target} = this);
+		({pos, vel, pregnant, dying, agro, fear, size, speed, sight, target} = this);
 		if(pregnant > 0) this.pregnant = pregnant - 1;
 		if(dying > 0) this.dying = dying + 1; // start counting up
 		if(this.needsUpdate) this.updateProperties();
