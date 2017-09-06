@@ -15,14 +15,14 @@ var istanbul = require("gulp-babel-istanbul");
 
 const webpackConfig = {
 	entry:path.resolve(__dirname, "target/scripts/photonomix.js"),
-	devtool:"source-map",
+	//devtool:"source-map",
 	output:{
 		filename:"photonomix.js",
 		path:path.resolve(__dirname, "dist/scripts")
 	},
 	plugins:[
 		new webpack.optimize.DedupePlugin(),
-		//new webpack.optimize.UglifyJsPlugin()
+		new webpack.optimize.UglifyJsPlugin()
   ]
 }
 
@@ -60,14 +60,6 @@ gulp.task("styles", ["clean:styles"], function() {
 gulp.task("webpack", ["scripts", "markup", "styles"], function(callback) {
 	webpack(webpackConfig, function(err, stats) {
 		if(err) console.log(err);
-		/*
-		if (err) throw new gutil.PluginError('webpack', err);
-
-		gutil.log('[webpack]', stats.toString({
-			colors: true,
-			progress: true
-		}));
-		*/
 		callback();
 	});
 });
