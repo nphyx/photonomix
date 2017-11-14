@@ -21,4 +21,5 @@ window.addEventListener("load", function() {
 	controls.init(photonomix.state);
 	photonomix.state.controls = controls.state;
 	photonomix.display.init(photonomix.state);
+	photonomix.display.startGame();
 });

@@ -20,13 +20,26 @@ export const VOID_SIZE = 0.01;
 export const EMITTER_SIZE = 0.01;
 export const MAX_MOTES = 300;
 export const MAX_PHOTONS = ~~(MAX_MOTES * PREGNANT_THRESHOLD)/2;
-export const MAX_VOIDS = 7;
+export const MAX_VOIDS = 5;
+export const MAX_EMITTERS = 5;
+export const MAX_ENTITIES = MAX_MOTES + MAX_PHOTONS + MAX_VOIDS + MAX_EMITTERS;
 export const POSITIVE_ENERGY = 0.01; // chance a dead mote will produce an emitter
 export const NEGATIVE_ENERGY = 0.01; // chance a dead mote will produce a void
+
 // general debug switch
-export const DEBUG = true;
+export const DEBUG = false;
 // toggles vector validation in various functions that tend to produce
 // infinite or NaN results; when enabled, vectors are checked and if invalid
 // the function is rerun step by step and logged to identify trouble spots
 export const VALIDATE_VECTORS = DEBUG || true;
 
+let type;
+if(typeof(SharedArrayBuffer) !== "undefined") {
+	/* global SharedArrayBuffer */
+	type = SharedArrayBuffer;
+}
+else {
+	type = ArrayBuffer;
+}
+
+export const BUFFER_TYPE = type;
