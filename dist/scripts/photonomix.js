@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 21);
+/******/ 	return __webpack_require__(__webpack_require__.s = 43);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -127,9 +127,9 @@ var BUFFER_TYPE = exports.BUFFER_TYPE = type;
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__vectrix_vectors__ = __webpack_require__(10);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__vectrix_matrices__ = __webpack_require__(9);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__vectrix_quaternions__ = __webpack_require__(22);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__vectrix_vectors__ = __webpack_require__(11);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__vectrix_matrices__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__vectrix_quaternions__ = __webpack_require__(36);
 /**
 Master module for vectrix. See individual modules for documentation.
 @module vectrix
@@ -629,275 +629,17 @@ Photon.prototype.destroy = function () {
 
 /***/ }),
 /* 4 */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_vectrix__ = __webpack_require__(1);
+/* harmony namespace reexport (by provided) */ __webpack_require__.d(__webpack_exports__, "vectors", function() { return __WEBPACK_IMPORTED_MODULE_0__src_vectrix__["vectors"]; });
+/* harmony namespace reexport (by provided) */ __webpack_require__.d(__webpack_exports__, "matrices", function() { return __WEBPACK_IMPORTED_MODULE_0__src_vectrix__["matrices"]; });
+/* harmony namespace reexport (by provided) */ __webpack_require__.d(__webpack_exports__, "quaternions", function() { return __WEBPACK_IMPORTED_MODULE_0__src_vectrix__["quaternions"]; });
 
 
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.displayProps = exports.ui = exports.sprites = exports.entities = exports.buffers = exports.bokeh = undefined;
-exports.updateCompositeOperation = updateCompositeOperation;
-exports.getFrameCount = getFrameCount;
-exports.screenSpace = screenSpace;
-exports.screenSpaceVec = screenSpaceVec;
-exports.gameSpaceVec = gameSpaceVec;
-exports.offscreen = offscreen;
-exports.drawCircle = drawCircle;
-exports.init = init;
-exports.startGame = startGame;
 
-var _photonomixDisplay = __webpack_require__(16);
-
-var bokeh = _interopRequireWildcard(_photonomixDisplay);
-
-var _photonomixDisplay2 = __webpack_require__(17);
-
-var buffers = _interopRequireWildcard(_photonomixDisplay2);
-
-var _photonomixDisplay3 = __webpack_require__(18);
-
-var entities = _interopRequireWildcard(_photonomixDisplay3);
-
-var _photonomixDisplay4 = __webpack_require__(12);
-
-var sprites = _interopRequireWildcard(_photonomixDisplay4);
-
-var _photonomix = __webpack_require__(13);
-
-var events = _interopRequireWildcard(_photonomix);
-
-var _photonomixDisplay5 = __webpack_require__(19);
-
-var ui = _interopRequireWildcard(_photonomixDisplay5);
-
-var _photonomix2 = __webpack_require__(0);
-
-var constants = _interopRequireWildcard(_photonomix2);
-
-var _photonomix3 = __webpack_require__(2);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-exports.bokeh = bokeh;
-exports.buffers = buffers;
-exports.entities = entities;
-exports.sprites = sprites;
-exports.ui = ui;
-var min = Math.min,
-    max = Math.max;
-
-var AUTO_FULLSCREEN = false;
-
-var GAME_STARTED = false; //  whether the game has started
-var startTime = void 0; // time game started
-var interval = 0;
-var frameCount = 0; // running total of drawn frames
-var animating = false; // whether the game is currently running animation loop
-var body = void 0; // html document body
-var fullscreen = false; // whether the game is in fullscreen mode
-var game = void 0; // game environment object
-var controls = void 0; // control state object
-var lastFrame = 0;
-var fullscreenBuffers = void 0;
-var compositeBuffer = void 0;
-
-var displayProps = exports.displayProps = {
-	width: 0,
-	height: 0,
-	orientation: 0,
-	aspect: 0,
-	minDimension: 0,
-	maxDimension: 0,
-	events: new events.Events()
-
-	/**
-  * Using this checks and avoids altering the canvas context state machine if unnecessary,
-  * which theoretically saves a little time.
-  */
-};function updateCompositeOperation(ctx, op) {
-	if (ctx.globalCompositeOperation !== op) ctx.globalCompositeOperation = op;
-}
-
-/**
- * Toggles fullscreen on.
- * Code from Mozilla Developer Network.
- */
-function toggleFullScreen() {
-	if (fullscreen) return;
-	fullscreen = true;
-	if (!document.fullscreenElement && // alternative standard method
-	!document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
-		// current working methods
-		if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();else if (document.documentElement.msRequestFullscreen) document.documentElement.msRequestFullscreen();else if (document.documentElement.mozRequestFullScreen) document.documentElement.mozRequestFullScreen();else if (document.documentElement.webkitRequestFullscreen) document.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
-		displayProps.events.fire("fullscreen-on");
-	} else {
-		if (document.exitFullscreen) document.exitFullscreen();else if (document.msExitFullscreen) document.msExitFullscreen();else if (document.mozCancelFullScreen) document.mozCancelFullScreen();else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-		displayProps.events.fire("fullscreen-off");
-	}
-}
-
-/**
- * Turns fullscreen off.
- */
-function fullscreenOff(ev) {
-	ev.preventDefault();
-	if (document.webkitIsFullScreen || document.mozIsFullScreen || document.msIsFullScreen) fullscreen = true;else fullscreen = false;
-	return false;
-}
-
-function getFrameCount() {
-	return frameCount;
-}
-
-/**
- * Updates screen ratio.
- */
-function updateProperties() {
-	compositeBuffer.width = displayProps.width = (0, _photonomix3.evenNumber)(document.body.clientWidth);
-	compositeBuffer.height = displayProps.height = (0, _photonomix3.evenNumber)(document.body.clientHeight);
-	displayProps.orientation = displayProps.width > displayProps.height ? 0 : 1;
-	displayProps.minDimension = min(displayProps.width, displayProps.height);
-	displayProps.maxDimension = max(displayProps.width, displayProps.height);
-	displayProps.events.fire("resize");
-}
-
-/**
- * Calculates the screenspace pixel offset of a coordinate from the [-1,1] coordinate
- * range used in game position vectors.
- */
-function screenSpace(x) {
-	return (x + 1) / 2 * displayProps.minDimension;
-}
-
-/**
- * Finds the screen space equivalent of the game space vector v.
- * @param {vec2} v game space vector
- * @param {vec2} out out parameter
- * @return {out}
- */
-
-function screenSpaceVec(v, out) {
-	out[0] = (v[0] + 1) / 2 * displayProps.minDimension;
-	out[1] = (v[1] + 1) / 2 * displayProps.minDimension;
-	return out;
-}
-
-/**
- * Finds the game space equivalent of the sceen space vector v.
- * @param {vec2} v game space vector
- * @param {vec2} out out parameter
- * @return {out}
- */
-function gameSpaceVec(v, out) {
-	out[0] = 2 * (v[0] / displayProps.minDimension) - 1;
-	out[1] = 2 * (v[1] / displayProps.minDimension) - 1;
-}
-
-/**
- * Checks if entity is out of screen space by more than 50%.
- */
-function offscreen(x, y) {
-	return x < displayProps.width * -0.5 || x > displayProps.width * 1.5 || y < displayProps.height * -0.5 || y > displayProps.height * 1.5;
-}
-
-/**
- * Apply pre-draw effects to canvases and set composite modes before drawing entities.
- */
-var prepareCanvases = function () {
-	return function prepareCanvases() {
-		/*
-  	invertCtx.globalCompositeOperation = "source-in";
-  	invertCtx.fillStyle = invFillStyle;
-  	invertCtx.fillRect(0, 0,displayProps.width, displayProps.height);
-  	invertCtx.globalCompositeOperation = "source-over";
-  	*/
-	};
-}();
-
-/**
- * Draws a colored circle.
- */
-function drawCircle(ctx, x, y, size, fillStyle) {
-	var lineWidth = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 0;
-	var strokeStyle = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : undefined;
-
-	ctx.globalCompositeOperation = "source-over";
-	ctx.beginPath();
-	ctx.arc(x, y, size, 2 * Math.PI, false);
-	ctx.fillStyle = fillStyle;
-	ctx.fill();
-	if (strokeStyle) {
-		ctx.strokeStyle = strokeStyle;
-		ctx.lineWidth = lineWidth;
-		ctx.stroke();
-	}
-	ctx.closePath();
-}
-
-/**
- * Main animation loop.
- */
-function animate() {
-	requestAnimationFrame(animate);
-	var now = Date.now();
-	var elapsed = now - lastFrame;
-	if (elapsed > interval) {
-		lastFrame = now - elapsed % interval;
-		frameCount++;
-		if (GAME_STARTED) game.tick(interval / elapsed, frameCount);
-		prepareCanvases();
-		bokeh.draw();
-		entities.draw(game);
-		ui.draw();
-		buffers.composite(fullscreenBuffers, compositeBuffer, displayProps);
-	}
-}
-
-/**
- * Initializes game environment.
- */
-function init(state) {
-	game = state.game;
-	controls = state.controls;
-	body = document.getElementsByTagName("body")[0];
-	body.classList.add("2d");
-	compositeBuffer = new buffers.CompositeBuffer(body);
-	body.width = compositeBuffer.width = (0, _photonomix3.evenNumber)(document.body.clientWidth);
-	body.height = compositeBuffer.height = (0, _photonomix3.evenNumber)(document.body.clientHeight);
-	updateProperties();
-	fullscreenBuffers = [new buffers.DrawBuffer("source-over", buffers.SCALE_KEEP_ASPECT), new buffers.DrawBuffer("lighter", buffers.SCALE_NONE), new buffers.DrawBuffer("lighter", buffers.SCALE_NONE), new buffers.DrawBuffer("hard-light", buffers.SCALE_NONE), new buffers.DrawBuffer("source-over", buffers.SCALE_NONE)];
-	bokeh.init(fullscreenBuffers[0], fullscreenBuffers[1], displayProps);
-	entities.init(fullscreenBuffers[2], fullscreenBuffers[3], displayProps);
-	ui.init(fullscreenBuffers[4], displayProps);
-	// do these here so they only get created once; they don't need to update with res
-	window.addEventListener("resize", updateProperties);
-	if (AUTO_FULLSCREEN) {
-		body.addEventListener("click", toggleFullScreen);
-		document.addEventListener("fullscreenchange", fullscreenOff);
-		document.addEventListener("mozfullscreenchange", fullscreenOff);
-		document.addEventListener("msfullscreenchange", fullscreenOff);
-		document.addEventListener("webkitfullscreenchange", fullscreenOff);
-	}
-	startTime = Date.now();
-	lastFrame = startTime;
-	interval = 1000 / constants.TARGET_FPS;
-	if (!animating) requestAnimationFrame(animate);
-	animating = true;
-}
-
-/**
- * Starts up the game.
- */
-function startGame() {
-	GAME_STARTED = true;
-	game.start();
-	body.removeEventListener("click", startGame);
-	body.classList.remove("start");
-	if (AUTO_FULLSCREEN) toggleFullScreen();
-	console.log("game started");
-}
 
 /***/ }),
 /* 5 */
@@ -917,13 +659,13 @@ var vectrix = _interopRequireWildcard(_vectrix);
 
 var _photonomix = __webpack_require__(2);
 
-var _photonomixGame = __webpack_require__(8);
+var _photonomixGame = __webpack_require__(14);
 
 var _photonomixGame2 = __webpack_require__(3);
 
-var _photonomixGame3 = __webpack_require__(7);
+var _photonomixGame3 = __webpack_require__(13);
 
-var _photonomixGame4 = __webpack_require__(6);
+var _photonomixGame4 = __webpack_require__(12);
 
 var _photonomix2 = __webpack_require__(0);
 
@@ -1034,1006 +776,673 @@ Void.prototype.tick = function (entities, delta) {
 Object.defineProperty(exports, "__esModule", {
 	value: true
 });
-exports.AntiGravitonCluster = AntiGravitonCluster;
+exports.ui = exports.sprites = exports.entities = exports.bokeh = undefined;
+exports.updateCompositeOperation = updateCompositeOperation;
+exports.screenSpace = screenSpace;
+exports.screenSpaceVec = screenSpaceVec;
+exports.gameSpaceVec = gameSpaceVec;
+exports.offscreen = offscreen;
+exports.drawCircle = drawCircle;
+exports.tick = tick;
+exports.init = init;
 
-var _vectrix = __webpack_require__(1);
+var _bokeh = __webpack_require__(37);
 
-var vectrix = _interopRequireWildcard(_vectrix);
+var bokeh = _interopRequireWildcard(_bokeh);
 
-var _photonomix = __webpack_require__(2);
+var _entities = __webpack_require__(38);
 
-var _photonomixGame = __webpack_require__(5);
+var entities = _interopRequireWildcard(_entities);
 
-var _photonomixGame2 = __webpack_require__(3);
+var _sprites = __webpack_require__(19);
 
-var _photonomix2 = __webpack_require__(0);
+var sprites = _interopRequireWildcard(_sprites);
+
+var _ui = __webpack_require__(39);
+
+var ui = _interopRequireWildcard(_ui);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
-var _vectrix$vectors = vectrix.vectors,
-    vec2 = _vectrix$vectors.vec2,
-    times = _vectrix$vectors.times,
-    distance = _vectrix$vectors.distance,
-    mut_copy = _vectrix$vectors.mut_copy;
-var mut_plus = vectrix.matrices.mut_plus;
-var random = Math.random,
-    sqrt = Math.sqrt,
-    PI = Math.PI,
-    ceil = Math.ceil,
-    min = Math.min,
-    max = Math.max;
+exports.bokeh = bokeh;
+exports.entities = entities;
+exports.sprites = sprites;
+exports.ui = ui;
 
-var POS_C = vec2(0, 0);
 
-function AntiGravitonCluster() {
-	var ipos = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : vec2();
-	var ivel = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : vec2();
-	var mass = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
-	var photonPool = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
+var animating = false; // whether the game is currently running animation loop
+var game = void 0; // game environment object
+var controls = void 0; // control state object
+var props = void 0; // display properties
 
-	this.pos = vec2(ipos);
-	this.vel = vec2(ivel);
-	this.size = 0;
-	this.birthMass = this.initialMass = mass;
-	this.mass = 1;
-	this.photonPool = photonPool;
-	this.instability = 0;
-	this.size = 0;
-	return this;
+/**
+ * Using this checks and avoids altering the canvas context state machine if unnecessary,
+ * which theoretically saves a little time.
+ */
+function updateCompositeOperation(ctx, op) {
+	if (ctx.globalCompositeOperation !== op) ctx.globalCompositeOperation = op;
 }
 
-var scratch = vec2(),
-    entity = void 0,
-    i = 0 | 0,
-    len = 0 | 0,
-    dist = 0.0,
-    consume = 0 | 0;
-AntiGravitonCluster.prototype.tick = function (entities, delta, frameCount) {
-	if (this.birthMass > 0) {
-		consume = min(this.birthMass, ceil(this.mass / 10));
-		this.birthMass -= consume;
-		this.mass += consume;
+/**
+ * Calculates the screenspace pixel offset of a coordinate from the [-1,1] coordinate
+ * range used in game position vectors.
+ */
+function screenSpace(x) {
+	return (x + 1) / 2 * props.minDimension;
+}
+
+/**
+ * Finds the screen space equivalent of the game space vector v.
+ * @param {vec2} v game space vector
+ * @param {vec2} out out parameter
+ * @return {out}
+ */
+
+function screenSpaceVec(v, out) {
+	out[0] = (v[0] + 1) / 2 * props.minDimension;
+	out[1] = (v[1] + 1) / 2 * props.minDimension;
+	return out;
+}
+
+/**
+ * Finds the game space equivalent of the sceen space vector v.
+ * @param {vec2} v game space vector
+ * @param {vec2} out out parameter
+ * @return {out}
+ */
+function gameSpaceVec(v, out) {
+	out[0] = 2 * (v[0] / props.minDimension) - 1;
+	out[1] = 2 * (v[1] / props.minDimension) - 1;
+}
+
+/**
+ * Checks if entity is out of screen space by more than 50%.
+ */
+function offscreen(x, y) {
+	return x < props.width * -0.5 || x > props.width * 1.5 || y < props.height * -0.5 || y > props.height * 1.5;
+}
+
+/**
+ * Draws a colored circle.
+ */
+function drawCircle(ctx, x, y, size, fillStyle) {
+	var lineWidth = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 0;
+	var strokeStyle = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : undefined;
+
+	ctx.globalCompositeOperation = "source-over";
+	ctx.beginPath();
+	ctx.arc(x, y, size, 2 * Math.PI, false);
+	ctx.fillStyle = fillStyle;
+	ctx.fill();
+	if (strokeStyle) {
+		ctx.strokeStyle = strokeStyle;
+		ctx.lineWidth = lineWidth;
+		ctx.stroke();
 	}
-	this.size = sqrt(this.mass * 0.05 / PI) * _photonomix2.MOTE_BASE_SIZE;
-	// last turn's move, has to happen first
-	mut_plus(this.pos, times(this.vel, delta, scratch));
-	this.initialMass = max(this.mass, this.initialMass);
+	ctx.closePath();
+}
 
-	// apply basic forces
-	// don't go off the screen
-	mut_plus(this.vel, (0, _photonomix.avoid)(this.vel, this.pos, POS_C, 1.3, 0.01, scratch));
-	// apply drag
-	mut_plus(this.vel, (0, _photonomix.drag)(this.vel, _photonomix2.GLOBAL_DRAG));
+/**
+ * Main animation loop.
+ */
+function tick() {
+	if (!animating) animating = true;
+	bokeh.draw();
+	entities.draw(game);
+	ui.draw();
+}
 
-	if (this.birthMass === 0) {
-		this.instability += this.mass * 0.003;
-	}
-	if (frameCount % ceil(_photonomix2.TARGET_FPS * 0.05) === 0) {
-		while (this.instability > 0 && this.mass > 0) {
-			entities.push(this.emitPhoton());
-			this.mass -= min(this.mass, 7);
-			this.instability -= 0.9;
-		}
-	}
-
-	for (i = 0, len = entities.length; i < len; ++i) {
-		entity = entities[i];
-		if (entity === this) continue;
-		dist = distance(this.pos, entity.pos);
-
-		if (entity instanceof _photonomixGame.Void) {
-			if (dist < (entity.size + this.size) * 0.5) {
-				consume = min(entity.mass, ceil((entity.mass + entity.birthMass) / 10));
-				this.mass += consume;
-				entity.mass -= consume;
-				this.instability += consume * 0.07;
-			}
-			if (dist < this.size * 10) mut_plus(this.vel, (0, _photonomix.accelerate)(this.pos, entity.pos, this.size * dist * 5, scratch));
-			return;
-		}
-	}
-};
-
-AntiGravitonCluster.prototype.emitPhoton = function () {
-	var pos = vec2(),
-	    vel = vec2(),
-	    rot = vec2(),
-	    radians = 0.0,
-	    mim = 0.0,
-	    color = 0 | 0;
-	return function emitPhoton() {
-		color = ~~(random() * 3);
-		pos[0] = this.size * 0.1;
-		pos[1] = this.size * 0.1;
-		mut_plus(pos, this.pos);
-		mut_copy(vel, this.vel);
-		mim = this.mass % this.initialMass;
-		radians = mim / (this.initialMass / 2);
-		radians = radians + mim % 100 * (2 / 100); // split across arms
-		mut_copy(rot, (0, _photonomix.rotate)(pos, this.pos, radians, pos));
-		mut_plus(rot, this.pos);
-		mut_plus(pos, rot);
-		// introduce some jitter
-		mut_plus(vel, (0, _photonomix.accelerate)(this.pos, pos, this.size * 2, scratch));
-		return new _photonomixGame2.Photon(pos, vel, color, this.photonPool);
-	};
-}();
+/**
+ * Initializes game environment.
+ */
+function init(state, display) {
+	game = state.game;
+	props = display.props;
+	controls = state.controls;
+	bokeh.init(display);
+	entities.init(display);
+	ui.init(display);
+}
 
 /***/ }),
 /* 7 */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony export (immutable) */ __webpack_exports__["requestAsset"] = requestAsset;
+/* harmony export (immutable) */ __webpack_exports__["requestAssetList"] = requestAssetList;
+/* harmony export (immutable) */ __webpack_exports__["enqueueAsset"] = enqueueAsset;
+/* harmony export (immutable) */ __webpack_exports__["enqueueAssetList"] = enqueueAssetList;
+/* harmony export (immutable) */ __webpack_exports__["processQueue"] = processQueue;
+/* harmony export (immutable) */ __webpack_exports__["setGlobalAssetPrefix"] = setGlobalAssetPrefix;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_assets_mimeTypes__ = __webpack_require__(32);
 
 
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.Emitter = Emitter;
-
-var _vectrix = __webpack_require__(1);
-
-var vectrix = _interopRequireWildcard(_vectrix);
-
-var _photonomix = __webpack_require__(0);
-
-var _photonomix2 = __webpack_require__(2);
-
-var _photonomixGame = __webpack_require__(3);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-var _vectrix$vectors = vectrix.vectors,
-    vec2 = _vectrix$vectors.vec2,
-    times = _vectrix$vectors.times,
-    mut_times = _vectrix$vectors.mut_times,
-    distance = _vectrix$vectors.distance;
-var mut_plus = vectrix.matrices.mut_plus;
-var random = Math.random,
-    sqrt = Math.sqrt,
-    ceil = Math.ceil,
-    min = Math.min,
-    PI = Math.PI;
-
-var POS_C = vec2(0, 0);
 
 /**
- * Emitters are "white holes" that spit out photons on a fixed schedule until depleted.
+ * @Module pxene.assets
+ * Handles loading, pre-processing, and caching of remote assets.
  */
-function Emitter() {
-	var ipos = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : vec2();
-	var ivel = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : vec2();
-	var mass = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
-	var photonPool = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
-	var arms = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
+/** @const {Array} list of deferred asset URIs **/
+const enqueuedURIs = [];
+/** @const {Array} list of currently fetching URIs **/
+const fetchingURIs = [];
+/** @const {Array} list of completed URIs which should be in the cache **/
+const completedURIs = [];
+/** @const {Object} a hash of uri->{@link Asset} **/
+const cache = {};
+/** @const {Object} a hash of handlers by mime type **/
 
-	this.pos = vec2(ipos);
-	this.vel = vec2(ivel);
-	this.birthMass = mass;
-	this.mass = 1;
-	this.initialMass = mass;
-	this.photonPool = photonPool;
-	this.arms = arms || ceil(random() * random() * 50);
-	this.size = 0;
-	this.next = ~~(random() * 3);
+let globalAssetPrefix = "";
+let fetching = 0;
+
+/**
+ * Safely attempt to move an item from one array to another.
+ * @return {bool} true if an item was found or moved, otherwise false
+ */
+function moveItem(item, oldList, newList) {
+	let i = oldList.indexOf(item);
+	if(i !== -1) {
+		newList.push(oldList.splice(i, 1));
+		return true;
+	}
+	else return false;
+}
+
+/**
+ * An object representing a loaded asset.
+ * @property uri the uri originally requested for the object (not including global prefixes, domain names, etc)
+ * @property {Object} content the processed response, which may be an Image, a string, an SVG, a decoded JSON object, or any other supported value type
+ * @property {String} type
+ */
+function Asset(uri, content, type) {
+	this.uri = uri;
+	this.content = content;
+	this.type = type;
 	return this;
 }
 
-var scratchVec1 = vec2(),
-    emissionsPerSecond = 0 | 0,
-    emissionsPerFrame = 0 | 0,
-    targetFrame = 0 | 0,
-    i = 0 | 0,
-    len = 0 | 0,
-    entity = void 0,
-    a_dist = 0.0,
-    consume = 0 | 0;
-Emitter.prototype.tick = function (entities, delta, frameCount) {
-	/* jshint unused:false */
-	if (this.birthMass > 0) {
-		consume = min(this.birthMass, ceil(this.mass / 100));
-		this.birthMass -= consume;
-		this.mass += consume;
+/**
+ * Fetches an asset from a remote source.
+ * @param {String} uri
+ */
+function fetchAsset(uri) {
+	if(fetchingURIs.indexOf(uri) === -1 && completedURIs.indexOf(uri) === -1) {
+		fetching++;
+		// add to the fetching list, moving it from enqueuedURIs if needed
+		if(!moveItem(uri, enqueuedURIs, fetchingURIs)) fetchingURIs.push(uri);
+		return fetch(globalAssetPrefix+uri).then(makeProcessFetchResponse(uri))	
 	}
-	this.size = sqrt(this.mass / PI) * _photonomix.EMITTER_SIZE;
-	if (this.birthMass === 0) {
-		// don't start producing until finished spawning
-		emissionsPerSecond = this.initialMass / 20;
-		targetFrame = ceil(_photonomix.TARGET_FPS / emissionsPerSecond);
-		emissionsPerFrame = emissionsPerSecond / _photonomix.TARGET_FPS;
-		if (frameCount % targetFrame === 0) {
-			while (emissionsPerFrame-- > 0 && this.mass > 0) {
-				this.mass--;
-				entities.push(this.emitPhoton());
-			}
-		}
+	else if(fetchingURIs.indexOf(uri) >= 0) {
+		return new Promise((resolve) => {
+			// @todo event based implementation of this ridiculous shit right here
+			let count = 0;
+			let interval = setInterval(() => {
+				if(cache[uri] !== undefined) {
+					resolve(cache[uri]);
+					clearInterval(interval);
+				}
+				else count++;
+				if(count > 100) {
+					clearInterval(interval);
+					throw Error("stuck in fetching status way too long");
+				}
+			}, 250);
+		});
 	}
-	// last turn's move, has to happen first
-	mut_plus(this.pos, times(this.vel, delta, scratchVec1));
-	// apply drag
-	mut_plus(this.vel, (0, _photonomix2.drag)(this.vel, _photonomix.GLOBAL_DRAG));
-	// avoid edge
-	mut_plus(this.vel, (0, _photonomix2.avoid)(this.vel, this.pos, POS_C, 1.3, 0.001, scratchVec1));
+	else if(completedURIs.indexOf(uri) >= 0) {
+		return Promise.resolve(cache[uri]);
+	}
+}
 
-	for (i = 0, len = entities.length; i < len; ++i) {
-		entity = entities[i];
-		if (entity === this) continue;
-		a_dist = distance(this.pos, entity.pos);
-		if (entity instanceof Emitter) {
-			mut_plus(entity.vel, mut_times((0, _photonomix2.gravitate)(entity.pos, this.pos, this.mass * entity.mass, scratchVec1), 1 / entity.mass));
-		} else {
-			mut_plus(entity.vel, mut_times((0, _photonomix2.gravitate)(entity.pos, this.pos, -this.mass * entity.mass, scratchVec1), 1 / entity.mass));
-		}
-	}
-};
 
-Emitter.prototype.emitPhoton = function () {
-	var pos = vec2(),
-	    radians = 0.0,
-	    mim = 0.0,
-	    color = 0 | 0;
-	return function emitPhoton() {
-		color = this.next;
-		pos[0] = this.size / 5;
-		pos[1] = this.size / 5;
-		mut_plus(pos, this.pos);
-		mim = this.mass % this.initialMass;
-		radians = mim / (this.initialMass / 2);
-		radians = radians + mim % this.arms * (2 / this.arms); // split across arms
-		mut_plus((0, _photonomix2.rotate)(pos, this.pos, radians, pos), this.pos);
-		this.next = ~~(random() * 3);
-		// introduce some jitter
-		return new _photonomixGame.Photon(pos, vec2(0, 0), color, this.photonPool);
-	};
-}();
+/**
+ * Makes a processFetchResponse binding to ensure the original uri stays in scope.
+ */
+function makeProcessFetchResponse(uri) {
+	return processFetchResponse.bind(null, uri);
+}
+
+/**
+ * Processes a response from a fetch request.
+ */
+function processFetchResponse(uri, response) {
+	return new Promise((resolve, reject) => {
+		if(response.ok) {
+			let type = response.headers.get("Content-type");
+			return __WEBPACK_IMPORTED_MODULE_0__pxene_assets_mimeTypes__["a" /* getHandler */](type)(response)
+				.then((content) => storeAsset(uri, content, type, resolve));
+		}
+		else reject("failed to fetch asset "+uri);
+	});
+}
+
+/**
+ * Stores an asset in the cache.
+ * @param {String} uri the originally requested URI
+ * @param {mixed} content the processed response content
+ * @param {String} type the mime type of the response
+ * @param {function} resolve promise callback for the original fetch request
+ */
+function storeAsset(uri, content, type, resolve) {
+	let item = new Asset(uri, content, type); 
+	cache[uri] = item;
+	fetching--;
+	moveItem(uri, fetchingURIs, completedURIs);
+	resolve(item);
+}
+
+/**
+ * Gets an asset from the cache if available, or else fetches it from a remote source.
+ * Returns a promise which resolves with the {@link Asset} requested.
+ * @param {String} uri 
+ * @return Promise
+ */
+function requestAsset(uri) {
+	let item = cache[uri];
+	if(item === undefined) return fetchAsset(uri);
+	else return Promise.resolve(item);
+}
+
+function requestAssetList(list) {
+	return Promise.all(list.map((item) => requestAsset(item)));
+}
+
+/**
+ * Enqueues an asset to be fetched. Enqueued assets are fetched later when processQueue is called.
+ */
+function enqueueAsset(uri) {
+	if(enqueuedURIs.indexOf(uri) === -1 && fetchingURIs.indexOf(uri) === -1 && cache[uri] === undefined) enqueuedURIs.push(uri);
+}
+
+/**
+ * Enqueues a list of assets to be fetched layer during a processQueue() call.
+ * @param {Array} list array of URIs to load
+ * @returns {Promise|undefined}
+ */
+function enqueueAssetList(list) {
+	list.forEach(item => enqueueAsset(item)); 
+}
+
+/**
+ * Process any deferred items in the queue.
+ * @return {Promise} a promise that resolves when all the items are fetched with an array of all the fetched items
+ */
+function processQueue() {
+	return Promise.all(enqueuedURIs.map((uri) => fetchAsset(uri)));
+}
+
+/**
+ * Sets the globalAssetPrefix, which is prepended to all fetch URIs.
+ * @param {string} prefix a string representing a path or filename prefix
+ */
+function setGlobalAssetPrefix(prefix) {
+	globalAssetPrefix = prefix;
+}
+
 
 /***/ }),
 /* 8 */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+const TARGET_FPS = 30;
+/* harmony export (immutable) */ __webpack_exports__["c"] = TARGET_FPS;
+
+const GRAVITY = 6.67408e-8;
+/* harmony export (immutable) */ __webpack_exports__["a"] = GRAVITY;
+
+const GLOBAL_DRAG = 0.1;
+/* unused harmony export GLOBAL_DRAG */
 
 
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.BUFFER_LENGTH = exports.ACT_LINK = exports.ACT_ATTACK = exports.ACT_AVOID = exports.ACT_CHASE = exports.ACT_SEARCH = exports.ACT_IDLE = undefined;
-exports.Mote = Mote;
+// general debug switch
+const DEBUG = true;
+/* harmony export (immutable) */ __webpack_exports__["d"] = DEBUG;
 
-var _photonomix = __webpack_require__(0);
+// toggles vector validation in various functions that tend to produce
+// infinite or NaN results; when enabled, vectors are checked and if invalid
+// the function is rerun step by step and logged to identify trouble spots
+const VALIDATE_VECTORS = DEBUG || true;
+/* harmony export (immutable) */ __webpack_exports__["b"] = VALIDATE_VECTORS;
 
-var _vectrix = __webpack_require__(1);
 
-var vectrix = _interopRequireWildcard(_vectrix);
-
-var _photonomix2 = __webpack_require__(2);
-
-var _photonomixGame = __webpack_require__(3);
-
-var _photonomixGame2 = __webpack_require__(5);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-var random = Math.random,
-    max = Math.max,
-    min = Math.min,
-    floor = Math.floor,
-    ceil = Math.ceil,
-    sin = Math.sin;
-var _vectrix$vectors = vectrix.vectors,
-    vec2 = _vectrix$vectors.vec2,
-    times = _vectrix$vectors.times,
-    mut_clamp = _vectrix$vectors.mut_clamp,
-    magnitude = _vectrix$vectors.magnitude,
-    distance = _vectrix$vectors.distance,
-    mut_copy = _vectrix$vectors.mut_copy,
-    mut_times = _vectrix$vectors.mut_times;
-var _vectrix$matrices = vectrix.matrices,
-    plus = _vectrix$matrices.plus,
-    mut_plus = _vectrix$matrices.mut_plus;
-
-var clamp = mut_clamp;
-// Center of the playfield is at 0,0 (ranging from -1 to 1 on X and Y axis)
-var POS_C = vec2(0.0, 0.0);
-// activity type constants
-var ACT_IDLE = exports.ACT_IDLE = 0;
-var ACT_SEARCH = exports.ACT_SEARCH = 1;
-var ACT_CHASE = exports.ACT_CHASE = 2;
-var ACT_AVOID = exports.ACT_AVOID = 3;
-var ACT_ATTACK = exports.ACT_ATTACK = 4;
-var ACT_LINK = exports.ACT_LINK = 5;
-
-// twiddle to slightly offset the values, avoids divide by zero and other errors
-// inherent to acceleration, friction, drag and gravity equations
-(0, _photonomix2.twiddleVec)(POS_C);
-// relative color values derived from a Mote's photons, used to produce color string
-// for rendering
-
-// various consts below are indexes and byte counts for mote data
-// byte length of these value types
-var I8 = 1;
-var F32 = 4;
-
-// uint8 values = photons[3]
-var U8_PHO = 0,
-    U8_COL = U8_PHO + I8 * 3,
-    U8_VAL_LENGTH = U8_COL + I8 * 3,
-    I8_BYTE_OFFSET = U8_VAL_LENGTH;
-// int8 values =  dying, pregnant, injured, lastMeal, pulse
-var I8_DYING = 0,
-    I8_PREG = I8_DYING + I8,
-    I8_INJURED = I8_PREG + I8,
-    I8_LAST_INJURY = I8_INJURED + I8,
-    I8_MEAL = I8_LAST_INJURY + I8,
-    I8_UPD = I8_MEAL + I8,
-    I8_PULSE = I8_UPD + I8,
-    I8_ACT = I8_PULSE + I8,
-    I8_VAL_LENGTH = I8_ACT + I8,
-    INT_VAL_LENGTH = U8_VAL_LENGTH + I8_VAL_LENGTH;
-
-// float32 values = p[3], v[3], color[4], size, sizeMin, sizeMax, speed, sight, agro, fear, potential, resistance
-// from here on, increments of value * 4
-// vectors
-var VEC_BYTE_OFFSET = INT_VAL_LENGTH + (F32 - INT_VAL_LENGTH % F32),
-    // float32 offsets must be multiples of 4
-F32_POS = 0,
-    F32_VEL = F32_POS + 2,
-    F32_RAT = F32_VEL + 2,
-    F32_PREF = F32_RAT + 3,
-    VEC_VAL_LENGTH = F32_PREF + 3;
-
-var F32_BYTE_OFFSET = VEC_BYTE_OFFSET + VEC_VAL_LENGTH * F32,
-
-// scalars
-F32_SIZE = 0,
-    F32_SIZE_MIN = F32_SIZE + 1,
-    F32_SIZE_MAX = F32_SIZE_MIN + 1,
-    F32_SPEED = F32_SIZE_MAX + 1,
-    F32_SIGHT = F32_SPEED + 1,
-    F32_AGRO = F32_SIGHT + 1,
-    F32_FEAR = F32_AGRO + 1,
-    F32_POTENTIAL = F32_FEAR + 1,
-    F32_RESISTANCE = F32_POTENTIAL + 1,
-    F32_MASS = F32_RESISTANCE + 1,
-    FLOAT_VAL_LENGTH = F32_MASS + 1;
-
-var BUFFER_LENGTH = exports.BUFFER_LENGTH = F32_BYTE_OFFSET + FLOAT_VAL_LENGTH * F32;
-
-// scratch vectors used in various functions
-var scratch1 = vec2(),
-    scratch2 = vec2();
-
-/**
- * Constructor for Motes.
- * @param {Float32Array(3)} photons initial photons (0-255, R, G, B)
- * @param {vec2} pos initial position
- * @param {Float} bSpeed (optional) base acceleration: inheritance and predesigned motes 
- * @param {Float} bSight (optional) base vision radius: inheritance and predesigned motes 
- * @param {Float} bAgro (optional) base aggressiveness: inheritance and predesigned motes 
- * @param {Float} bFear (optional) base fearfulness: inheritance and predesigned motes 
- * @param {BufferPool} pool (optional) buffer pool to build the mote on
- * @property {vec2} pos position vector
- * @property {vec2} vel velocity vector
- * @property {Uint8} r red photon value (setter updates values and derived props)
- * @property {Uint8} g green photon value (setter updates value and derived props)
- * @property {Uint8} b blue photon value (setter updates value and derived props)
- * @property {string} color_string rgba color string, used for drawing in 2d
- * @property {Int8} dying counter from 1 to DEATH_THRESHOLD when a mote is dying
- * @property {Int8} pregnant coundown from PREGNANT_DURATION when a mote is pregnant
- * @property {Int8} injured injury counter, counts down in mote.bleed
- * @property {Int8} lastInjury strength of most recent injury taken
- * @property {Int8} pulse frame offset for pulse animation
- * @property {Int8} lastMeal color value for last meal (see R, G, B constants)
- * @property {Int8} action action choice in relation to target 
- * @property {Float32} speed derived acceleration speed based on Mote properties
- * @property {Float32} sight derived vision radius based on Mote properties 
- * @property {Float32} agro derived aggression factor based on Mote properties 
- * @property {Float32} fear derived fearfulness factor based on Mote properties 
- * @property {Float32} potential accumulated charge potential
- * @property {Float32} resistance accumulated resistance to charge
- * @property {Float32} size derived size radius as fraction of screen size
- * @property {Float32} sizeMin minimum size the mote can reach as it shrinks
- * @property {Float32} sizeMax maximum size the mote can reach as it grows
- * @property {UintClamped8Array} photons current photon values (R, G, B)
- * @property {UintClamped8Array} color current mote color (R, G, B)
- * @property {Int8Array} intVals direct access to integer value array (for debug)
- * @property {Float32Array} ratios current photon ratios (R, G, B)
- * @property {Float32Array} prefs preferred photon ratios
- * @property {Float32Array} floatVals direct access to float value array (for debug)
- * @return {Mote}
- */
-function Mote() {
-	var _photons = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : new Uint8Array(3);
-
-	var pos = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : new Float32Array(2);
-	var pool = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : undefined;
-	var bSpeed = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : _photonomix.MOTE_BASE_SPEED;
-	var bSight = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : _photonomix.MOTE_BASE_SIGHT;
-	var bAgro = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 1.0;
-	var bFear = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : 1.0;
-
-	var buffer = void 0,
-	    offset = 0 | 0;
-	if (pool) {
-		buffer = pool.buffer;
-		offset = pool.allocate();
-	} else {
-		buffer = new ArrayBuffer(BUFFER_LENGTH);
-		offset = 0;
-	}
-
-	// "private" properties
-	// use a single buffer for properties so that they're guaranteed to be contiguous
-	// in memory and typed
-	var photons = new Uint8ClampedArray(buffer, U8_PHO + offset, 3);
-	var color = new Uint8ClampedArray(buffer, U8_COL + offset, 3);
-	photons[_photonomixGame.COLOR_R] = _photons[_photonomixGame.COLOR_R];
-	photons[_photonomixGame.COLOR_G] = _photons[_photonomixGame.COLOR_G];
-	photons[_photonomixGame.COLOR_B] = _photons[_photonomixGame.COLOR_B];
-	var intVals = new Int8Array(buffer, I8_BYTE_OFFSET + offset, I8_VAL_LENGTH - U8_PHO);
-	var floatVals = new Float32Array(buffer, F32_BYTE_OFFSET + offset, FLOAT_VAL_LENGTH);
-	this.pos = vec2(pos, buffer, F32_POS * F32 + VEC_BYTE_OFFSET + offset);
-	this.vel = vec2(0.0, 0.0, buffer, F32_VEL * F32 + VEC_BYTE_OFFSET + offset);
-	var ratios = new Float32Array(buffer, F32_RAT * F32 + VEC_BYTE_OFFSET + offset, 3);
-	var prefs = new Float32Array(buffer, F32_PREF * F32 + VEC_BYTE_OFFSET + offset, 3);
-	this.target = undefined;
-	this.color_string = "";
-	bSpeed = bSpeed + (0, _photonomix2.adjRand)(0.0005);
-	bSight = bSight + (0, _photonomix2.adjRand)(0.001); // vision distance
-	bAgro = bAgro + (0, _photonomix2.adjRand)(0.001);
-	bFear = bFear + (0, _photonomix2.adjRand)(0.001);
-
-	Object.defineProperties(this, {
-		"photons": { get: function get() {
-				return photons;
-			} },
-		"color": { get: function get() {
-				return color;
-			} },
-		"dying": { get: function get() {
-				return intVals[I8_DYING];
-			}, set: function set(v) {
-				return intVals[I8_DYING] = v;
-			} },
-		"action": { get: function get() {
-				return intVals[I8_ACT];
-			}, set: function set(v) {
-				return intVals[I8_ACT] = v;
-			} },
-		"pregnant": { get: function get() {
-				return intVals[I8_PREG];
-			}, set: function set(v) {
-				return intVals[I8_PREG] = v;
-			} },
-		"injured": { get: function get() {
-				return intVals[I8_INJURED];
-			}, set: function set(v) {
-				return intVals[I8_INJURED] = v;
-			} },
-		"lastInjury": { get: function get() {
-				return intVals[I8_LAST_INJURY];
-			}, set: function set(v) {
-				return intVals[I8_LAST_INJURY] = v;
-			} },
-		"needsUpdate": { get: function get() {
-				return intVals[I8_UPD];
-			}, set: function set(v) {
-				return intVals[I8_UPD] = v;
-			} },
-		"pulse": { get: function get() {
-				return intVals[I8_PULSE];
-			}, set: function set(v) {
-				return intVals[I8_PULSE] = v;
-			} },
-		"lastMeal": { get: function get() {
-				return intVals[I8_MEAL];
-			}, set: function set(v) {
-				return intVals[I8_MEAL] = v;
-			} },
-		"size": { get: function get() {
-				return floatVals[F32_SIZE];
-			}, set: function set(v) {
-				return floatVals[F32_SIZE] = v;
-			} },
-		"sizeMin": { get: function get() {
-				return floatVals[F32_SIZE_MIN];
-			}, set: function set(v) {
-				return floatVals[F32_SIZE_MIN] = v;
-			} },
-		"sizeMax": { get: function get() {
-				return floatVals[F32_SIZE_MAX];
-			}, set: function set(v) {
-				return floatVals[F32_SIZE_MAX] = v;
-			} },
-		"speed": { get: function get() {
-				return floatVals[F32_SPEED];
-			}, set: function set(v) {
-				return floatVals[F32_SPEED] = v;
-			} },
-		"sight": { get: function get() {
-				return floatVals[F32_SIGHT];
-			}, set: function set(v) {
-				return floatVals[F32_SIGHT] = v;
-			} },
-		"agro": { get: function get() {
-				return floatVals[F32_AGRO];
-			}, set: function set(v) {
-				return floatVals[F32_AGRO] = v;
-			} },
-		"fear": { get: function get() {
-				return floatVals[F32_FEAR];
-			}, set: function set(v) {
-				return floatVals[F32_FEAR] = v;
-			} },
-		"potential": { get: function get() {
-				return floatVals[F32_POTENTIAL];
-			}, set: function set(v) {
-				return floatVals[F32_POTENTIAL] = v;
-			} },
-		"resistance": { get: function get() {
-				return floatVals[F32_RESISTANCE];
-			}, set: function set(v) {
-				return floatVals[F32_RESISTANCE] = v;
-			} },
-		"mass": { get: function get() {
-				return floatVals[F32_MASS];
-			}, set: function set(v) {
-				return floatVals[F32_MASS] = v;
-			} },
-		"base_speed": { get: function get() {
-				return bSpeed;
-			} },
-		"base_sight": { get: function get() {
-				return bSight;
-			} },
-		"base_agro": { get: function get() {
-				return bAgro;
-			} },
-		"base_fear": { get: function get() {
-				return bFear;
-			} },
-		"pool": { get: function get() {
-				return pool;
-			} },
-		"offset": { get: function get() {
-				return offset;
-			} },
-		"ratios": { get: function get() {
-				return ratios;
-			} },
-		"prefs": { get: function get() {
-				return prefs;
-			} }
-	});
-
-	/*
-  * Debug access only.
-  */
-	if (_photonomix.DEBUG) Object.defineProperties(this, {
-		"intVals": { get: function get() {
-				return intVals;
-			} },
-		"floatVals": { get: function get() {
-				return floatVals;
-			} }
-	});
-
-	// initialize values, important to do since buffer may be reused
-	this.dying = 0;
-	this.pregnant = 0;
-	this.injured = 0;
-	this.lastInjury = 0;
-	this.speed = bSpeed;
-	this.sight = bSight;
-	this.agro = bAgro;
-	this.fear = bFear;
-	this.potential = this.agro * 2;
-	this.resistance = this.fear * 2;
-	this.lastMeal = ~~(random() * 3);
-	this.pulse = ~~(_photonomix.TARGET_FPS * random());
-	this.size = _photonomix.MOTE_BASE_SIZE;
-	this.sizeMin = _photonomix.MOTE_BASE_SIZE * 0.5;
-	this.sizeMax = _photonomix.MOTE_BASE_SIZE * 3;
-
-	this.updateProperties();
-	this.prefs[_photonomixGame.COLOR_R] = this.ratios[_photonomixGame.COLOR_R];
-	this.prefs[_photonomixGame.COLOR_G] = this.ratios[_photonomixGame.COLOR_G];
-	this.prefs[_photonomixGame.COLOR_B] = this.ratios[_photonomixGame.COLOR_B];
-	return this;
-}
-
-/**
- * Updates derived properties for mote.
- */
-Mote.prototype.updateProperties = function () {
-	var r = 0 | 0,
-	    g = 0 | 0,
-	    b = 0 | 0,
-	    photons = void 0,
-	    color = void 0,
-	    ratios = void 0;
-	return function updateProperties() {
-		photons = this.photons;
-		ratios = this.ratios;
-		color = this.color;
-
-		r = photons[_photonomixGame.COLOR_R];
-		g = photons[_photonomixGame.COLOR_G];
-		b = photons[_photonomixGame.COLOR_B];
-		this.mass = r + g + b;
-		if (this.mass > 0) {
-			// otherwise skip this stuff since the mote is dead anyway
-			this.size = clamp(this.mass / (_photonomix.PREGNANT_THRESHOLD / 3) * _photonomix.MOTE_BASE_SIZE, this.sizeMin, this.sizeMax);
-			ratios[_photonomixGame.COLOR_R] = (0, _photonomix2.ratio)(r, g + b);
-			ratios[_photonomixGame.COLOR_G] = (0, _photonomix2.ratio)(g, r + b);
-			ratios[_photonomixGame.COLOR_B] = (0, _photonomix2.ratio)(b, g + r);
-			this.speed = this.base_speed * (1 - this.size) * (1 + ratios[_photonomixGame.COLOR_B]);
-			this.sight = this.base_sight + this.size * 0.5; // see from edge onward
-			this.agro = this.base_agro * (1 + ratios[_photonomixGame.COLOR_R]);
-			this.fear = this.base_fear * (1 + ratios[_photonomixGame.COLOR_G]);
-			if (_photonomix.DEBUG) {
-				if (isNaN(this.speed)) throw new Error("Mote.updateProperties: NaN speed");
-				if (isNaN(this.sight)) throw new Error("Mote.updateProperties: NaN sight");
-				if (isNaN(this.size)) throw new Error("Mote.updateProperties: NaN size");
-				if (isNaN(this.agro)) throw new Error("Mote.updateProperties: NaN agro");
-				if (isNaN(this.fear)) throw new Error("Mote.updateProperties: NaN fear");
-			}
-		} // end of stuff to do only if sum > 0
-
-		if (this.mass > _photonomix.PREGNANT_THRESHOLD && this.pregnant === 0) this.pregnant = _photonomix.PREGNANT_TIME;
-		if (this.mass < _photonomix.DEATH_THRESHOLD && this.dying === 0) this.dying = 1;
-
-		color[_photonomixGame.COLOR_R] = ~~(r / this.mass * 255);
-		color[_photonomixGame.COLOR_G] = ~~(g / this.mass * 255);
-		color[_photonomixGame.COLOR_B] = ~~(b / this.mass * 255);
-		this.needsUpdate = 0;
-	};
-}();
-
-/**
- * Maintenance tasks to be done each tick
- */
-Mote.prototype.runMaintenance = function () {
-	var pregnant = 0 | 0,
-	    dying = 0 | 0,
-	    tmpPot = 0.0,
-	    tmpRes = 0.0,
-	    agro = 0.0,
-	    fear = 0.0,
-	    size = 0.0,
-	    speed = 0.0,
-	    sight = 0.0,
-	    pos = void 0,
-	    vel = void 0,
-	    target = void 0;
-	return function runMaintenance(delta) {
-		pos = this.pos;
-		vel = this.vel;
-		pregnant = this.pregnant;
-		dying = this.dying;
-		agro = this.agro;
-		fear = this.fear;
-		size = this.size;
-		speed = this.speed;
-		sight = this.sight;
-		target = this.target;
-
-		if (pregnant > 0) this.pregnant = pregnant - 1;
-		if (dying > 0) this.dying = dying + 1; // start counting up
-		if (this.needsUpdate) this.updateProperties();
-		// build potential and resistance each tick
-		tmpPot = agro * (size * 100);
-		tmpRes = fear * (size * 100);
-		this.potential = clamp(this.potential + agro * delta, -tmpPot, tmpPot);
-		this.resistance = clamp(this.resistance + fear * delta, -tmpRes, tmpRes);
-
-		// last turn's move, has to happen first to avoid prediction inaccuracy
-		// during chases
-		mut_plus(pos, times(vel, delta, scratch1));
-
-		// don't go off the screen
-		mut_plus(vel, (0, _photonomix2.avoid)(vel, pos, POS_C, 1.3, speed, scratch1));
-		// apply drag
-		mut_plus(vel, (0, _photonomix2.drag)(vel, _photonomix.GLOBAL_DRAG));
-	};
-}();
-
-/**
- * Checks if a target is valid.
- * @param {Object} entity any game object that can be targeted
- * @return {float} distance if valid, otherwise -1
- */
-Mote.prototype.validateTarget = function () {
-	var dist = 0.0,
-	    sight = 0.0,
-	    pos = void 0;
-	return function (entity) {
-		pos = this.pos;
-		sight = this.sight;
-
-		dist = distance(pos, entity.pos);
-		// these targets are invalid
-		if (entity === this) return -1;
-		if (entity.dying) return -1;
-		if (entity.lifetime && entity.lifetime < 3) return -1;
-		if (entity.mass < 1) return -1;
-		if (dist > sight + entity.size * 0.5) return -1;
-		if ((0, _photonomix2.outOfBounds)(entity, 0.7)) return -1;
-		return dist;
-	};
-}();
-
-/**
- * Search for a target and decide how to act toward it.
- */
-Mote.prototype.search = function () {
-	var i = 0 | 0,
-	    len = 0 | 0,
-	    sight = 0.0,
-	    cur = 0.0,
-	    pos = void 0,
-	    vel = void 0,
-	    highest = void 0,
-	    dist = void 0,
-	    entity = void 0,
-	    deltar = 0.0,
-	    deltag = 0.0,
-	    deltab = 0.0,
-	    mind = 0.0,
-	    maxd = 0.0,
-	    weight = 0.0;
-	return function search(entities) {
-		pos = this.pos;
-		vel = this.vel;
-		sight = this.sight;
-
-		highest = -Infinity;
-		dist = 0;
-		if (this.pregnant || this.dying) {
-			this.action = ACT_IDLE;
-			highest = Infinity;
-		}
-
-		for (i = 0, len = entities.length; i < len && highest < Infinity; ++i) {
-			entity = entities[i];
-			var _dist = this.validateTarget(entity);
-			if (_dist === -1) continue;
-			// ignore things outside sight range
-			if (entity instanceof Mote) {
-				cur = 3 * (1 / _dist);
-				if (cur > highest) {
-					this.target = entity;
-					if (entity.target === this || _dist < (this.size + entity.size) * 0.5) {
-						this.action = ACT_AVOID;
-					} else this.action = ACT_CHASE;
-					highest = cur;
-				}
-			} else if (entity instanceof _photonomixGame2.Void) {
-				this.target = entity;
-				this.action = ACT_AVOID;
-				highest = Infinity;
-			} else if (entity instanceof _photonomixGame.Photon && entity.lifetime > 3) {
-				deltar = this.prefs[_photonomixGame.COLOR_R] - this.ratios[_photonomixGame.COLOR_R];
-				deltag = this.prefs[_photonomixGame.COLOR_G] - this.ratios[_photonomixGame.COLOR_G];
-				deltab = this.prefs[_photonomixGame.COLOR_B] - this.ratios[_photonomixGame.COLOR_B];
-				maxd = max(deltar, deltag, deltab);
-				mind = min(deltar, deltag, deltab);
-				if (maxd == deltar && entity.color == _photonomixGame.COLOR_R || maxd == deltag && entity.color == _photonomixGame.COLOR_G || maxd == deltab && entity.color == _photonomixGame.COLOR_B) weight = 30;
-				if (mind == deltar && entity.color == _photonomixGame.COLOR_R || mind == deltag && entity.color == _photonomixGame.COLOR_G || mind == deltab && entity.color == _photonomixGame.COLOR_B) weight = 10;else weight = 20;
-				cur = weight * (1 / _dist);
-				if (cur > highest) {
-					this.target = entity;
-					this.action = ACT_CHASE;
-					highest = cur;
-				}
-			}
-		}
-		if (highest < 0) return false;
-		return true;
-	};
-}();
-
-/**
- * Decide how to act each tick based on nearby objects.
- * @param Array surrounding array of nearby objects to consider in movement
- * @param Float delta time delta
- */
-Mote.prototype.tick = function () {
-	var pos = void 0,
-	    vel = void 0,
-	    size = void 0,
-	    sight = void 0,
-	    speed = void 0,
-	    agro = void 0,
-	    fear = void 0,
-	    resistance = void 0,
-	    potential = void 0,
-	    target = void 0,
-	    dist = void 0;
-	return function tick(entities, delta, frameCount) {
-		pos = this.pos;
-		vel = this.vel;
-		size = this.size;
-		sight = this.sight;
-		speed = this.speed;
-		agro = this.agro;
-		fear = this.fear;
-		resistance = this.resistance;
-		potential = this.potential;
-		target = this.target;
-
-		this.runMaintenance(delta);
-
-		// validate current target 
-		if (target && (dist = this.validateTarget(target)) === -1) {
-			this.action = ACT_IDLE;
-		}
-
-		switch (this.action) {
-			case ACT_IDLE:
-				// lost target, gave up, or completed task
-				this.target = undefined;
-				if (magnitude(vel) < 0.001) {
-					// not going anywhere, so pick a random direction
-					scratch1[0] = random() * 2 - 1;
-					scratch1[1] = random() * 2 - 1;
-				} else {
-					mut_copy(scratch1, pos);
-					mut_plus(scratch1, times(vel, delta, scratch2));
-					mut_plus(scratch1, (0, _photonomix2.rotate)(scratch1, pos, sin((frameCount + this.pulse) * speed), scratch2));
-				}
-				mut_plus(vel, (0, _photonomix2.accelerate)(pos, scratch1, speed, scratch2));
-				this.action = ACT_SEARCH;
-				break;
-			case ACT_CHASE:
-				// chasing a target
-				// predict target's next move
-				plus(target.pos, times(target.vel, delta, scratch1), scratch2);
-				mut_plus(vel, (0, _photonomix2.accelerate)(pos, scratch2, speed, scratch1));
-				if (dist < sight) {
-					if (target instanceof Mote && this.potential > this.agro * 3) this.action = ACT_ATTACK;else this.action = ACT_ATTACK;
-				}
-				break;
-			case ACT_AVOID:
-				// avoiding a target
-				// predict target's next move
-				plus(target.pos, times(target.vel, delta, scratch1), scratch2);
-				mut_plus(vel, (0, _photonomix2.accelerate)(scratch2, pos, speed, scratch1));
-				if (this.resistance > fear * 3) this.action = ACT_IDLE;
-				break;
-			case ACT_ATTACK:
-				// attacking a target
-				if (target instanceof Mote) this.discharge(target);else if (target instanceof _photonomixGame.Photon) this.eatPhoton(target);
-				break;
-			case ACT_LINK:
-				// linking with a target
-				break;
-			case ACT_SEARCH:
-				if (!this.search(entities)) this.action = ACT_IDLE;
-				break;
-			default:
-				break;
-		}
-	};
-}();
-
-var delta = 0.0;
-Mote.prototype.discharge = function (target) {
-	delta = this.potential - target.resistance;
-	target.resistance -= max(this.agro, delta * this.agro);
-	this.potential -= max(this.fear, delta * this.fear);
-	target.injure(this, max(0, ~~delta));
-	if (this.potential < 0) this.action = ACT_IDLE;
-};
-
-Mote.prototype.injure = function (by, strength) {
-	this.injured += strength;
-	this.lastInjury = this.injured;
-	if (this.resistance < this.agro * 3 || this.injured < this.fear) this.target = by;
-};
-
-Mote.prototype.bleed = function () {
-	var choice = 0 | 0,
-	    choiceVal = 0 | 0,
-	    pvel = vec2(),
-	    photons = void 0;
-	return function bleed(photonPool) {
-		photons = this.photons;
-		do {
-			choice = ~~(random() * 3);
-			switch (choice) {
-				case _photonomixGame.COLOR_R:
-					choiceVal = photons[_photonomixGame.COLOR_R];break;
-				case _photonomixGame.COLOR_G:
-					choiceVal = photons[_photonomixGame.COLOR_G];break;
-				case _photonomixGame.COLOR_B:
-					choiceVal = photons[_photonomixGame.COLOR_B];break;
-			}
-		} while (choiceVal === 0);
-		switch (choice) {
-			case _photonomixGame.COLOR_R:
-				photons[_photonomixGame.COLOR_R] = photons[_photonomixGame.COLOR_R] - 1;break;
-			case _photonomixGame.COLOR_G:
-				photons[_photonomixGame.COLOR_G] = photons[_photonomixGame.COLOR_G] - 1;break;
-			case _photonomixGame.COLOR_B:
-				photons[_photonomixGame.COLOR_B] = photons[_photonomixGame.COLOR_B] - 1;break;
-		}
-		this.injured--;
-		mut_times(this.vel, 1 + this.speed);
-		mut_copy(pvel, this.vel);
-		mut_times(pvel, -1);
-		this.needsUpdate = 1;
-		return new _photonomixGame.Photon(this.pos, pvel, choice, photonPool);
-		//return choice;
-	};
-}();
-
-Mote.prototype.split = function () {
-	var baby = void 0,
-	    photons = void 0;
-	return function () {
-		photons = this.photons;
-		baby = new Mote([floor(photons[_photonomixGame.COLOR_R] / 2), floor(photons[_photonomixGame.COLOR_G] / 2), floor(photons[_photonomixGame.COLOR_B] / 2)], this.pos, this.pool, this.base_speed, this.base_sight, this.base_agro, this.base_fear);
-		photons[_photonomixGame.COLOR_R] = ceil(photons[_photonomixGame.COLOR_R] / 2);
-		photons[_photonomixGame.COLOR_G] = ceil(photons[_photonomixGame.COLOR_G] / 2);
-		photons[_photonomixGame.COLOR_B] = ceil(photons[_photonomixGame.COLOR_B] / 2);
-		this.pregnant = _photonomix.PREGNANT_TIME - 1;
-		baby.pregnant = _photonomix.PREGNANT_TIME - 1;
-		this.target = baby;
-		baby.target = this;
-		baby.needsUpdate = 1;
-		this.needsUpdate = 1;
-		return baby;
-	};
-}();
-
-Mote.prototype.eatPhoton = function () {
-	var photons = void 0;
-	return function eatPhotons(photon) {
-		if (photon.lifetime > 2 && distance(this.pos, photon.pos) < this.sight) {
-			photons = this.photons;
-			photon.lifetime = 2;
-			switch (photon.color) {
-				case _photonomixGame.COLOR_R:
-					photons[_photonomixGame.COLOR_R] += 1;break;
-				case _photonomixGame.COLOR_G:
-					photons[_photonomixGame.COLOR_G] += 1;break;
-				case _photonomixGame.COLOR_B:
-					photons[_photonomixGame.COLOR_B] += 1;break;
-			}
-			this.lastMeal = photon.color;
-			this.potential -= this.agro * 0.5;
-			this.resistance -= this.fear * 0.5;
-			this.needsUpdate = 1;
-		}
-		this.action = ACT_IDLE;
-	};
-}();
-
-var rpos = new Float32Array(2);
-var rphotons = new Uint8ClampedArray(3);
-/**
- * Generates mote with randomized position and photon values.
- * @param {BufferPool} pool storage pool
- * @return {Mote}
- */
-Mote.random = function (pool) {
-	do {
-		rpos[0] = random() * (0, _photonomix2.posneg)();
-		rpos[1] = random() * (0, _photonomix2.posneg)();
-	} while (magnitude(rpos) > 0.8);
-	rphotons[0] = ~~(random() * 64);
-	rphotons[1] = ~~(random() * 64);
-	rphotons[2] = ~~(random() * 64);
-	return new Mote(rphotons, rpos, pool);
-};
-
-Mote.prototype.destroy = function () {
-	this.pool.free(this.offset);
-};
 
 /***/ }),
 /* 9 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony export (immutable) */ __webpack_exports__["evenNumber"] = evenNumber;
+/* harmony export (immutable) */ __webpack_exports__["tan_vec"] = tan_vec;
+/* harmony export (immutable) */ __webpack_exports__["perpdot"] = perpdot;
+/* harmony export (immutable) */ __webpack_exports__["floor_vec"] = floor_vec;
+/* harmony export (immutable) */ __webpack_exports__["mut_floor_vec"] = mut_floor_vec;
+/* harmony export (immutable) */ __webpack_exports__["ceil_vec"] = ceil_vec;
+/* harmony export (immutable) */ __webpack_exports__["mut_ceil_vec"] = mut_ceil_vec;
+/* harmony export (immutable) */ __webpack_exports__["round_vec"] = round_vec;
+/* harmony export (immutable) */ __webpack_exports__["mut_round_vec"] = mut_round_vec;
+/* harmony export (immutable) */ __webpack_exports__["offscreen"] = offscreen;
+/* harmony export (immutable) */ __webpack_exports__["screenSpace"] = screenSpace;
+/* harmony export (immutable) */ __webpack_exports__["screenSpaceVec"] = screenSpaceVec;
+/* harmony export (immutable) */ __webpack_exports__["gameSpaceVec"] = gameSpaceVec;
+/* harmony export (immutable) */ __webpack_exports__["flatten"] = flatten;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_constants__ = __webpack_require__(8);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__ = __webpack_require__(4);
+
+
+
+const {minus,mut_clamp,mut_copy,mut_times,normalize,mut_normalize,magnitude,vec2} = __WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__["vectors"];
+const {sqrt, abs, floor, ceil, round} = Math;
+const MIN_F = 1e-11;
+const MAX_F = 1e+11;
+
+/**
+ * Round to nearest even number.
+ */
+function evenNumber(n) {
+return n >> 1 << 1;
+}
+
+function tan_vec(v, out) {
+	let tmpx = 0;
+	normalize(v, out);
+	tmpx = out[0];
+	out[0] = -out[1];
+	out[1] = tmpx;
+	return out;
+}
+
+function perpdot(a, b) {
+	return a[0]*b[1] - b[0]*a[1];
+}
+
+function floor_vec(v, out) {
+	let len = v.length;
+	out = out || __WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__["vectors"].create(len);
+	for(let i = 0; i < len; ++i) {
+		out[i] = floor(v[i]);
+	}
+	return out;
+}
+
+function mut_floor_vec(v) {
+	return floor_vec(v, v);
+}
+
+function ceil_vec(v, out) {
+	let len = v.length;
+	out = out || __WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__["vectors"].create(len);
+	for(let i = 0; i < len; ++i) {
+		out[i] = ceil(v[i]);
+	}
+	return out;
+}
+
+function mut_ceil_vec(v) {
+	return ceil_vec(v, v);
+}
+
+function round_vec(v, out) {
+	let len = v.length;
+	out = out || __WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__["vectors"].create(len);
+	for(let i = 0; i < len; ++i) {
+		out[i] = round(v[i]);
+	}
+	return out;
+}
+
+function mut_round_vec(v) {
+	return round_vec(v, v);
+}
+
+/**
+ * Clamp the absolute value of a number, keeping its sign.
+ */
+function limit(v, min_v = 0, max_v = Infinity) {
+	if(abs(v) < abs(min_v)) {
+		if(v < 0) v = -min_v;
+		else v = min_v;
+	}
+	else if(abs(v) > abs(max_v)) {
+		if(v < 0) v = -max_v;
+		else v = max_v;
+	}
+	return v;
+}
+
+/**
+ * Limits absolute values of vectors within a range.
+ */
+const limitVecMut = (function() {
+	let i = 0|0, l = 0|0;
+	return function limitVecMut(v, min_v = 0, max_v = Infinity) {	
+		for(i = 0, l = v.length; i < l; ++i) {
+			v[i] = limit(v[i], min_v, max_v);
+		}
+	}
+})();
+/* harmony export (immutable) */ __webpack_exports__["limitVecMut"] = limitVecMut;
+
+
+/**
+ * Validates a vector. For debugging purposes.
+ */
+const validate = (function() {
+	let i, l;
+	return function validate(v) {
+		for(i = 0, l = v.length; i < l; i++) {
+			if(isNaN(v[i])) throw new Error("NaN vector");
+			if(v[i] === Infinity) throw new Error("Infinite vector");
+			if(v[i] === -Infinity) throw new Error("-Infinite vector");
+		}
+	}
+})();
+/* harmony export (immutable) */ __webpack_exports__["validate"] = validate;
+
+
+/**
+ * Gravitate toward target.
+ */
+const gravitate = (function() {
+	let g_v = vec2();
+	let mag = 0.0, x = 0.0, y = 0.0, scale = 0.0;
+	return function gravitate(p1, p2, strength, out) {
+		out = out||g_v;
+		minus(p1, p2, out);
+		mag = magnitude(out);
+		// inline normalize for speed, since this happens a lot
+		x = out[0];
+		y = out[1];
+		if((x === 0 && y === 0) || mag === 0) return out;
+		scale = mut_clamp(1/sqrt((x*x)+(y*y)), MIN_F, MAX_F);
+		strength = mut_clamp(strength, -MAX_F, MAX_F);
+		out[0] = x*scale;
+		out[1] = y*scale;
+		//mut_normalize(out);
+		mut_times(out, -strength*__WEBPACK_IMPORTED_MODULE_0__pxene_constants__["a" /* GRAVITY */]/(mag*mag));
+		if(__WEBPACK_IMPORTED_MODULE_0__pxene_constants__["b" /* VALIDATE_VECTORS */]) {
+			try {
+				validate(out);
+			}
+			catch(e) {
+				console.log("gravitation error", e);
+				console.log(strength);
+				minus(p1, p2, out);
+				console.log("minus", out);
+				limitVecMut(out, 0.00001, 10); // put a cap on it to avoid infinite acceleration
+				console.log("limit", out);
+				mag = magnitude(out);
+				console.log("magnitude", mag);
+				mut_normalize(out);
+				console.log("normalize", out);
+				mut_times(out, -strength/(mag*mag));
+				console.log("scale", out);
+				out.fill(0.0);
+			}
+		}
+		return out;
+	}
+})();
+/* harmony export (immutable) */ __webpack_exports__["gravitate"] = gravitate;
+
+
+/**
+ * Accelerate toward a target.
+ */
+const accelerate = (function() {
+	let v = vec2();
+	let scale = 0.0, x = 0.0, y = 0.0;
+	return function accelerate(p1, p2, strength, out) {
+		out = out||v;	
+		minus(p1, p2, out);
+		x = out[0];
+		y = out[1];
+		if(x === 0 && y === 0) return out;
+		scale = mut_clamp(1/sqrt((x*x)+(y*y)), MIN_F, MAX_F);
+		strength = mut_clamp(strength, -MAX_F, MAX_F);
+		// inline normalize for speed, since this happens a lot
+		out[0] = x*scale;
+		out[1] = y*scale;
+		//mut_normalize(out);
+		mut_times(out, -strength);
+		if(__WEBPACK_IMPORTED_MODULE_0__pxene_constants__["b" /* VALIDATE_VECTORS */]) {
+			try {
+				validate(out);
+			}
+			catch(e) {
+				console.log("acceleration error", e);
+				console.log("strength", strength);
+				minus(p1, p2, out);
+				console.log("minus", out);
+				mut_normalize(out);
+				console.log("normalize", out);
+				mut_times(out, -strength);
+				console.log("scale", out);
+				out.fill(0.0);
+			}
+		}
+		return out;
+	}
+})();
+/* harmony export (immutable) */ __webpack_exports__["accelerate"] = accelerate;
+
+
+const drag = (function() {
+	let delta = vec2(), dragStrength = 0.0, dragSpeed = 0.0;
+	let scale = 0.0, x = 0.0, y = 0.0;
+	/**
+	 * Apply drag.
+	 */
+	return function drag(vel, c, out) {
+		out = out||delta;
+		dragSpeed = magnitude(vel);
+		// null small values
+		dragSpeed = limit(dragSpeed, 0, 1e+11); // avoid infinite dragSpeeds
+		dragStrength = mut_clamp(c * dragSpeed * dragSpeed, 1e-11, 1e+11);
+		mut_copy(out, vel);
+		x = out[0];
+		y = out[1];
+		if((x === 0 && y === 0) || dragStrength === 0) return out;
+		// inline normalize for speed, since this happens a lot
+		scale = mut_clamp(1/sqrt((x*x)+(y*y)), MIN_F, MAX_F);
+		dragStrength = mut_clamp(dragStrength, MIN_F, MAX_F);
+		out[0] = x*scale;
+		out[1] = y*scale;
+		// mut_normalize(out)
+		mut_times(out, -1);
+		mut_times(out, dragStrength);
+		if(__WEBPACK_IMPORTED_MODULE_0__pxene_constants__["b" /* VALIDATE_VECTORS */]) {
+			try {
+				validate(out);
+			}
+			catch(e) {
+				console.log("drag error", e);
+				console.log(c, dragSpeed, dragStrength);
+				console.log("magnitude", magnitude(vel));
+				mut_copy(out, vel);
+				console.log("copied", out);
+				mut_normalize(out);
+				console.log("normalized", out);
+				mut_times(out, -1);
+				console.log("inverted", out);
+				mut_times(out, dragStrength);
+				console.log("scaled", out);
+				out.fill(0.0);
+			}
+		}
+		return out;
+	}
+})();
+/* harmony export (immutable) */ __webpack_exports__["drag"] = drag;
+
+
+
+/**
+ * Checks if entity is out of screen space by more than 50%.
+ */
+function offscreen(x, y, displayProps) {
+	return (
+		x < (displayProps.width  * -0.5) || x >displayProps.width   * 1.5 ||
+		y < (displayProps.height * -0.5) || y > displayProps.height * 1.5
+	)
+}
+
+/**
+ * Calculates the screenspace pixel offset of a coordinate from the [-1,1] coordinate
+ * range used in game position vectors.
+ */
+function screenSpace(x, displayProps) {
+	return ((x+1)/2) * displayProps.minDimension;
+}
+
+/**
+ * Finds the screen space equivalent of the game space vector v.
+ * @param {vec2} v game space vector
+ * @param {vec2} out out parameter
+ * @return {out}
+ */
+
+function screenSpaceVec(v, displayProps, out) {
+	out[0] = (((v[0]+1)/2)*displayProps.minDimension);
+	out[1] = (((v[1]+1)/2)*displayProps.minDimension);
+	return out;
+}
+
+/**
+ * Finds the game space equivalent of the sceen space vector v.
+ * @param {vec2} v game space vector
+ * @param {vec2} out out parameter
+ * @return {out}
+ */
+function gameSpaceVec(v, displayProps, out) {
+	out[0] = 2*((v[0])/displayProps.minDimension)-1;
+	out[1] = 2*((v[1])/displayProps.minDimension)-1;
+}
+
+/**
+ * Flattens an array. 
+ * @function flatten
+ * @param {mixed} a an array, array-like, or object that can be flattened
+ * @return {mixed} flat version of input
+ */
+function flatten(a) {
+	// cheap array-like check, may not always be reliable
+	if(a instanceof Object && typeof a.length == "number") {
+		let i = 0, len = a.length, out = [];
+		for(;i < len; ++i) {
+			out = out.concat(flatten(a[i]));
+		}
+		return out;
+	}
+	else return a;
+}
+
+
+/***/ }),
+/* 10 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2048,7 +1457,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["toArray"] = toArray;
 /* harmony export (immutable) */ __webpack_exports__["create"] = create;
 /* harmony export (immutable) */ __webpack_exports__["wrap"] = wrap;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__vectrix_vectors__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__vectrix_vectors__ = __webpack_require__(11);
 /**
 Require the module:
 ```javascript
@@ -2662,7 +2071,7 @@ create.rotateZ = (function() {
 
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2677,7 +2086,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["toString"] = toString;
 /* harmony export (immutable) */ __webpack_exports__["create"] = create;
 /* harmony export (immutable) */ __webpack_exports__["wrap"] = wrap;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__vectrix_matrices__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__vectrix_matrices__ = __webpack_require__(10);
 /**
 The vectors module contains functions and objects related to 2d, 3d, and 4d vectors.
 
@@ -3485,7 +2894,1015 @@ const vec4 = create.vec4 = create.bind(null, 4);
 
 
 /***/ }),
-/* 11 */
+/* 12 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.AntiGravitonCluster = AntiGravitonCluster;
+
+var _vectrix = __webpack_require__(1);
+
+var vectrix = _interopRequireWildcard(_vectrix);
+
+var _photonomix = __webpack_require__(2);
+
+var _photonomixGame = __webpack_require__(5);
+
+var _photonomixGame2 = __webpack_require__(3);
+
+var _photonomix2 = __webpack_require__(0);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+var _vectrix$vectors = vectrix.vectors,
+    vec2 = _vectrix$vectors.vec2,
+    times = _vectrix$vectors.times,
+    distance = _vectrix$vectors.distance,
+    mut_copy = _vectrix$vectors.mut_copy;
+var mut_plus = vectrix.matrices.mut_plus;
+var random = Math.random,
+    sqrt = Math.sqrt,
+    PI = Math.PI,
+    ceil = Math.ceil,
+    min = Math.min,
+    max = Math.max;
+
+var POS_C = vec2(0, 0);
+
+function AntiGravitonCluster() {
+	var ipos = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : vec2();
+	var ivel = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : vec2();
+	var mass = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
+	var photonPool = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
+
+	this.pos = vec2(ipos);
+	this.vel = vec2(ivel);
+	this.size = 0;
+	this.birthMass = this.initialMass = mass;
+	this.mass = 1;
+	this.photonPool = photonPool;
+	this.instability = 0;
+	this.size = 0;
+	return this;
+}
+
+var scratch = vec2(),
+    entity = void 0,
+    i = 0 | 0,
+    len = 0 | 0,
+    dist = 0.0,
+    consume = 0 | 0;
+AntiGravitonCluster.prototype.tick = function (entities, delta, frameCount) {
+	if (this.birthMass > 0) {
+		consume = min(this.birthMass, ceil(this.mass / 10));
+		this.birthMass -= consume;
+		this.mass += consume;
+	}
+	this.size = sqrt(this.mass * 0.05 / PI) * _photonomix2.MOTE_BASE_SIZE;
+	// last turn's move, has to happen first
+	mut_plus(this.pos, times(this.vel, delta, scratch));
+	this.initialMass = max(this.mass, this.initialMass);
+
+	// apply basic forces
+	// don't go off the screen
+	mut_plus(this.vel, (0, _photonomix.avoid)(this.vel, this.pos, POS_C, 1.3, 0.01, scratch));
+	// apply drag
+	mut_plus(this.vel, (0, _photonomix.drag)(this.vel, _photonomix2.GLOBAL_DRAG));
+
+	if (this.birthMass === 0) {
+		this.instability += this.mass * 0.003;
+	}
+	if (frameCount % ceil(_photonomix2.TARGET_FPS * 0.05) === 0) {
+		while (this.instability > 0 && this.mass > 0) {
+			entities.push(this.emitPhoton());
+			this.mass -= min(this.mass, 7);
+			this.instability -= 0.9;
+		}
+	}
+
+	for (i = 0, len = entities.length; i < len; ++i) {
+		entity = entities[i];
+		if (entity === this) continue;
+		dist = distance(this.pos, entity.pos);
+
+		if (entity instanceof _photonomixGame.Void) {
+			if (dist < (entity.size + this.size) * 0.5) {
+				consume = min(entity.mass, ceil((entity.mass + entity.birthMass) / 10));
+				this.mass += consume;
+				entity.mass -= consume;
+				this.instability += consume * 0.07;
+			}
+			if (dist < this.size * 10) mut_plus(this.vel, (0, _photonomix.accelerate)(this.pos, entity.pos, this.size * dist * 5, scratch));
+			return;
+		}
+	}
+};
+
+AntiGravitonCluster.prototype.emitPhoton = function () {
+	var pos = vec2(),
+	    vel = vec2(),
+	    rot = vec2(),
+	    radians = 0.0,
+	    mim = 0.0,
+	    color = 0 | 0;
+	return function emitPhoton() {
+		color = ~~(random() * 3);
+		pos[0] = this.size * 0.1;
+		pos[1] = this.size * 0.1;
+		mut_plus(pos, this.pos);
+		mut_copy(vel, this.vel);
+		mim = this.mass % this.initialMass;
+		radians = mim / (this.initialMass / 2);
+		radians = radians + mim % 100 * (2 / 100); // split across arms
+		mut_copy(rot, (0, _photonomix.rotate)(pos, this.pos, radians, pos));
+		mut_plus(rot, this.pos);
+		mut_plus(pos, rot);
+		// introduce some jitter
+		mut_plus(vel, (0, _photonomix.accelerate)(this.pos, pos, this.size * 2, scratch));
+		return new _photonomixGame2.Photon(pos, vel, color, this.photonPool);
+	};
+}();
+
+/***/ }),
+/* 13 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.Emitter = Emitter;
+
+var _vectrix = __webpack_require__(1);
+
+var vectrix = _interopRequireWildcard(_vectrix);
+
+var _photonomix = __webpack_require__(0);
+
+var _photonomix2 = __webpack_require__(2);
+
+var _photonomixGame = __webpack_require__(3);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+var _vectrix$vectors = vectrix.vectors,
+    vec2 = _vectrix$vectors.vec2,
+    times = _vectrix$vectors.times,
+    mut_times = _vectrix$vectors.mut_times,
+    distance = _vectrix$vectors.distance;
+var mut_plus = vectrix.matrices.mut_plus;
+var random = Math.random,
+    sqrt = Math.sqrt,
+    ceil = Math.ceil,
+    min = Math.min,
+    PI = Math.PI;
+
+var POS_C = vec2(0, 0);
+
+/**
+ * Emitters are "white holes" that spit out photons on a fixed schedule until depleted.
+ */
+function Emitter() {
+	var ipos = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : vec2();
+	var ivel = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : vec2();
+	var mass = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
+	var photonPool = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
+	var arms = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
+
+	this.pos = vec2(ipos);
+	this.vel = vec2(ivel);
+	this.birthMass = mass;
+	this.mass = 1;
+	this.initialMass = mass;
+	this.photonPool = photonPool;
+	this.arms = arms || ceil(random() * random() * 50);
+	this.size = 0;
+	this.next = ~~(random() * 3);
+	return this;
+}
+
+var scratchVec1 = vec2(),
+    emissionsPerSecond = 0 | 0,
+    emissionsPerFrame = 0 | 0,
+    targetFrame = 0 | 0,
+    i = 0 | 0,
+    len = 0 | 0,
+    entity = void 0,
+    a_dist = 0.0,
+    consume = 0 | 0;
+Emitter.prototype.tick = function (entities, delta, frameCount) {
+	/* jshint unused:false */
+	if (this.birthMass > 0) {
+		consume = min(this.birthMass, ceil(this.mass / 100));
+		this.birthMass -= consume;
+		this.mass += consume;
+	}
+	this.size = sqrt(this.mass / PI) * _photonomix.EMITTER_SIZE;
+	if (this.birthMass === 0) {
+		// don't start producing until finished spawning
+		emissionsPerSecond = this.initialMass / 20;
+		targetFrame = ceil(_photonomix.TARGET_FPS / emissionsPerSecond);
+		emissionsPerFrame = emissionsPerSecond / _photonomix.TARGET_FPS;
+		if (frameCount % targetFrame === 0) {
+			while (emissionsPerFrame-- > 0 && this.mass > 0) {
+				this.mass--;
+				entities.push(this.emitPhoton());
+			}
+		}
+	}
+	// last turn's move, has to happen first
+	mut_plus(this.pos, times(this.vel, delta, scratchVec1));
+	// apply drag
+	mut_plus(this.vel, (0, _photonomix2.drag)(this.vel, _photonomix.GLOBAL_DRAG));
+	// avoid edge
+	mut_plus(this.vel, (0, _photonomix2.avoid)(this.vel, this.pos, POS_C, 1.3, 0.001, scratchVec1));
+
+	for (i = 0, len = entities.length; i < len; ++i) {
+		entity = entities[i];
+		if (entity === this) continue;
+		a_dist = distance(this.pos, entity.pos);
+		if (entity instanceof Emitter) {
+			mut_plus(entity.vel, mut_times((0, _photonomix2.gravitate)(entity.pos, this.pos, this.mass * entity.mass, scratchVec1), 1 / entity.mass));
+		} else {
+			mut_plus(entity.vel, mut_times((0, _photonomix2.gravitate)(entity.pos, this.pos, -this.mass * entity.mass, scratchVec1), 1 / entity.mass));
+		}
+	}
+};
+
+Emitter.prototype.emitPhoton = function () {
+	var pos = vec2(),
+	    radians = 0.0,
+	    mim = 0.0,
+	    color = 0 | 0;
+	return function emitPhoton() {
+		color = this.next;
+		pos[0] = this.size / 5;
+		pos[1] = this.size / 5;
+		mut_plus(pos, this.pos);
+		mim = this.mass % this.initialMass;
+		radians = mim / (this.initialMass / 2);
+		radians = radians + mim % this.arms * (2 / this.arms); // split across arms
+		mut_plus((0, _photonomix2.rotate)(pos, this.pos, radians, pos), this.pos);
+		this.next = ~~(random() * 3);
+		// introduce some jitter
+		return new _photonomixGame.Photon(pos, vec2(0, 0), color, this.photonPool);
+	};
+}();
+
+/***/ }),
+/* 14 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.BUFFER_LENGTH = exports.ACT_LINK = exports.ACT_ATTACK = exports.ACT_AVOID = exports.ACT_CHASE = exports.ACT_SEARCH = exports.ACT_IDLE = undefined;
+exports.Mote = Mote;
+
+var _photonomix = __webpack_require__(0);
+
+var _vectrix = __webpack_require__(1);
+
+var vectrix = _interopRequireWildcard(_vectrix);
+
+var _photonomix2 = __webpack_require__(2);
+
+var _photonomixGame = __webpack_require__(3);
+
+var _photonomixGame2 = __webpack_require__(5);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+var random = Math.random,
+    max = Math.max,
+    min = Math.min,
+    floor = Math.floor,
+    ceil = Math.ceil,
+    sin = Math.sin;
+var _vectrix$vectors = vectrix.vectors,
+    vec2 = _vectrix$vectors.vec2,
+    times = _vectrix$vectors.times,
+    mut_clamp = _vectrix$vectors.mut_clamp,
+    magnitude = _vectrix$vectors.magnitude,
+    distance = _vectrix$vectors.distance,
+    mut_copy = _vectrix$vectors.mut_copy,
+    mut_times = _vectrix$vectors.mut_times;
+var _vectrix$matrices = vectrix.matrices,
+    plus = _vectrix$matrices.plus,
+    mut_plus = _vectrix$matrices.mut_plus;
+
+var clamp = mut_clamp;
+// Center of the playfield is at 0,0 (ranging from -1 to 1 on X and Y axis)
+var POS_C = vec2(0.0, 0.0);
+// activity type constants
+var ACT_IDLE = exports.ACT_IDLE = 0;
+var ACT_SEARCH = exports.ACT_SEARCH = 1;
+var ACT_CHASE = exports.ACT_CHASE = 2;
+var ACT_AVOID = exports.ACT_AVOID = 3;
+var ACT_ATTACK = exports.ACT_ATTACK = 4;
+var ACT_LINK = exports.ACT_LINK = 5;
+
+// twiddle to slightly offset the values, avoids divide by zero and other errors
+// inherent to acceleration, friction, drag and gravity equations
+(0, _photonomix2.twiddleVec)(POS_C);
+// relative color values derived from a Mote's photons, used to produce color string
+// for rendering
+
+// various consts below are indexes and byte counts for mote data
+// byte length of these value types
+var I8 = 1;
+var F32 = 4;
+
+// uint8 values = photons[3]
+var U8_PHO = 0,
+    U8_COL = U8_PHO + I8 * 3,
+    U8_VAL_LENGTH = U8_COL + I8 * 3,
+    I8_BYTE_OFFSET = U8_VAL_LENGTH;
+// int8 values =  dying, pregnant, injured, lastMeal, pulse
+var I8_DYING = 0,
+    I8_PREG = I8_DYING + I8,
+    I8_INJURED = I8_PREG + I8,
+    I8_LAST_INJURY = I8_INJURED + I8,
+    I8_MEAL = I8_LAST_INJURY + I8,
+    I8_UPD = I8_MEAL + I8,
+    I8_PULSE = I8_UPD + I8,
+    I8_ACT = I8_PULSE + I8,
+    I8_VAL_LENGTH = I8_ACT + I8,
+    INT_VAL_LENGTH = U8_VAL_LENGTH + I8_VAL_LENGTH;
+
+// float32 values = p[3], v[3], color[4], size, sizeMin, sizeMax, speed, sight, agro, fear, potential, resistance
+// from here on, increments of value * 4
+// vectors
+var VEC_BYTE_OFFSET = INT_VAL_LENGTH + (F32 - INT_VAL_LENGTH % F32),
+    // float32 offsets must be multiples of 4
+F32_POS = 0,
+    F32_VEL = F32_POS + 2,
+    F32_RAT = F32_VEL + 2,
+    F32_PREF = F32_RAT + 3,
+    VEC_VAL_LENGTH = F32_PREF + 3;
+
+var F32_BYTE_OFFSET = VEC_BYTE_OFFSET + VEC_VAL_LENGTH * F32,
+
+// scalars
+F32_SIZE = 0,
+    F32_SIZE_MIN = F32_SIZE + 1,
+    F32_SIZE_MAX = F32_SIZE_MIN + 1,
+    F32_SPEED = F32_SIZE_MAX + 1,
+    F32_SIGHT = F32_SPEED + 1,
+    F32_AGRO = F32_SIGHT + 1,
+    F32_FEAR = F32_AGRO + 1,
+    F32_POTENTIAL = F32_FEAR + 1,
+    F32_RESISTANCE = F32_POTENTIAL + 1,
+    F32_MASS = F32_RESISTANCE + 1,
+    FLOAT_VAL_LENGTH = F32_MASS + 1;
+
+var BUFFER_LENGTH = exports.BUFFER_LENGTH = F32_BYTE_OFFSET + FLOAT_VAL_LENGTH * F32;
+
+// scratch vectors used in various functions
+var scratch1 = vec2(),
+    scratch2 = vec2();
+
+/**
+ * Constructor for Motes.
+ * @param {Float32Array(3)} photons initial photons (0-255, R, G, B)
+ * @param {vec2} pos initial position
+ * @param {Float} bSpeed (optional) base acceleration: inheritance and predesigned motes 
+ * @param {Float} bSight (optional) base vision radius: inheritance and predesigned motes 
+ * @param {Float} bAgro (optional) base aggressiveness: inheritance and predesigned motes 
+ * @param {Float} bFear (optional) base fearfulness: inheritance and predesigned motes 
+ * @param {BufferPool} pool (optional) buffer pool to build the mote on
+ * @property {vec2} pos position vector
+ * @property {vec2} vel velocity vector
+ * @property {Uint8} r red photon value (setter updates values and derived props)
+ * @property {Uint8} g green photon value (setter updates value and derived props)
+ * @property {Uint8} b blue photon value (setter updates value and derived props)
+ * @property {string} color_string rgba color string, used for drawing in 2d
+ * @property {Int8} dying counter from 1 to DEATH_THRESHOLD when a mote is dying
+ * @property {Int8} pregnant coundown from PREGNANT_DURATION when a mote is pregnant
+ * @property {Int8} injured injury counter, counts down in mote.bleed
+ * @property {Int8} lastInjury strength of most recent injury taken
+ * @property {Int8} pulse frame offset for pulse animation
+ * @property {Int8} lastMeal color value for last meal (see R, G, B constants)
+ * @property {Int8} action action choice in relation to target 
+ * @property {Float32} speed derived acceleration speed based on Mote properties
+ * @property {Float32} sight derived vision radius based on Mote properties 
+ * @property {Float32} agro derived aggression factor based on Mote properties 
+ * @property {Float32} fear derived fearfulness factor based on Mote properties 
+ * @property {Float32} potential accumulated charge potential
+ * @property {Float32} resistance accumulated resistance to charge
+ * @property {Float32} size derived size radius as fraction of screen size
+ * @property {Float32} sizeMin minimum size the mote can reach as it shrinks
+ * @property {Float32} sizeMax maximum size the mote can reach as it grows
+ * @property {UintClamped8Array} photons current photon values (R, G, B)
+ * @property {UintClamped8Array} color current mote color (R, G, B)
+ * @property {Int8Array} intVals direct access to integer value array (for debug)
+ * @property {Float32Array} ratios current photon ratios (R, G, B)
+ * @property {Float32Array} prefs preferred photon ratios
+ * @property {Float32Array} floatVals direct access to float value array (for debug)
+ * @return {Mote}
+ */
+function Mote() {
+	var _photons = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : new Uint8Array(3);
+
+	var pos = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : new Float32Array(2);
+	var pool = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : undefined;
+	var bSpeed = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : _photonomix.MOTE_BASE_SPEED;
+	var bSight = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : _photonomix.MOTE_BASE_SIGHT;
+	var bAgro = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 1.0;
+	var bFear = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : 1.0;
+
+	var buffer = void 0,
+	    offset = 0 | 0;
+	if (pool) {
+		buffer = pool.buffer;
+		offset = pool.allocate();
+	} else {
+		buffer = new ArrayBuffer(BUFFER_LENGTH);
+		offset = 0;
+	}
+
+	// "private" properties
+	// use a single buffer for properties so that they're guaranteed to be contiguous
+	// in memory and typed
+	var photons = new Uint8ClampedArray(buffer, U8_PHO + offset, 3);
+	var color = new Uint8ClampedArray(buffer, U8_COL + offset, 3);
+	photons[_photonomixGame.COLOR_R] = _photons[_photonomixGame.COLOR_R];
+	photons[_photonomixGame.COLOR_G] = _photons[_photonomixGame.COLOR_G];
+	photons[_photonomixGame.COLOR_B] = _photons[_photonomixGame.COLOR_B];
+	var intVals = new Int8Array(buffer, I8_BYTE_OFFSET + offset, I8_VAL_LENGTH - U8_PHO);
+	var floatVals = new Float32Array(buffer, F32_BYTE_OFFSET + offset, FLOAT_VAL_LENGTH);
+	this.pos = vec2(pos, buffer, F32_POS * F32 + VEC_BYTE_OFFSET + offset);
+	this.vel = vec2(0.0, 0.0, buffer, F32_VEL * F32 + VEC_BYTE_OFFSET + offset);
+	var ratios = new Float32Array(buffer, F32_RAT * F32 + VEC_BYTE_OFFSET + offset, 3);
+	var prefs = new Float32Array(buffer, F32_PREF * F32 + VEC_BYTE_OFFSET + offset, 3);
+	this.target = undefined;
+	this.color_string = "";
+	bSpeed = bSpeed + (0, _photonomix2.adjRand)(0.0005);
+	bSight = bSight + (0, _photonomix2.adjRand)(0.001); // vision distance
+	bAgro = bAgro + (0, _photonomix2.adjRand)(0.001);
+	bFear = bFear + (0, _photonomix2.adjRand)(0.001);
+
+	Object.defineProperties(this, {
+		"photons": { get: function get() {
+				return photons;
+			} },
+		"color": { get: function get() {
+				return color;
+			} },
+		"dying": { get: function get() {
+				return intVals[I8_DYING];
+			}, set: function set(v) {
+				return intVals[I8_DYING] = v;
+			} },
+		"action": { get: function get() {
+				return intVals[I8_ACT];
+			}, set: function set(v) {
+				return intVals[I8_ACT] = v;
+			} },
+		"pregnant": { get: function get() {
+				return intVals[I8_PREG];
+			}, set: function set(v) {
+				return intVals[I8_PREG] = v;
+			} },
+		"injured": { get: function get() {
+				return intVals[I8_INJURED];
+			}, set: function set(v) {
+				return intVals[I8_INJURED] = v;
+			} },
+		"lastInjury": { get: function get() {
+				return intVals[I8_LAST_INJURY];
+			}, set: function set(v) {
+				return intVals[I8_LAST_INJURY] = v;
+			} },
+		"needsUpdate": { get: function get() {
+				return intVals[I8_UPD];
+			}, set: function set(v) {
+				return intVals[I8_UPD] = v;
+			} },
+		"pulse": { get: function get() {
+				return intVals[I8_PULSE];
+			}, set: function set(v) {
+				return intVals[I8_PULSE] = v;
+			} },
+		"lastMeal": { get: function get() {
+				return intVals[I8_MEAL];
+			}, set: function set(v) {
+				return intVals[I8_MEAL] = v;
+			} },
+		"size": { get: function get() {
+				return floatVals[F32_SIZE];
+			}, set: function set(v) {
+				return floatVals[F32_SIZE] = v;
+			} },
+		"sizeMin": { get: function get() {
+				return floatVals[F32_SIZE_MIN];
+			}, set: function set(v) {
+				return floatVals[F32_SIZE_MIN] = v;
+			} },
+		"sizeMax": { get: function get() {
+				return floatVals[F32_SIZE_MAX];
+			}, set: function set(v) {
+				return floatVals[F32_SIZE_MAX] = v;
+			} },
+		"speed": { get: function get() {
+				return floatVals[F32_SPEED];
+			}, set: function set(v) {
+				return floatVals[F32_SPEED] = v;
+			} },
+		"sight": { get: function get() {
+				return floatVals[F32_SIGHT];
+			}, set: function set(v) {
+				return floatVals[F32_SIGHT] = v;
+			} },
+		"agro": { get: function get() {
+				return floatVals[F32_AGRO];
+			}, set: function set(v) {
+				return floatVals[F32_AGRO] = v;
+			} },
+		"fear": { get: function get() {
+				return floatVals[F32_FEAR];
+			}, set: function set(v) {
+				return floatVals[F32_FEAR] = v;
+			} },
+		"potential": { get: function get() {
+				return floatVals[F32_POTENTIAL];
+			}, set: function set(v) {
+				return floatVals[F32_POTENTIAL] = v;
+			} },
+		"resistance": { get: function get() {
+				return floatVals[F32_RESISTANCE];
+			}, set: function set(v) {
+				return floatVals[F32_RESISTANCE] = v;
+			} },
+		"mass": { get: function get() {
+				return floatVals[F32_MASS];
+			}, set: function set(v) {
+				return floatVals[F32_MASS] = v;
+			} },
+		"base_speed": { get: function get() {
+				return bSpeed;
+			} },
+		"base_sight": { get: function get() {
+				return bSight;
+			} },
+		"base_agro": { get: function get() {
+				return bAgro;
+			} },
+		"base_fear": { get: function get() {
+				return bFear;
+			} },
+		"pool": { get: function get() {
+				return pool;
+			} },
+		"offset": { get: function get() {
+				return offset;
+			} },
+		"ratios": { get: function get() {
+				return ratios;
+			} },
+		"prefs": { get: function get() {
+				return prefs;
+			} }
+	});
+
+	/*
+  * Debug access only.
+  */
+	if (_photonomix.DEBUG) Object.defineProperties(this, {
+		"intVals": { get: function get() {
+				return intVals;
+			} },
+		"floatVals": { get: function get() {
+				return floatVals;
+			} }
+	});
+
+	// initialize values, important to do since buffer may be reused
+	this.dying = 0;
+	this.pregnant = 0;
+	this.injured = 0;
+	this.lastInjury = 0;
+	this.speed = bSpeed;
+	this.sight = bSight;
+	this.agro = bAgro;
+	this.fear = bFear;
+	this.potential = this.agro * 2;
+	this.resistance = this.fear * 2;
+	this.lastMeal = ~~(random() * 3);
+	this.pulse = ~~(_photonomix.TARGET_FPS * random());
+	this.size = _photonomix.MOTE_BASE_SIZE;
+	this.sizeMin = _photonomix.MOTE_BASE_SIZE * 0.5;
+	this.sizeMax = _photonomix.MOTE_BASE_SIZE * 3;
+
+	this.updateProperties();
+	this.prefs[_photonomixGame.COLOR_R] = this.ratios[_photonomixGame.COLOR_R];
+	this.prefs[_photonomixGame.COLOR_G] = this.ratios[_photonomixGame.COLOR_G];
+	this.prefs[_photonomixGame.COLOR_B] = this.ratios[_photonomixGame.COLOR_B];
+	return this;
+}
+
+/**
+ * Updates derived properties for mote.
+ */
+Mote.prototype.updateProperties = function () {
+	var r = 0 | 0,
+	    g = 0 | 0,
+	    b = 0 | 0,
+	    photons = void 0,
+	    color = void 0,
+	    ratios = void 0;
+	return function updateProperties() {
+		photons = this.photons;
+		ratios = this.ratios;
+		color = this.color;
+
+		r = photons[_photonomixGame.COLOR_R];
+		g = photons[_photonomixGame.COLOR_G];
+		b = photons[_photonomixGame.COLOR_B];
+		this.mass = r + g + b;
+		if (this.mass > 0) {
+			// otherwise skip this stuff since the mote is dead anyway
+			this.size = clamp(this.mass / (_photonomix.PREGNANT_THRESHOLD / 3) * _photonomix.MOTE_BASE_SIZE, this.sizeMin, this.sizeMax);
+			ratios[_photonomixGame.COLOR_R] = (0, _photonomix2.ratio)(r, g + b);
+			ratios[_photonomixGame.COLOR_G] = (0, _photonomix2.ratio)(g, r + b);
+			ratios[_photonomixGame.COLOR_B] = (0, _photonomix2.ratio)(b, g + r);
+			this.speed = this.base_speed * (1 - this.size) * (1 + ratios[_photonomixGame.COLOR_B]);
+			this.sight = this.base_sight + this.size * 0.5; // see from edge onward
+			this.agro = this.base_agro * (1 + ratios[_photonomixGame.COLOR_R]);
+			this.fear = this.base_fear * (1 + ratios[_photonomixGame.COLOR_G]);
+			if (_photonomix.DEBUG) {
+				if (isNaN(this.speed)) throw new Error("Mote.updateProperties: NaN speed");
+				if (isNaN(this.sight)) throw new Error("Mote.updateProperties: NaN sight");
+				if (isNaN(this.size)) throw new Error("Mote.updateProperties: NaN size");
+				if (isNaN(this.agro)) throw new Error("Mote.updateProperties: NaN agro");
+				if (isNaN(this.fear)) throw new Error("Mote.updateProperties: NaN fear");
+			}
+		} // end of stuff to do only if sum > 0
+
+		if (this.mass > _photonomix.PREGNANT_THRESHOLD && this.pregnant === 0) this.pregnant = _photonomix.PREGNANT_TIME;
+		if (this.mass < _photonomix.DEATH_THRESHOLD && this.dying === 0) this.dying = 1;
+
+		color[_photonomixGame.COLOR_R] = ~~(r / this.mass * 255);
+		color[_photonomixGame.COLOR_G] = ~~(g / this.mass * 255);
+		color[_photonomixGame.COLOR_B] = ~~(b / this.mass * 255);
+		this.needsUpdate = 0;
+	};
+}();
+
+/**
+ * Maintenance tasks to be done each tick
+ */
+Mote.prototype.runMaintenance = function () {
+	var pregnant = 0 | 0,
+	    dying = 0 | 0,
+	    tmpPot = 0.0,
+	    tmpRes = 0.0,
+	    agro = 0.0,
+	    fear = 0.0,
+	    size = 0.0,
+	    speed = 0.0,
+	    sight = 0.0,
+	    pos = void 0,
+	    vel = void 0,
+	    target = void 0;
+	return function runMaintenance(delta) {
+		pos = this.pos;
+		vel = this.vel;
+		pregnant = this.pregnant;
+		dying = this.dying;
+		agro = this.agro;
+		fear = this.fear;
+		size = this.size;
+		speed = this.speed;
+		sight = this.sight;
+		target = this.target;
+
+		if (pregnant > 0) this.pregnant = pregnant - 1;
+		if (dying > 0) this.dying = dying + 1; // start counting up
+		if (this.needsUpdate) this.updateProperties();
+		// build potential and resistance each tick
+		tmpPot = agro * (size * 100);
+		tmpRes = fear * (size * 100);
+		this.potential = clamp(this.potential + agro * delta, -tmpPot, tmpPot);
+		this.resistance = clamp(this.resistance + fear * delta, -tmpRes, tmpRes);
+
+		// last turn's move, has to happen first to avoid prediction inaccuracy
+		// during chases
+		mut_plus(pos, times(vel, delta, scratch1));
+
+		// don't go off the screen
+		mut_plus(vel, (0, _photonomix2.avoid)(vel, pos, POS_C, 1.3, speed, scratch1));
+		// apply drag
+		mut_plus(vel, (0, _photonomix2.drag)(vel, _photonomix.GLOBAL_DRAG));
+	};
+}();
+
+/**
+ * Checks if a target is valid.
+ * @param {Object} entity any game object that can be targeted
+ * @return {float} distance if valid, otherwise -1
+ */
+Mote.prototype.validateTarget = function () {
+	var dist = 0.0,
+	    sight = 0.0,
+	    pos = void 0;
+	return function (entity) {
+		pos = this.pos;
+		sight = this.sight;
+
+		dist = distance(pos, entity.pos);
+		// these targets are invalid
+		if (entity === this) return -1;
+		if (entity.dying) return -1;
+		if (entity.lifetime && entity.lifetime < 3) return -1;
+		if (entity.mass < 1) return -1;
+		if (dist > sight + entity.size * 0.5) return -1;
+		if ((0, _photonomix2.outOfBounds)(entity, 0.7)) return -1;
+		return dist;
+	};
+}();
+
+/**
+ * Search for a target and decide how to act toward it.
+ */
+Mote.prototype.search = function () {
+	var i = 0 | 0,
+	    len = 0 | 0,
+	    sight = 0.0,
+	    cur = 0.0,
+	    pos = void 0,
+	    vel = void 0,
+	    highest = void 0,
+	    dist = void 0,
+	    entity = void 0,
+	    deltar = 0.0,
+	    deltag = 0.0,
+	    deltab = 0.0,
+	    mind = 0.0,
+	    maxd = 0.0,
+	    weight = 0.0;
+	return function search(entities) {
+		pos = this.pos;
+		vel = this.vel;
+		sight = this.sight;
+
+		highest = -Infinity;
+		dist = 0;
+		if (this.pregnant || this.dying) {
+			this.action = ACT_IDLE;
+			highest = Infinity;
+		}
+
+		for (i = 0, len = entities.length; i < len && highest < Infinity; ++i) {
+			entity = entities[i];
+			var _dist = this.validateTarget(entity);
+			if (_dist === -1) continue;
+			// ignore things outside sight range
+			if (entity instanceof Mote) {
+				cur = 3 * (1 / _dist);
+				if (cur > highest) {
+					this.target = entity;
+					if (entity.target === this || _dist < (this.size + entity.size) * 0.5) {
+						this.action = ACT_AVOID;
+					} else this.action = ACT_CHASE;
+					highest = cur;
+				}
+			} else if (entity instanceof _photonomixGame2.Void) {
+				this.target = entity;
+				this.action = ACT_AVOID;
+				highest = Infinity;
+			} else if (entity instanceof _photonomixGame.Photon && entity.lifetime > 3) {
+				deltar = this.prefs[_photonomixGame.COLOR_R] - this.ratios[_photonomixGame.COLOR_R];
+				deltag = this.prefs[_photonomixGame.COLOR_G] - this.ratios[_photonomixGame.COLOR_G];
+				deltab = this.prefs[_photonomixGame.COLOR_B] - this.ratios[_photonomixGame.COLOR_B];
+				maxd = max(deltar, deltag, deltab);
+				mind = min(deltar, deltag, deltab);
+				if (maxd == deltar && entity.color == _photonomixGame.COLOR_R || maxd == deltag && entity.color == _photonomixGame.COLOR_G || maxd == deltab && entity.color == _photonomixGame.COLOR_B) weight = 30;
+				if (mind == deltar && entity.color == _photonomixGame.COLOR_R || mind == deltag && entity.color == _photonomixGame.COLOR_G || mind == deltab && entity.color == _photonomixGame.COLOR_B) weight = 10;else weight = 20;
+				cur = weight * (1 / _dist);
+				if (cur > highest) {
+					this.target = entity;
+					this.action = ACT_CHASE;
+					highest = cur;
+				}
+			}
+		}
+		if (highest < 0) return false;
+		return true;
+	};
+}();
+
+/**
+ * Decide how to act each tick based on nearby objects.
+ * @param Array surrounding array of nearby objects to consider in movement
+ * @param Float delta time delta
+ */
+Mote.prototype.tick = function () {
+	var pos = void 0,
+	    vel = void 0,
+	    size = void 0,
+	    sight = void 0,
+	    speed = void 0,
+	    agro = void 0,
+	    fear = void 0,
+	    resistance = void 0,
+	    potential = void 0,
+	    target = void 0,
+	    dist = void 0;
+	return function tick(entities, delta, frameCount) {
+		pos = this.pos;
+		vel = this.vel;
+		size = this.size;
+		sight = this.sight;
+		speed = this.speed;
+		agro = this.agro;
+		fear = this.fear;
+		resistance = this.resistance;
+		potential = this.potential;
+		target = this.target;
+
+		this.runMaintenance(delta);
+
+		// validate current target 
+		if (target && (dist = this.validateTarget(target)) === -1) {
+			this.action = ACT_IDLE;
+		}
+
+		switch (this.action) {
+			case ACT_IDLE:
+				// lost target, gave up, or completed task
+				this.target = undefined;
+				if (magnitude(vel) < 0.001) {
+					// not going anywhere, so pick a random direction
+					scratch1[0] = random() * 2 - 1;
+					scratch1[1] = random() * 2 - 1;
+				} else {
+					mut_copy(scratch1, pos);
+					mut_plus(scratch1, times(vel, delta, scratch2));
+					mut_plus(scratch1, (0, _photonomix2.rotate)(scratch1, pos, sin((frameCount + this.pulse) * speed), scratch2));
+				}
+				mut_plus(vel, (0, _photonomix2.accelerate)(pos, scratch1, speed, scratch2));
+				this.action = ACT_SEARCH;
+				break;
+			case ACT_CHASE:
+				// chasing a target
+				// predict target's next move
+				plus(target.pos, times(target.vel, delta, scratch1), scratch2);
+				mut_plus(vel, (0, _photonomix2.accelerate)(pos, scratch2, speed, scratch1));
+				if (dist < sight) {
+					if (target instanceof Mote && this.potential > this.agro * 3) this.action = ACT_ATTACK;else this.action = ACT_ATTACK;
+				}
+				break;
+			case ACT_AVOID:
+				// avoiding a target
+				// predict target's next move
+				plus(target.pos, times(target.vel, delta, scratch1), scratch2);
+				mut_plus(vel, (0, _photonomix2.accelerate)(scratch2, pos, speed, scratch1));
+				if (this.resistance > fear * 3) this.action = ACT_IDLE;
+				break;
+			case ACT_ATTACK:
+				// attacking a target
+				if (target instanceof Mote) this.discharge(target);else if (target instanceof _photonomixGame.Photon) this.eatPhoton(target);
+				break;
+			case ACT_LINK:
+				// linking with a target
+				break;
+			case ACT_SEARCH:
+				if (!this.search(entities)) this.action = ACT_IDLE;
+				break;
+			default:
+				break;
+		}
+	};
+}();
+
+var delta = 0.0;
+Mote.prototype.discharge = function (target) {
+	delta = this.potential - target.resistance;
+	target.resistance -= max(this.agro, delta * this.agro);
+	this.potential -= max(this.fear, delta * this.fear);
+	target.injure(this, max(0, ~~delta));
+	if (this.potential < 0) this.action = ACT_IDLE;
+};
+
+Mote.prototype.injure = function (by, strength) {
+	this.injured += strength;
+	this.lastInjury = this.injured;
+	if (this.resistance < this.agro * 3 || this.injured < this.fear) this.target = by;
+};
+
+Mote.prototype.bleed = function () {
+	var choice = 0 | 0,
+	    choiceVal = 0 | 0,
+	    pvel = vec2(),
+	    photons = void 0;
+	return function bleed(photonPool) {
+		photons = this.photons;
+		do {
+			choice = ~~(random() * 3);
+			switch (choice) {
+				case _photonomixGame.COLOR_R:
+					choiceVal = photons[_photonomixGame.COLOR_R];break;
+				case _photonomixGame.COLOR_G:
+					choiceVal = photons[_photonomixGame.COLOR_G];break;
+				case _photonomixGame.COLOR_B:
+					choiceVal = photons[_photonomixGame.COLOR_B];break;
+			}
+		} while (choiceVal === 0);
+		switch (choice) {
+			case _photonomixGame.COLOR_R:
+				photons[_photonomixGame.COLOR_R] = photons[_photonomixGame.COLOR_R] - 1;break;
+			case _photonomixGame.COLOR_G:
+				photons[_photonomixGame.COLOR_G] = photons[_photonomixGame.COLOR_G] - 1;break;
+			case _photonomixGame.COLOR_B:
+				photons[_photonomixGame.COLOR_B] = photons[_photonomixGame.COLOR_B] - 1;break;
+		}
+		this.injured--;
+		mut_times(this.vel, 1 + this.speed);
+		mut_copy(pvel, this.vel);
+		mut_times(pvel, -1);
+		this.needsUpdate = 1;
+		return new _photonomixGame.Photon(this.pos, pvel, choice, photonPool);
+		//return choice;
+	};
+}();
+
+Mote.prototype.split = function () {
+	var baby = void 0,
+	    photons = void 0;
+	return function () {
+		photons = this.photons;
+		baby = new Mote([floor(photons[_photonomixGame.COLOR_R] / 2), floor(photons[_photonomixGame.COLOR_G] / 2), floor(photons[_photonomixGame.COLOR_B] / 2)], this.pos, this.pool, this.base_speed, this.base_sight, this.base_agro, this.base_fear);
+		photons[_photonomixGame.COLOR_R] = ceil(photons[_photonomixGame.COLOR_R] / 2);
+		photons[_photonomixGame.COLOR_G] = ceil(photons[_photonomixGame.COLOR_G] / 2);
+		photons[_photonomixGame.COLOR_B] = ceil(photons[_photonomixGame.COLOR_B] / 2);
+		this.pregnant = _photonomix.PREGNANT_TIME - 1;
+		baby.pregnant = _photonomix.PREGNANT_TIME - 1;
+		this.target = baby;
+		baby.target = this;
+		baby.needsUpdate = 1;
+		this.needsUpdate = 1;
+		return baby;
+	};
+}();
+
+Mote.prototype.eatPhoton = function () {
+	var photons = void 0;
+	return function eatPhotons(photon) {
+		if (photon.lifetime > 2 && distance(this.pos, photon.pos) < this.sight) {
+			photons = this.photons;
+			photon.lifetime = 2;
+			switch (photon.color) {
+				case _photonomixGame.COLOR_R:
+					photons[_photonomixGame.COLOR_R] += 1;break;
+				case _photonomixGame.COLOR_G:
+					photons[_photonomixGame.COLOR_G] += 1;break;
+				case _photonomixGame.COLOR_B:
+					photons[_photonomixGame.COLOR_B] += 1;break;
+			}
+			this.lastMeal = photon.color;
+			this.potential -= this.agro * 0.5;
+			this.resistance -= this.fear * 0.5;
+			this.needsUpdate = 1;
+		}
+		this.action = ACT_IDLE;
+	};
+}();
+
+var rpos = new Float32Array(2);
+var rphotons = new Uint8ClampedArray(3);
+/**
+ * Generates mote with randomized position and photon values.
+ * @param {BufferPool} pool storage pool
+ * @return {Mote}
+ */
+Mote.random = function (pool) {
+	do {
+		rpos[0] = random() * (0, _photonomix2.posneg)();
+		rpos[1] = random() * (0, _photonomix2.posneg)();
+	} while (magnitude(rpos) > 0.8);
+	rphotons[0] = ~~(random() * 64);
+	rphotons[1] = ~~(random() * 64);
+	rphotons[2] = ~~(random() * 64);
+	return new Mote(rphotons, rpos, pool);
+};
+
+Mote.prototype.destroy = function () {
+	this.pool.free(this.offset);
+};
+
+/***/ }),
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3497,13 +3914,11 @@ Object.defineProperty(exports, "__esModule", {
 exports.buttons = exports.keys = exports.pointer = undefined;
 exports.init = init;
 
-var _vectrix = __webpack_require__(1);
+var _vectrix = __webpack_require__(4);
 
 var vectrix = _interopRequireWildcard(_vectrix);
 
-var _photonomixDisplay = __webpack_require__(4);
-
-var _photonomixEvents = __webpack_require__(13);
+var _photonomixEvents = __webpack_require__(41);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
@@ -3570,7 +3985,382 @@ function init(env) {
 }
 
 /***/ }),
-/* 12 */
+/* 16 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony export (immutable) */ __webpack_exports__["map"] = map;
+/* harmony export (immutable) */ __webpack_exports__["unmap"] = unmap;
+/* harmony export (immutable) */ __webpack_exports__["lookupMap"] = lookupMap;
+/* harmony export (immutable) */ __webpack_exports__["lookupKeyState"] = lookupKeyState;
+/* harmony export (immutable) */ __webpack_exports__["init"] = init;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_util__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__KeyState__ = __webpack_require__(23);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__KeyMap__ = __webpack_require__(22);
+
+
+
+
+
+const state = [
+];
+
+const keyMaps = {
+}
+
+
+/**
+ * Maps a label to one or more keys.
+ * @example
+ * ```javascript
+ * let forward = pxene.controls.map("forward", "d", "rightArrow");
+ * ```
+ * @param {string} label a label for the keymap
+ * @param {string|Array} ...keys a list of keys to map
+ * @return {KeyMap}
+ */
+function map(label, ...keys) {
+	const map = getOrInitMap(label);
+	keys = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__pxene_util__["flatten"])(keys);
+	keys.forEach(key => {
+		const ks = getOrInitKeyState(key);
+		if(map.keys.indexOf(ks) == -1) map.keys.push(ks)
+	});
+	return map;
+}
+
+/**
+ * Removes a key mapping, returning the modified {@link KeyMap}.
+ * @param {string} label the key map's label
+ * @param {string} key the [key name]{@link KeyState} to remove
+ * @return {KeyMap|undefined} undefined if the KeyMap for the label didn't exist
+ */
+function unmap(label, key) {
+	if(keyMaps[label]) {
+		let index = keyMaps[label].keys.indexOf(lookupKeyState(key));
+		if(index) keyMaps.keys.splice(index, 1);
+	}
+	return keyMaps[label];
+}
+
+/**
+ * Finds a keyState by [key name]{@link KeyMap}, initializing a new one if necessary.
+ * @param {string} key the key name
+ * @return {KeyState}
+ */
+function getOrInitKeyState(key) {
+	key = key.toLowerCase();
+	let ks = lookupKeyState(key);
+	if(ks === undefined) {
+		ks = new __WEBPACK_IMPORTED_MODULE_1__KeyState__["a" /* default */](key);
+		state.push(ks);
+	}
+	return ks;
+}
+
+/**
+ * Finds a keyMap by label, initializing a new one if necessary.
+ * @param {string} label the keymap label
+ * @return {KeyMap}
+ */
+function getOrInitMap(label) {
+	let mapped = lookupMap(label);
+	if(mapped === undefined) {
+		mapped = new __WEBPACK_IMPORTED_MODULE_2__KeyMap__["a" /* default */](label);
+		keyMaps[label] = mapped;
+	}
+	return mapped;
+}
+
+/**
+ * Looks up a KeyMap by label.
+ * @param {string} label the keymap label
+ * @return {KeyMap|undefined}
+ */
+function lookupMap(label) {
+	return keyMaps[label];
+}
+
+/**
+ * Looks up a KeyState by [key name]{@link KeyState}.
+ */
+function lookupKeyState(key) {
+	key = key.toLowerCase();
+	return state.filter(ks => ks.key === key)[0]
+}
+
+/**
+ * Handles keydown events.
+ */
+function down(ev) {
+	const time = Date.now();
+	const ks = lookupKeyState(ev.key);
+	if(ks && ks.lastUp >= ks.lastDown) { // ignore key repeats
+		ks.down = true;
+		ks.lastDown = time; 
+	}
+}
+
+/**
+ * Handles keyup events.
+ */
+function up(ev) {
+	const time = Date.now();
+	const ks = lookupKeyState(ev.key);
+	if(ks) {
+		ks.down = false;
+		ks.lastUp = time;
+	}
+}
+
+/**
+ * When the window blurs we lose track of key events, so toggle all keys off.
+ */
+function blur() {
+	const time = Date.now();
+	state.forEach(ks => {
+		ks.down = false;
+		ks.lastUp = time;
+	});
+}
+
+function init() {
+	window.addEventListener("keydown", down); 
+	window.addEventListener("keyup", up); 
+	window.addEventListener("blur", blur);
+}
+
+
+/***/ }),
+/* 17 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony export (immutable) */ __webpack_exports__["updateCompositeOperation"] = updateCompositeOperation;
+/* harmony export (immutable) */ __webpack_exports__["init"] = init;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_display_util_js__ = __webpack_require__(35);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__pxene_display_buffers__ = __webpack_require__(33);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__pxene_events__ = __webpack_require__(18);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__pxene_display_ui__ = __webpack_require__(34);
+/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "buffers", function() { return __WEBPACK_IMPORTED_MODULE_1__pxene_display_buffers__; });
+/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "ui", function() { return __WEBPACK_IMPORTED_MODULE_3__pxene_display_ui__; });
+/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "util", function() { return __WEBPACK_IMPORTED_MODULE_0__pxene_display_util_js__; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__pxene_constants__ = __webpack_require__(8);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__pxene_util__ = __webpack_require__(9);
+
+
+
+
+
+
+
+
+let {min, max} = Math;
+let AUTO_FULLSCREEN = false;
+
+let startTime; // time game started
+let interval = 0;
+let elapsed = 0;
+let frameCount = 0; // running total of drawn frames
+let animating = false; // whether the game is currently running animation loop
+let container; // display container 
+let fullscreen = false; // whether the game is in fullscreen mode
+let lastFrame = 0;
+let frameCallback;
+const bufferList = [];
+const buffersByLabel = {};
+/* harmony export (immutable) */ __webpack_exports__["buffersByLabel"] = buffersByLabel;
+
+let compositeBuffer;
+
+const props = {
+	width:0,
+	height:0,
+	pixelRatio:1,
+	orientation:0,
+	aspect:0,
+	minDimension:0,
+	maxDimension:0,
+	events:new __WEBPACK_IMPORTED_MODULE_2__pxene_events__["Events"]()
+}
+/* harmony export (immutable) */ __webpack_exports__["props"] = props;
+
+
+const timing = {
+	get frameCount() {return frameCount},
+	get startTime() {return startTime},
+	get lastFrame() {return lastFrame},
+	get elapsed() {return elapsed},
+	get interval() {return interval}
+}
+/* harmony export (immutable) */ __webpack_exports__["timing"] = timing;
+
+
+/**
+ * Using this checks and avoids altering the canvas context state machine if unnecessary,
+ * which theoretically saves a little time.
+ */
+function updateCompositeOperation(ctx, op) {
+	if(ctx.globalCompositeOperation !== op) ctx.globalCompositeOperation = op;
+}
+
+/**
+ * Toggles fullscreen on.
+ * Code from Mozilla Developer Network.
+ */
+function toggleFullScreen() {
+	if(fullscreen) return;
+	fullscreen = true;
+  if(!document.fullscreenElement &&    // alternative standard method
+      !document.mozFullScreenElement && 
+			!document.webkitFullscreenElement && 
+			!document.msFullscreenElement) {  // current working methods
+    if(document.documentElement.requestFullscreen)
+			document.documentElement.requestFullscreen();
+    else if (document.documentElement.msRequestFullscreen)
+      document.documentElement.msRequestFullscreen();
+    else if (document.documentElement.mozRequestFullScreen)
+      document.documentElement.mozRequestFullScreen();
+    else if (document.documentElement.webkitRequestFullscreen)
+      document.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+		props.events.fire("fullscreen-on");
+  } 
+	else {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.msExitFullscreen) document.msExitFullscreen();
+    else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+		props.events.fire("fullscreen-off");
+  }
+}
+
+/**
+ * Turns fullscreen off.
+ */
+function fullscreenOff(ev) {
+	ev.preventDefault();
+	if(document.webkitIsFullScreen || 
+	   document.mozIsFullScreen || 
+		 document.msIsFullScreen) fullscreen = true;
+	else fullscreen = false;
+	return false;
+}
+
+/**
+ * Updates screen ratio.
+ */
+function updateProperties() {
+	compositeBuffer.width  = props.width  = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__pxene_util__["evenNumber"])(container.clientWidth);
+	compositeBuffer.height = props.height = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__pxene_util__["evenNumber"])(container.clientHeight);
+	props.orientation = props.width > props.height?0:1;
+	props.minDimension = min(props.width, props.height);
+	props.maxDimension = max(props.width, props.height);
+	// @todo review this, it probably needs better handling
+	bufferList.forEach(buffer => {
+		buffer.width = ~~(props.width/props.pixelRatio);
+		buffer.height = ~~(props.height/props.pixelRatio);
+	});
+	props.events.fire("resize");
+}
+
+
+/**
+ * Main animation loop.
+ */
+function animate() {
+	requestAnimationFrame(animate);
+	try {
+		let now = Date.now();
+			elapsed = now - lastFrame;
+			if(elapsed > interval) {
+				lastFrame = now - (elapsed % interval);
+				frameCount++;
+				frameCallback(buffersByLabel);
+				__WEBPACK_IMPORTED_MODULE_1__pxene_display_buffers__["composite"](bufferList, compositeBuffer, props);
+			}
+		}
+	catch(e) {
+		console.error("Crappy uncaught error in animation loop is crappy");
+	}
+}
+
+function initBuffers(bufferDescriptions) {
+	for(let i = 0, len = bufferDescriptions.length; i < len; ++i) {
+		let bufData = bufferDescriptions[i];
+		let buffer = new __WEBPACK_IMPORTED_MODULE_1__pxene_display_buffers__["DrawBuffer"](bufData.compositeMethod, bufData.scaleMethod);
+		buffer.id = bufData.label;
+		bufferList.push(buffer);
+		buffersByLabel[bufData.label] = buffer;
+	}
+}
+
+/**
+ * Initializes game environment.
+ */
+function init(config) {
+	props.pixelRatio = config.pixelRatio || props.pixelRatio;
+	container = document.querySelector(config.container);
+	container.classList.add("2d");
+	compositeBuffer = new __WEBPACK_IMPORTED_MODULE_1__pxene_display_buffers__["CompositeBuffer"](container);
+	container.width = compositeBuffer.width  = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__pxene_util__["evenNumber"])(container.clientWidth);
+	container.height = compositeBuffer.height = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__pxene_util__["evenNumber"])(container.clientHeight);
+	initBuffers(config.bufferDescriptions);
+	updateProperties();
+	frameCallback = config.frameCallback;
+	window.addEventListener("resize", updateProperties);
+	AUTO_FULLSCREEN = config.fullscreen;
+	if(AUTO_FULLSCREEN) {
+		container.addEventListener("click", toggleFullScreen);
+		document.addEventListener("fullscreenchange", fullscreenOff);
+		document.addEventListener("mozfullscreenchange", fullscreenOff);
+		document.addEventListener("msfullscreenchange", fullscreenOff);
+		document.addEventListener("webkitfullscreenchange", fullscreenOff);
+	}
+	startTime = Date.now();
+	lastFrame = startTime;
+	interval = 1000 / __WEBPACK_IMPORTED_MODULE_4__pxene_constants__["c" /* TARGET_FPS */];
+	if(!animating) requestAnimationFrame(animate);
+	animating = true;
+}
+
+
+/***/ }),
+/* 18 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony export (immutable) */ __webpack_exports__["Events"] = Events;
+
+
+/**
+ * *Very* simple event object.
+ */
+function Events() {
+	this.queue = {};
+	return this;
+}
+
+Events.prototype.on = function(event, callback) {
+	if(this.queue[event] === undefined) this.queue[event] = [];
+	this.queue[event].push(callback);
+}
+
+Events.prototype.fire = (function() {
+	let i, len;
+	return function(event, params) {
+		if(this.queue[event] === undefined) return;
+		for(i = 0, len = this.queue[event].length; i < len; ++i) {
+			this.queue[event][i].call(params);
+		}
+	}
+})();
+
+
+/***/ }),
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3889,39 +4679,44 @@ function createGameSpaceMask() {
 }
 
 /***/ }),
-/* 13 */
-/***/ (function(module, exports, __webpack_require__) {
+/* 20 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_controls__ = __webpack_require__(16);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_graphics__ = __webpack_require__(28);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__src_pxene_display__ = __webpack_require__(17);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__src_pxene_events__ = __webpack_require__(18);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__src_pxene_util__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__src_pxene_assets__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__src_pxene_BooleanArray__ = __webpack_require__(29);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__src_pxene_ObjectPool__ = __webpack_require__(31);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__src_pxene_CollisionMap__ = __webpack_require__(30);
+/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "display", function() { return __WEBPACK_IMPORTED_MODULE_2__src_pxene_display__; });
+/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "controls", function() { return __WEBPACK_IMPORTED_MODULE_0__src_controls__; });
+/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "events", function() { return __WEBPACK_IMPORTED_MODULE_3__src_pxene_events__; });
+/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "util", function() { return __WEBPACK_IMPORTED_MODULE_4__src_pxene_util__; });
+/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "assets", function() { return __WEBPACK_IMPORTED_MODULE_5__src_pxene_assets__; });
+/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "graphics", function() { return __WEBPACK_IMPORTED_MODULE_1__src_graphics__; });
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "ObjectPool", function() { return __WEBPACK_IMPORTED_MODULE_7__src_pxene_ObjectPool__["a"]; });
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "BooleanArray", function() { return __WEBPACK_IMPORTED_MODULE_6__src_pxene_BooleanArray__["a"]; });
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "CollisionMap", function() { return __WEBPACK_IMPORTED_MODULE_8__src_pxene_CollisionMap__["a"]; });
 
 
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.Events = Events;
-function Events() {
-	this.queue = {};
-	return this;
-}
 
-Events.prototype.on = function (event, callback) {
-	if (this.queue[event] === undefined) this.queue[event] = [];
-	this.queue[event].push(callback);
-};
 
-Events.prototype.fire = function () {
-	var i = void 0,
-	    len = void 0;
-	return function (event, params) {
-		if (this.queue[event] === undefined) return;
-		for (i = 0, len = this.queue[event].length; i < len; ++i) {
-			this.queue[event][i].call(params);
-		}
-	};
-}();
+
+
+
+
+
+
+
+
 
 /***/ }),
-/* 14 */
+/* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3933,7 +4728,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.antigravitons = exports.photons = exports.markers = exports.emitters = exports.voids = exports.motes = undefined;
 exports.Game = Game;
 
-var _photonomixGame = __webpack_require__(8);
+var _photonomixGame = __webpack_require__(14);
 
 var motes = _interopRequireWildcard(_photonomixGame);
 
@@ -3941,11 +4736,11 @@ var _photonomixGame2 = __webpack_require__(5);
 
 var voids = _interopRequireWildcard(_photonomixGame2);
 
-var _photonomixGame3 = __webpack_require__(7);
+var _photonomixGame3 = __webpack_require__(13);
 
 var emitters = _interopRequireWildcard(_photonomixGame3);
 
-var _photonomixGame4 = __webpack_require__(20);
+var _photonomixGame4 = __webpack_require__(42);
 
 var markers = _interopRequireWildcard(_photonomixGame4);
 
@@ -3953,13 +4748,13 @@ var _photonomixGame5 = __webpack_require__(3);
 
 var photons = _interopRequireWildcard(_photonomixGame5);
 
-var _photonomixGame6 = __webpack_require__(6);
+var _photonomixGame6 = __webpack_require__(12);
 
 var antigravitons = _interopRequireWildcard(_photonomixGame6);
 
 var _photonomix = __webpack_require__(2);
 
-var _photonomix2 = __webpack_require__(15);
+var _photonomix2 = __webpack_require__(40);
 
 var _vectrix = __webpack_require__(1);
 
@@ -4003,6 +4798,7 @@ function Game() {
 	};
 	this.actions = {};
 	this.registerActions();
+	this.started = false;
 	return this;
 }
 
@@ -4012,6 +4808,7 @@ Game.prototype.start = function () {
 	for (var i = 0; i < _photonomix3.START_POP; ++i) {
 		this.entities.push(new Mote.random(this.motePool));
 	}
+	this.started = true;
 };
 
 Game.prototype.tick = function () {
@@ -4020,7 +4817,9 @@ Game.prototype.tick = function () {
 	    i = 0 | 0,
 	    len = 0 | 0,
 	    tick_delta = 0.0;
-	return function tick(delta, frameCount) {
+	return function tick(timing) {
+		var delta = timing.interval / timing.elapsed;
+		var frameCount = timing.frameCount;
 		entities = this.entities;
 		this.stats.target = 0;
 		this.stats.pop = 0;
@@ -4153,221 +4952,1213 @@ Game.prototype.registerActions = function () {
 };
 
 /***/ }),
-/* 15 */
-/***/ (function(module, exports, __webpack_require__) {
+/* 22 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = KeyMap;
 
+/**
+ * @module pxene.controls.KeyMap
+ * contains the KeyMap prototype.
+ */
 
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.BufferPool = BufferPool;
-var MAX_POOL_SIZE = exports.MAX_POOL_SIZE = Math.pow(2, 21); // 2mb
-
-function calculatePoolSize(itemLength) {
-	return MAX_POOL_SIZE - MAX_POOL_SIZE % itemLength;
+/**
+ * Data type for handling mappings of keys to control labels.
+ * @example
+ * ```javascript
+ * let jump = pxene.controls.map("jump", "space");
+ * jump.down(); // true or false depending on whether the spacebar is down
+ * pxene.controls.map("jump", "esc");
+ * jump.isDown(); // true if either space or esc are down 
+ * jump.lastDown(); // most recent time either space or esc were pressed down
+ * jump.LastUp(); // most recent time either space or esc were released
+ * jump.unmap("esc"); // now jump only pays attention to spacebar
+ *
+ * // The controls module keeps track of your control mappings, so you don't
+ * // have to worry about losing them. Once you've created the "jump" label
+ * // above you can always look it up later:
+ * let jump = pxene.controls.lookupMap("jump");
+ * ```
+ * @param {String} label the label for the mapping
+ * @return KeyMap object
+ */
+function KeyMap(label) {
+	label = label.toLowerCase();
+	this.label = label;
+	this.keys = [];
+	this.checkedDown = 0;
+	this.checkedUp = 0;
+	return Object.seal(this);
 }
 
-function createFreedList(freedLength) {
-	if (freedLength < Math.pow(2, 8)) return new Uint8Array(freedLength);else if (freedLength < Math.pow(2, 16)) return new Uint16Array(freedLength);else return new Uint32Array(freedLength);
+KeyMap.prototype.lastDown = function lastDown() {
+	return this.keys.reduce((p, c) => p = (p > c.lastDown?p:c.lastDown), 0);
 }
 
-function BufferPool(itemLength, maxItems) {
-	var size = 0 | 0;
-	if (maxItems) {
-		if (itemLength * maxItems > MAX_POOL_SIZE) {
-			throw new Error("requested buffer size is too large");
-		} else size = itemLength * maxItems;
-	} else size = calculatePoolSize(itemLength);
-	var buffer = new ArrayBuffer(size);
-	var freedLength = maxItems ? maxItems : size / itemLength;
-	var freed = createFreedList(freedLength);
-	Object.defineProperties(this, {
-		"itemLength": { get: function get() {
-				return itemLength;
-			} },
-		"buffer": { get: function get() {
-				return buffer;
-			} },
-		"size": { get: function get() {
-				return size;
-			} },
-		"freed": { get: function get() {
-				return freed;
-			} }
+KeyMap.prototype.lastUp = function lastUp() {
+	return this.keys.reduce((p, c) => p = (p > c.lastDown?p:c.lastDown), 0);
+}
+
+KeyMap.prototype.isDown = function isDown() {
+	return this.keys.reduce((p, c) => p = p || c.down, false);
+}
+
+KeyMap.prototype.onceDown = function onceDown() {
+	if(this.lastUp() >= this.checkedDown && this.isDown()) {
+		this.checkedDown = Date.now();
+		return true;
+	}
+	return false;
+}
+
+KeyMap.prototype.onceUp = function onceUp() {
+	if(this.lastDown() >= this.checkedUp && !this.isDown()) {
+		this.checkedUp = Date.now();
+		return true;
+	}
+	return false;
+}
+
+
+/***/ }),
+/* 23 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = KeyState;
+
+/**
+ * @module pxene.controls.KeyState
+ * contains the KeyState prototype.
+ */
+
+/**
+ * Data type for tracking the state of a single key.
+ * @param {string} key key name, as defined in [KeyboardEvent.key]{@link https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values}
+ * @return {KeyState}
+ */
+function KeyState(key) {
+	this.key = key;
+	this.down = false;
+	this.lastDown = 0;
+	this.lastUp = 0;
+	return Object.seal(this);
+}
+
+
+/***/ }),
+/* 24 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = Atlas;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_assets__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__ = __webpack_require__(4);
+
+/**
+ * @module pxene.graphics.Atlas
+ *
+ * Contains the Atlas prototype.
+ */
+
+
+
+/** a cache of already processed Atlases **/
+const cache = [];
+/**
+ * Much like a sprite, an atlas is a collection of smaller images on a single sheet.
+ * An atlas may have non-uniform cell sizes, and is more suitable for static graphics.
+ *
+ * @todo Implement me
+ */
+function Atlas(layers, animations, slices) {
+	this.layers = layers;
+	this.animations = animations;
+	this.slices = slices;
+	this.source = undefined;
+	this.context = undefined;
+	this.flippedContext = undefined;
+	this.ready = false;
+	return Object.seal(this);
+}
+
+/**
+ * Initializes the sprite with an image, copying it to the sprite's internal
+ * canvas.
+ * @param {Image} image a loaded Image element
+ * @param {bool} flipped whether to generate a horizontally flipped version (default: true)
+ */
+Atlas.prototype.init = function init(image, flipped = true) {
+	this.source = image;
+	let canvas = document.createElement("canvas");
+	canvas.width = image.width;
+	canvas.height = image.height;
+	let context = canvas.getContext("2d");
+	context.drawImage(image, 0, 0);
+	this.context = context;
+	if(flipped) this.generateFlipped();
+	this.ready = true;
+}
+
+/**
+ * Generates a horizontally flipped version of the sprite with all the cells
+ * at the same indexes. Normally run during {@link init} but can be called
+ * manually if init was instructed not to create the flipped version.
+ */
+Atlas.prototype.generateFlipped = function generateFlipped() {
+	let canvas = document.createElement("canvas");
+	canvas.width = this.context.canvas.width;
+	canvas.height = this.context.canvas.height;
+	let context = canvas.getContext("2d");
+	context.scale(-1, 1);
+	let i, len, layer;
+	// let's not create functions within loops
+	let eachSlice = (key) => {
+		let slice = this.slices[key];	
+		let source = __WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__["vectors"].vec2(slice.pos);
+		__WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__["vectors"].mut_plus(source, layer.frames[i].pos);
+		context.drawImage(
+			this.context.canvas,
+			source[0], source[1],
+			slice.dims[0], slice.dims[1],
+			-source[0]-slice.dims[0], source[1],
+			slice.dims[0], slice.dims[1]
+		);
+
+	}
+
+	let eachLayer = (key) => {
+		layer = this.layers[key];
+		for(i = 0, len = layer.frames.length; i < len; ++i) {
+			Object.keys(this.slices).filter(key => key !== "default").forEach(eachSlice);
+		}
+	}
+
+	Object.keys(this.layers).forEach(eachLayer); 
+
+	context.setTransform(1, 0, 0, 1, 0, 0);
+	this.flippedContext = context;
+}
+
+/**
+ * Draw a slice from the atlas to the given context.
+ * @param {CanvasContext2d} dest the destination context
+ * @param {string} name the name of the slice to draw
+ * @param {vec2} pos the top left corner to start drawing at
+ * @param {bool} flipped horizontal flip toggle (to reverse facing of image)
+ * @param {Array} layers list of layers by name to draw
+ */
+Atlas.prototype.draw = function(dest, label, pos, flipped = false, layers = undefined) {
+	let slice = (
+			this.slices[label]?
+			this.slices[label]:
+			this.slices.default);
+	let canvas = flipped?this.flippedContext.canvas:this.context.canvas;
+
+	// draw all layers if a layer list isn't specified
+	if(layers === undefined) layers = Object.keys(this.layers);
+	layers.forEach(layer => {
+		let source = __WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__["vectors"].vec2(slice.pos);
+		//vectors.mut_plus(source, this.layers[layer].pos);
+		__WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__["vectors"].mut_plus(source, this.layers[layer].frames[0].pos);
+		dest.drawImage(
+			canvas,
+			source[0], source[1],
+			slice.dims[0], slice.dims[1],
+			pos[0], pos[1],
+			slice.dims[0], slice.dims[1]
+		);
 	});
-	this.next = 0;
-	this.freedPos = 0;
+}
+
+/**
+ * Draws a sprite frame from a given animation set, or the default animation
+ * if the specified animation is incorrect.
+ * @param {CanvasRenderingContext2D} dest the destination context
+ * @param {string} label the name of the animation to draw
+ * @param {vec2} pos the top left corner from which to start drawing
+ * @param {int} frame the frame number to draw
+ * @param {bool} flip horizontal flip toggle (to reverse facing of sprite)
+ * @param {Array} layers list of layers by name to draw
+ */
+Atlas.prototype.animate = function animate(dest, label, pos, frame, flipped = false, layers = undefined) {
+	// draw all layers if a layer list isn't specified
+	if(layers === undefined) layers = Object.keys(this.layers);
+
+	let animation = (
+			this.animations[label]?
+			this.animations[label]:
+			this.animations.default);
+
+	let frameNum = animation.start + (frame % animation.length);
+	let canvas = flipped?this.flippedContext.canvas:this.context.canvas; 
+	layers.forEach(layer => {
+		let frame = this.layers[layer].frames[frameNum];
+		dest.drawImage(
+			canvas,
+			frame.pos[0], frame.pos[1],
+			frame.dims[0], frame.dims[1],
+			pos[0], pos[1], 
+			frame.dims[0], frame.dims[1])
+	});
+}
+
+/**
+ * Creates a new Atlas by combining into a single layer the listed layers, 
+ * in the order supplied.
+ * @param {Array} layers list of layers by label
+ * @return {Atlas}
+ *
+ * @todo implement me
+ */
+Atlas.prototype.prebake = function prebake() {
+	throw new Error("unimplemented");
+}
+
+/**
+ * Create a new Atlas from an imported AsepriteAtlas. Returns a promise
+ * which resolves with an atlas once it's ready to use. Accepts a callback for
+ * processing the data property on layers and slices, which defaults to treating
+ * it as a string.
+ *
+ * @todo a gulp module that exports with the correct options to make this work
+ *
+ * @param {string} uri a URI for an atlas JSON file
+ * @param {function} dataCallback custom function for transforming the "data" parameter
+ * @return {Promise}
+ */
+Atlas.fromAsepriteAtlas = function fromAsepriteAtlas(uri, dataCallback) {
+	dataCallback = dataCallback || function(a) {return a};
+	/**
+	 * uniq used below to filter unique tags, due to aseprite bug
+	 * which creates duplicate entries
+	 */
+	//const uniq = (v, i, self) => self.indexOf(v) === i;
+	return new Promise((resolve) => {
+		if(cache[uri] !== undefined && cache[uri] instanceof Atlas) {
+			resolve(cache[uri]);
+		}
+		else {
+			console.log(__WEBPACK_IMPORTED_MODULE_0__pxene_assets__);
+			__WEBPACK_IMPORTED_MODULE_0__pxene_assets__["requestAsset"](uri).then((asset) => {
+				let aspr = asset.content;
+				let width = aspr.meta.size.w;
+				let height = aspr.meta.size.h;
+				let numLayers = aspr.meta.layers.length;
+				let numFrames = aspr.frames.length / numLayers;
+				let layerHeight = height / numLayers;
+
+				// Hash of layers by name to be added to the Atlas
+				let layers = {}, layer;
+				let layerNames = [];
+
+				aspr.meta.layers.forEach((l, i) => {
+					layerNames.push(l.name);
+					if(layers[l.name] === undefined) {
+						layer = {
+							label:l.name.trim(),
+							data:dataCallback(l.data?l.data:""),
+							opacity:l.opacity,
+							blendMode:l.blendMode,
+							pos:__WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__["vectors"].vec2(0, i * layerHeight),
+							frames:[]
+						}
+						layers[layer.label] = Object.freeze(layer);
+					}
+				});
+
+				// Hash of animations by name to be added to the Atlas
+				let slices = {
+					default:{
+						label:"default",
+						data:dataCallback(""),
+						pos:__WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__["vectors"].vec2(0, 0),
+						dims:__WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__["vectors"].vec2(width, height)
+					}
+				}, slice;
+
+				aspr.meta.slices.forEach(s => {
+					// as of v1.2.2, aseprite duplicates frame tags once per
+					// layer but the data is always the same
+					if(slices[s.name] === undefined) {
+						slice = {
+							label:s.name.trim(),
+							data:dataCallback(s.data?s.data:""),
+							pos:__WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__["vectors"].vec2(s.keys[0].bounds.x, s.keys[0].bounds.y),
+							dims:__WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__["vectors"].vec2(s.keys[0].bounds.w, s.keys[0].bounds.h)
+						}
+						slices[slice.label] = Object.freeze(slice);
+					}
+				});
+
+				// Hash of animations by name to be added to the Atlas
+				let animations = {}, animation;
+
+				aspr.meta.frameTags.forEach(f => {
+					// as of v1.2.2, aseprite duplicates frame tags once per
+					// layer but the data is always the same
+					if(animations[f.name] === undefined) {
+						 animation = {
+							label:f.name.trim(),
+							start:f.from,
+							length:(f.to - f.from) + 1
+						}
+						animations[animation.label] = Object.freeze(animation);
+					}
+				});
+
+				aspr.frames.forEach((f, i) => {
+					let layer = layers[layerNames[~~(i / numFrames)]];
+					let frame = {
+						//label:f.name.trim(),
+						pos:__WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__["vectors"].vec2(f.frame.x, f.frame.y),
+						dims:__WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__["vectors"].vec2(f.frame.w, f.frame.h)
+					}
+					layer.frames.push(Object.freeze(frame));
+				});
+
+				__WEBPACK_IMPORTED_MODULE_0__pxene_assets__["requestAsset"](aspr.meta.image).then((image) => {
+					let atlas = new Atlas(
+						Object.seal(layers),
+						Object.seal(animations),
+						Object.seal(slices)
+					);
+					atlas.init(image.content);
+					cache[uri] = atlas;
+					resolve(atlas);
+				});
+			});
+		}
+	});
+}
+
+
+/***/ }),
+/* 25 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = BitmapFont;
+
+/**
+ * @module pxene.graphics.BitmapFont
+ *
+ * Contains the BitmapFont prototype.
+ */
+
+/**
+ * A bitmap font is a fixed-size font contained in a single bitmap image, 
+ * similar to a Sprite or Atlas. The BitmapFont object manages loading the font
+ * and writing text to a canvas using the font.
+ * @todo implement me
+ */
+function BitmapFont() {
 	return this;
 }
 
-var offset = 0 | 0;
-BufferPool.prototype.allocate = function () {
-	if (this.freedPos > 0) offset = this.popFree();else if (this.next < this.size - 1) {
-		offset = this.next;
-		this.next = this.next + this.itemLength;
-	} else throw new Error("pool buffer is full");
-	return offset;
-};
+/**
+ * Initializes the font with an image.
+ * @param {Image} image a loaded Image element
+ */
+BitmapFont.prototype.init = function(image) {
+}
 
-BufferPool.prototype.popFree = function () {
-	this.freedPos--;
-	offset = this.freed[this.freedPos] * this.itemLength;
-	this.freed[this.freedPos] = 0;
-	return offset;
-};
+/**
+ * Draws text to canvas.
+ * @param {string} text text contents to write
+ * @param {CanvasContext2d} target canvas context to write to
+ * @param {int} sx start x-coordinate
+ * @param {int} sy start y-coordinate
+ * @param {int} wl wrap length in pixels
+ * @param {int} lh space between lines in pixels (optional, default 1)
+ * @param {int}	ls letter spacing in pixels (optional, default 1) 
+ */
+BitmapFont.prototype.write = function(text, target, sx, sy, lw, ls = 1) {
+}
 
-BufferPool.prototype.free = function (offset) {
-	this.freed[this.freedPos] = offset === 0 ? offset : offset / this.itemLength;
-	this.freedPos++;
-};
 
 /***/ }),
-/* 16 */
-/***/ (function(module, exports, __webpack_require__) {
+/* 26 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = CompositeSprite;
+
 /**
- * Derived from bokeh generator by Jack Rugile at [CodePen](http://codepen.io/jackrugile/pen/gaFub)
+ * @module pxene.graphics.CompositeSprite
+ *
+ * Contains the CompositeSprite prototype.
+ */
+function CompositeSprite() {
+	return this;
+}
+
+/**
+ * Generates a composite sprite from the image list the sprite was loaded with.
+ */
+CompositeSprite.prototype.init = function init(sprites) {
+	let canvas = document.createElement("canvas");
+	canvas.width = this.width = sprites[0].width;
+	canvas.height = this.height = sprites[0].height;
+	this.columns = canvas.width / this.frameWidth;
+	this.rows = canvas.height / this.frameHeight;
+	let context = canvas.getContext("2d");
+	for(let i = 0, len = sprites.length; i < len; ++i) {
+		context.drawImage(sprites[i], 0, 0);
+	}
+	this.ready = true;
+	this.spriteCanvas = canvas;
+}
+
+
+/***/ }),
+/* 27 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = Sprite;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_assets__ = __webpack_require__(7);
+
+
+/**
+ * @module pxene.graphics.Sprite
+ *
+ * Contains the Sprite prototype, as well as the internally managed sprite cache.
+ */
+/** a cache of already processed Sprites **/
+let cache = [];
+
+/**
+ * An image subdivided into individual cells suitable for character animations. The
+ * Sprite object manages data related to the location of individual animations, and
+ * drawing of individual cells to an external canvas.
+ */
+function Sprite(frameCount, frameWidth, frameHeight, animations) {
+	this.frameCount = frameCount;
+	this.frameWidth = frameWidth;
+	this.frameHeight = frameHeight;
+	this.animations = animations;
+	this.context = undefined;
+	this.flippedContext = undefined;
+	this.ready = false;
+	// below calculated during generateComposite
+	this.width = 0; 
+	this.height = 0;
+	this.rows = 0;
+	this.columns = 0;
+	return Object.seal(this);
+}
+
+/**
+ * Initializes the sprite with an image, copying it to the sprite's internal
+ * canvas.
+ * @param {Image} image a loaded Image element
+ * @param {bool} flipped whether to generate a horizontally flipped version (default: true)
+ */
+Sprite.prototype.init = function init(image, flipped = true) {
+	let canvas = document.createElement("canvas");
+	canvas.width = this.width = image.width;
+	canvas.height = this.height = image.height;
+	this.columns = canvas.width / this.frameWidth;
+	this.rows = canvas.height / this.frameHeight;
+	let context = canvas.getContext("2d");
+	context.drawImage(image, 0, 0);
+	this.context = context;
+	if(flipped) this.generateFlipped();
+	this.ready = true;
+}
+
+
+/**
+ * Generates a horizontally flipped version of the sprite with all the cells
+ * at the same indexes. Normally run during {@link init} but can be called
+ * manually if init was instructed not to create the flipped version.
+ */
+Sprite.prototype.generateFlipped = function generateFlipped() {
+	let canvas = document.createElement("canvas");
+	canvas.width = this.width;
+	canvas.height = this.height;
+	let context = canvas.getContext("2d");
+	let row, col, sx, sy, dx, dy;
+	let rows = this.rows;
+	let cols = this.cols;
+	let w = this.frameWidth;
+	let h = this.frameHeight;
+
+	context.scale(-1, 1);
+	for(row = 0, rows = this.rows; row < rows; ++row) {
+		for(col = 0, cols = this.columns; col < cols; ++col) {
+			sx = col * w;
+			dx = sx; //((cols - col) * w) - w;
+			sy = dy = row * h;
+			context.drawImage(this.context.canvas, sx, sy, w, h, -sx-w, dy, w, h);
+		}
+	}
+	context.setTransform(1, 0, 0, 1, 0, 0);
+	this.flippedContext = context;
+}
+
+/**
+ * Draws a sprite frame from a given animation set, or the default animation
+ * if the specified animation is incorrect.
+ * @param {CanvasRenderingContext2D} dest the destination context
+ * @param {string} name the name of the animation to draw
+ * @param {int} frame the frame number to draw
+ * @param {vec2} pos the top left corner from which to start drawing
+ * @param {bool} flip horizontal flip toggle (to reverse facing of sprite)
+ */
+Sprite.prototype.draw = function draw(dest, name, frame, pos, flipped = false) {
+	let animation = (
+			this.animations[name]?
+			this.animations[name]:
+			this.animations.default);
+	let frameNum = animation.startFrame + (frame % animation.length);
+	let {frameWidth, frameHeight} = this;
+	let canvas = flipped?this.flippedContext.canvas:this.context.canvas; 
+	dest.drawImage(
+		canvas,
+		getX(this, frameNum), getY(this, frameNum),
+		frameWidth, frameHeight,
+		pos[0], pos[1], 
+		frameWidth, frameHeight);
+}
+
+/**
+ * Figures out the x offset for a frame based on the frame number and the sprite's parameters.
+ */
+function getX(sprite, frameNum) {
+	return (frameNum % sprite.columns) * sprite.frameWidth;
+}
+
+/**
+ * Figures out the x offset for a frame based on the frame number and the sprite's parameters.
+ */
+function getY(sprite, frameNum) {
+	return Math.floor(frameNum / sprite.columns) * sprite.frameHeight;
+}
+
+/**
+ * Create a new Sprite from an imported AsepriteAtlas. Returns a promise
+ * which resolves with a sprite once it's ready to use.
+ *
+ * @param {string} uri a URI for an atlas JSON file
+ * @return {Promise}
+ */
+Sprite.fromAsepriteAtlas = function fromAsepriteAtlas(uri) {
+	return new Promise((resolve) => {
+		if(cache[uri] !== undefined && cache[uri] instanceof Sprite) {
+			resolve(cache[uri]);
+		}
+		else {
+			console.log(__WEBPACK_IMPORTED_MODULE_0__pxene_assets__);
+			__WEBPACK_IMPORTED_MODULE_0__pxene_assets__["requestAsset"](uri).then((asset) => {
+				let aspr = asset.content;
+				let animations = {
+					default:{
+					label:"default",
+					startFrame:0,
+					length:1
+					}
+				}
+
+				if(aspr.meta.frameTags) aspr.meta.frameTags.forEach((anim) => {
+					animations[anim.name.toLowerCase()] = {
+						label:anim.name.toLowerCase(),
+						startFrame:anim.from,
+						length:(anim.to - anim.from) + 1
+					};
+				});
+
+				__WEBPACK_IMPORTED_MODULE_0__pxene_assets__["requestAsset"](aspr.meta.image).then((image) => {
+					let sprite = new Sprite(
+						aspr.frames.length,
+						aspr.frames[0].frame.w,
+						aspr.frames[0].frame.h,
+						animations
+					);
+					sprite.init(image.content);
+					cache[uri] = sprite;
+					resolve(sprite);
+				});
+			});
+		}
+	});
+}
+
+
+/***/ }),
+/* 28 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__Sprite__ = __webpack_require__(27);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__CompositeSprite__ = __webpack_require__(26);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__Atlas__ = __webpack_require__(24);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__BitmapFont__ = __webpack_require__(25);
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "Sprite", function() { return __WEBPACK_IMPORTED_MODULE_0__Sprite__["a"]; });
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "CompositeSprite", function() { return __WEBPACK_IMPORTED_MODULE_1__CompositeSprite__["a"]; });
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "Atlas", function() { return __WEBPACK_IMPORTED_MODULE_2__Atlas__["a"]; });
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "BitmapFont", function() { return __WEBPACK_IMPORTED_MODULE_3__BitmapFont__["a"]; });
+
+/**
+ * @module pxene.graphics
+ *
+ * Handles import, initialization and use of various specialized graphics
+ * resources.
  */
 
-//import * as sprites from "./photonomix.display.sprites";
 
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.init = init;
-exports.draw = draw;
-var bgBuffer = void 0,
-    bokehBuffer = void 0,
-    bgCtx = void 0,
-    bokehCtx = void 0,
-    cw = void 0,
-    ch = void 0,
-    w = void 0,
-    h = void 0,
-    tau = Math.PI * 2,
-    parts = [],
-    sizeBase = void 0,
-    hue = void 0,
-    opt = void 0,
-    count = void 0,
-    displayProps = void 0;
 
-function rand(min, max) {
-	return Math.random() * (max - min) + min;
-}
 
-function hsla(h, s, l, a) {
-	return "hsla(" + h + "," + s + "%," + l + "%," + a + ")";
-}
 
-function init(buffer1, buffer2, props) {
-	displayProps = props;
-	bgBuffer = buffer1;
-	bgCtx = bgBuffer.context;
-	bokehBuffer = buffer2;
-	bokehCtx = bokehBuffer.context;
-	updateProps();
-	displayProps.events.on("resize", updateProps);
-	// this can't get resized or we'd have to regenerate it, so set it up now
-	cw = bgBuffer.width = 1920;
-	ch = bgBuffer.height = 1920;
-	w = bokehBuffer.width;
-	h = bokehBuffer.height;
 
-	sizeBase = cw + ch;
-	count = Math.floor(sizeBase * 0.1);
-	hue = rand(0, 360);
-	opt = {
-		radiusMin: sizeBase * 0.02,
-		radiusMax: sizeBase * 0.10,
-		blurMin: sizeBase * 0.01,
-		blurMax: sizeBase * 0.04,
-		hueMin: hue,
-		hueMax: hue + rand(25, 75),
-		saturationMin: 10,
-		saturationMax: 70,
-		lightnessMin: 1,
-		lightnessMax: 5,
-		alphaMin: 0.1,
-		alphaMax: 0.4
-	};
-	bgCtx.fillStyle = "#000000";
-	bgCtx.fillRect(0, 0, cw, ch);
-	bgCtx.globalCompositeOperation = "lighter";
-	while (count--) {
-		var radius = rand(opt.radiusMin, opt.radiusMax),
-		    blur = rand(opt.blurMin, opt.blurMax),
-		    x = rand(0, cw),
-		    y = rand(0, ch),
-		    _hue = rand(opt.hueMin, opt.hueMax),
-		    saturation = rand(opt.saturationMin, opt.saturationMax),
-		    lightness = rand(opt.lightnessMin, opt.lightnessMax),
-		    alpha = rand(opt.alphaMin, opt.alphaMax);
 
-		bgCtx.shadowColor = hsla(_hue, saturation, lightness, alpha);
-		bgCtx.shadowBlur = blur;
-		bgCtx.beginPath();
-		bgCtx.arc(x, y, radius, 0, tau);
-		bgCtx.fill();
-		bgCtx.closePath();
-	}
-
-	parts.length = 0;
-	for (var i = 0; i < Math.floor((w + h) * 0.01); i++) {
-		parts.push({
-			radius: rand(sizeBase * 0.005, sizeBase * 0.02),
-			x: rand(0, w),
-			y: rand(0, h),
-			angle: rand(0, tau),
-			vel: rand(0.05, 0.2),
-			tick: rand(0, 10000)
-		});
-	}
-}
-
-function draw() {
-	var i = parts.length;
-	bokehCtx.fillStyle = "rgba(0,0,0,0)";
-	bokehCtx.globalCompositeOperation = "source-over";
-	bokehCtx.clearRect(0, 0, cw, ch);
-	bokehCtx.shadowBlur = 15;
-	bokehCtx.shadowColor = "#fff";
-	w = bokehBuffer.width;
-	h = bokehBuffer.height;
-	while (i--) {
-		var part = parts[i];
-
-		part.x += Math.cos(part.angle) * part.vel;
-		part.y += Math.sin(part.angle) * part.vel;
-		part.angle += rand(-0.05, 0.05);
-
-		bokehCtx.beginPath();
-		bokehCtx.arc(part.x, part.y, part.radius, 0, tau);
-		bokehCtx.fillStyle = hsla(0, 0, 100, 0.03 + Math.cos(part.tick * 0.02) * 0.01);
-		bokehCtx.fill();
-
-		if (part.x - part.radius > cw) part.x = -part.radius;
-		if (part.x + part.radius < 0) part.x = w + part.radius;
-		if (part.y - part.radius > ch) part.y = -part.radius;
-		if (part.y + part.radius < 0) part.y = h + part.radius;
-
-		part.tick++;
-	}
-}
-
-function updateProps() {
-	bokehBuffer.width = displayProps.width;
-	bokehBuffer.height = displayProps.height;
-}
 
 /***/ }),
-/* 17 */
-/***/ (function(module, exports, __webpack_require__) {
+/* 29 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = BooleanArray;
+
+/**
+ * @module pxene.BooleanArray
+ */
+
+/**
+ * A BooleanArray is a TypedArray-like implementation for integer-indexed
+ * boolean fields. It lets you store a set of boolean values in an arraybuffer,
+ * which allows for better potential memory use in circumstances where you need
+ * to set more than 2 booleans on a single data set\*, and potentially slightly
+ * better performance (though probably not significantly).
+ *
+ * It's probably not incredibly useful in most circumstances, but when you have
+ * an object with a bunch of boolean flags and you're going to make a bunch of
+ * that kind of object it might come in handy.
+ *
+ * In short, if you don't know whether you need this you almost certainly don't.
+ *
+ * *_most sources indicate a boolean occupies 4 bytes of javascript memory due 
+ * to storage and indexing overhead. In contrast, a BooleanArray can store up 
+ * to 8 booleans in around the same amount of memory (and the proportionate 
+ * savings grow the more booleans you have to store, since an arraybuffer
+ * has a small fixed overhead)._
+ */
+const internalArray = Symbol();
+
+function BooleanArray() {
+	if((arguments[0] instanceof ArrayBuffer) && (typeof arguments[1] === "number") && (typeof arguments[2] === "number")) {
+			this[internalArray] = new Uint8Array(arguments[0], arguments[1], Math.ceil(arguments[2]/8));
+	}
+	else if(typeof arguments[0] === "number") {
+		this[internalArray] = new Uint8Array(Math.ceil(arguments[0]/8));
+	}
+	else throw Error("expected either length or buffer, offset, length as arguments");
+	this.length = this[internalArray].byteLength * 8;
+	Object.freeze(this);
+	return this;
+}
+
+/**
+ * Gets a boolean by index.
+ */
+BooleanArray.prototype.get = function get(n) {
+	let i = ~~(n/8);
+	let s = n % 8;
+	return (this[internalArray][i] & (1 << s))?true:false;
+}
+
+/**
+ * Sets an index to the truthiness of the given value.
+ * @param {int} n index to set
+ * @param {truthy|falsy} v value to set
+ */
+BooleanArray.prototype.set = function set(n, v) {
+	let i = ~~(n/8);
+	let s = n % 8;
+	if(v) { // any kind of truthy is ok!
+		this[internalArray][i] |= 1 << s;
+	}
+	else {
+		this[internalArray][i] &= 255 ^ (1 << s);
+	}
+}
+
+/**
+ * Fill the array with a value.
+ * @param {truthy|falsy} v
+ */
+BooleanArray.prototype.fill = function(v) {
+	this[internalArray].fill(v?255:0);
+}
+
+/**
+ * For useful compatibility with {@link pxene.ObjectPool}.
+ */
+BooleanArray.prototype.recycle = function() {
+	this[internalArray].fill(0);
+}
+
+
+/***/ }),
+/* 30 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = CollisionMap;
+
+//import BooleanArray from "./pxene.BooleanArray";
+const {floor} = Math;
+/** mask a full rectangle **/
+const MASK_16 = Math.pow(2, 16) - 1;
+/** used to generate offset masks **/
+const MASK_X = new Uint16Array(4);
+/** used to generate offset masks **/
+const MASK_Y = new Uint16Array(4);
+/** mask offsets from the top **/
+const MASK_TOP = new Uint16Array(4);
+/** mask offsets from the bottom **/
+const MASK_BOTTOM = new Uint16Array(4);
+/** mask offsets from the right **/
+const MASK_RIGHT = new Uint16Array(4);
+/** mask offsets from the left **/
+const MASK_LEFT = new Uint16Array(4);
+
+/**
+ * Precompute a bunch of useful masks for fast shape checks. Done this way
+ * to illustrate/keep track of how they're constructed instead of just using
+ * "magic numbers".
+ */
+MASK_X[0] = 1 | (1 << 4) | (1 << 8) | (1 << 12);
+MASK_X[1] = MASK_X[0] << 1;
+MASK_X[2] = MASK_X[0] << 2;
+MASK_X[3] = MASK_X[0] << 3;
+if((MASK_X[0] | MASK_X[1] | MASK_X[2] | MASK_X[3]) !== MASK_16) throw new Error("MASK_X is bad");
+
+MASK_Y[0] = (1 << 4) - 1; 
+MASK_Y[1] = MASK_Y[0] << 4;
+MASK_Y[2] = MASK_Y[0] << 8;
+MASK_Y[3] = MASK_Y[0] << 12;
+if((MASK_Y[0] | MASK_Y[1] | MASK_Y[2] | MASK_Y[3]) !== MASK_16) throw new Error("MASK_Y is bad");
+
+MASK_TOP[0] = 0;
+MASK_TOP[1] = MASK_Y[3];
+MASK_TOP[2] = MASK_TOP[1] | MASK_Y[2];
+MASK_TOP[3] = MASK_TOP[2] | MASK_Y[1];
+
+MASK_BOTTOM[0] = 0;
+MASK_BOTTOM[1] = MASK_Y[0];
+MASK_BOTTOM[2] = MASK_BOTTOM[1] | MASK_Y[1];
+MASK_BOTTOM[3] = MASK_BOTTOM[2] | MASK_Y[2];
+
+MASK_RIGHT[0] = 0;
+MASK_RIGHT[1] = MASK_X[3];
+MASK_RIGHT[2] = MASK_RIGHT[1] | MASK_X[2];
+MASK_RIGHT[3] = MASK_RIGHT[2] | MASK_X[1];
+
+MASK_LEFT[0] = 0;
+MASK_LEFT[1] = MASK_X[0];
+MASK_LEFT[2] = MASK_LEFT[1] | MASK_X[1];
+MASK_LEFT[3] = MASK_LEFT[2] | MASK_X[2];
+
+
+/**
+ * @module pxene.CollisionMap
+ *
+ * Module containing {@link CollisionMap} prototype.
+ */
+
+const internal_array = Symbol();
+
+/**
+ * @constructor
+ * A collision map is a 2d grid of boolean true/false values, meant to be
+ * used for collision testing.
+ *
+ * @param {int} width the width of the grid
+ * @param {int} height the height of the grid
+ * @return {CollisionMap}
+ */
+function CollisionMap(width = 0, height = 0) {
+	this.width = 0;
+	this.height = 0;
+	this.cellWidth = 0;
+	this.cellHeight = 0;
+	this.length = 0;
+	if(width && height) this.init(width, height);
+	return this;
+}
+
+/* helpful(?) constants */
+/** pixel array index offset for the red channel **/
+CollisionMap.CHANNEL_RED = 0;
+/** pixel array index offset for the green channel **/
+CollisionMap.CHANNEL_GREEN = 1;
+/** pixel array index offset for the blue channel **/
+CollisionMap.CHANNEL_BLUE = 2;
+/** pixel array index offset for the alpha channel **/
+CollisionMap.CHANNEL_ALPHA = 3;
+
+/**
+ * Creates a per-pixel collision map from a Canvas.
+ * @param {Canvas} canvas the canvas to read pixel data from
+ * @param {int} threshold the threshold above which a pixel will be considered solid (default 0) 
+ * @param {int} channel the channel to check against (default {@link CollisionMap.CHANNEL_ALPHA}) 
+ * @return {CollisionMap} 
+ *
+ * @note internal canvas pixel data stores alpha in a range of 0 to 255, so
+ * convert from [0 - 1] to [0 - 255] if providing a threshold 
+ */
+CollisionMap.fromCanvasPixels = function(canvas, threshold = 0, channel = CollisionMap.CHANNEL_ALPHA) {
+	console.time("new CollisionMap");
+	let map = new CollisionMap(canvas.width, canvas.height);
+	console.timeEnd("new CollisionMap");
+	let pixels;
+	let context = canvas.getContext("2d");
+	console.time("fromCanvasPixels loop");
+	let once = true;
+	for(let y = 0, h = canvas.height; y < h; y += 100) {
+		// go 100 rows at time with the image data for sanity/memory use
+		try {
+			if(once) console.time("getImageData");
+			pixels = context.getImageData(0, y, canvas.width, 100).data;
+			if(once) console.timeEnd("getImageData");
+		}
+		catch(e) {
+			throw new Error("CollisionData:failed to get image data :(");
+		}
+		if(once) console.time("loop map.set");
+		for(let i = 0, len = pixels.length; i < len; i+=4) {
+			let mx = (i / 4) % canvas.width, my = y + (~~((i / 4) / canvas.width));
+			if(pixels[i+channel] > threshold) map.set(mx, my, true);
+		}
+		if(once) console.timeEnd("loop map.set");
+		once = false;
+	}
+	console.timeEnd("fromCanvasPixels loop");
+	return map;
+}
+
+/**
+ * Returns the bit for the given set of coordinates.
+ */
+const cellBit = CollisionMap.cellBit = function cellBit(x, y) {
+	return 1 << ((x % 4) + ((y % 4)*4));
+}
+
+/**
+ * Returns the mask which excludes the given bit coordinate from the cell.
+ */
+const cellMask = CollisionMap.cellMask = function cellMask(x, y) {
+	return invertMask(cellBit(x, y));
+}
+
+const cellIndex = CollisionMap.cellIndex = function cellIndex(x, y, w) {
+	return (floor(y/4) * floor(w/4)) + floor(x/4) 
+}
+
+
+/**
+ * Reinitializes the map with a new width and height.
+ * @param {int} width
+ * @param {int} height
+ * @return {self}
+ */
+CollisionMap.prototype.init = function(width, height) {
+	this.width = ~~width;
+	if(this.width % 4) this.width += (4 - (~~width % 4)); // round to nearest 4
+	this.height = ~~height;
+	if(this.height % 4) this.height += (4 - (~~height % 4)); // round to nearest 4
+	this.cellWidth = this.width / 4;
+	this.cellHeight = this.height / 4;
+	let newlen = (this.cellWidth * this.cellHeight);
+	if(this.length !== newlen) {
+		this.length = newlen;
+		if(this.length) {
+			this[internal_array] = new Uint16Array(this.length);
+		}
+	}
+	else if(this[internal_array]) this[internal_array].fill(0);
+	return this;
+}
+
+CollisionMap.prototype.getCell = function getCell(x, y) {
+	return this[internal_array][cellIndex(x, y, this.width)];
+}
+
+CollisionMap.prototype.get = function get(x, y) {
+	return (this.getCell(x, y) & cellBit(x, y))?1:0;
+}
+
+CollisionMap.prototype.set = function set(x, y, v) {
+	if(v) this[internal_array][cellIndex(x, y, this.width)] |= cellBit(x, y);
+	else this[internal_array][cellIndex(x, y, this.width)] &= cellMask(x, y);
+}
+
+/**
+ * Checks a rectangular area of the CollisionMap, returning a count of solid
+ * grid sections within.
+ *
+ * @param {int} x start x coordinate
+ * @param {int} y start y coordinate
+ * @param {int} w width of rectangle
+ * @param {int} h height of rectangle 
+ * @return {int}
+ */
+CollisionMap.prototype.checkRect = function checkRect(x, y, w, h) {
+	let offsetX = x % 4;
+	let offsetY = y % 4;
+	let cellWidth = Math.ceil((offsetX + w) / 4);
+	let cellHeight = Math.ceil((offsetY + h) / 4);
+	let maskX, maskY;
+	for(let cellY = 0; cellY < cellHeight; ++cellY) {
+		if(cellY === 0) maskY = MASK_TOP[offsetY];
+		else if(cellY === (cellHeight - 1)) maskY = MASK_BOTTOM[offsetY];
+		else maskY = MASK_16;
+		for(let cellX = 0; cellX < cellWidth; ++cellX) {
+			if(cellX === 0) maskX = MASK_LEFT[offsetX];
+			else if(cellX === (cellWidth - 1)) maskX = MASK_RIGHT[offsetX];
+			else maskX = MASK_16;
+			if(maskX & maskY & this[internal_array][(cellY * this.cellWidth) + cellX]) return 1;
+		}
+	}
+
+	return 0;
+}
+
+/**
+ * Intersects two CollisionMaps, returning a sum of the count of overlapping
+ * solid areas.
+ * @param {CollisionMap} target the map to intersect with
+ * @param {int} sx start x of this map
+ * @param {int} sy start y of this map
+ * @param {int} tx start x of the target map
+ * @param {int} ty start y of the target map
+ * @param {int} w width of area to collide
+ * @param {int} h height of area to collide
+ * @return {int}
+ * @todo examine whether fast intersection by blocks of 8 sectors is doable
+ */
+CollisionMap.prototype.intersect = function intersect(target, sx, sy, tx, ty, w, h) {
+	let x, y, sum = 0;
+	for(y = 0; y < h; ++y) {
+		for(x = 0; x < h; ++x) {
+			sum += (this.get(sx+x, sy+y) && target.get(tx+x, ty+y))?1:0;	
+		}
+	}
+	return sum;
+}
+
+function invertMask(mask) {
+	return MASK_16 ^ mask;
+}
+
+// export constants for debugging
+CollisionMap.MASK_X = MASK_X;
+CollisionMap.MASK_Y = MASK_Y;
+CollisionMap.MASK_TOP = MASK_TOP;
+CollisionMap.MASK_BOTTOM = MASK_BOTTOM;
+CollisionMap.MASK_LEFT = MASK_LEFT;
+CollisionMap.MASK_RIGHT = MASK_RIGHT;
+
+
+/***/ }),
+/* 31 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = ObjectPool;
+
+/**
+ * @module ObjectPool
+ * Simple auto-expanding object pool.
+ */
+
+/**
+ * A simple object pool, which expands itself automatically when needed but
+ * prefers to recycle objects when available.  *
+ * The factory function passed as a parameter should generate uniform objects, 
+ * even though the factory pattern suggests a factory can produce made-to-purpose 
+ * objects. The point of accepting a factory rather than a constructor is only to 
+ * support programming styles that prefer not to use constructors or classes.
+ *
+ * Objects created by the pool will be [sealed]{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/seal}
+ * to enforce the uniformity requirement externally.
+ *
+ * Objects in the pool may support a recyle() method, which cleans up an object
+ * and readies it for reuse, as well as an init() function, which allows pass-
+ * through support for {@link ObjectPool.prototype.allocate()} parameters.
+ *
+ * @param {function} factory a function that returns one pool object
+ */
+
+function ObjectPool(factory) {
+	const pool = [];
+	const freed = [];
+	var open = true;
+
+	/**
+	 * Allocate an item from the pool (either recycled or new as available).
+	 * Parameters are passed through to the init() method of the pool object
+	 * if it has one.
+	 * @throws Error if the pool is closed and there are no free objects
+	 */
+	this.allocate = function allocate(...args) {
+		let obj;
+		if(freed.length) obj = freed.pop();
+		else if(open) {
+			obj = Object.seal(factory());
+			pool.push(obj);
+		}
+		else throw new Error("pool is closed");
+		if(typeof(obj.init) === "function") obj.init.apply(obj, args);
+		return obj;
+	}
+
+	/**
+	 * Free an object for reuse. If the object has a recycle() method, it will
+	 * be called during this operation.
+	 */
+	this.free = function free(obj) {
+		if(pool.indexOf(obj) > -1) {
+			if(typeof(obj.recycle) === "function") obj.recycle();
+			freed.push(obj);
+		}
+		else throw new Error("free called with non-pool-member");
+	}
+
+	/**
+	 * Pre-allocate a bunch of objects if you want to have some available
+	 * ahead of time.
+	 */
+	this.preAllocate = function(n) {
+		if(!open) throw new Error("pool is closed");
+		let obj;
+		for(let i = 0; i < n; ++i) {
+			obj = factory();
+			pool.push(obj);
+			freed.push(obj);
+		}
+	}
+
+	/**
+	 * Closes the pool, so that no new objects will be created.
+	 */
+	this.close = function() {
+		open = false;
+	}
+
+	/**
+	 * Opens the pool if closed.
+	 */
+	this.open = function() {
+		open = true;
+	}
+
+	Object.defineProperties(this, {
+		length:{get:() => pool.length},
+		available:{get:() => freed.length},
+		used:{get:() => pool.length - freed.length}
+	});
+
+	return Object.freeze(this);
+}
+
+
+/***/ }),
+/* 32 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* unused harmony export addHandler */
+/* harmony export (immutable) */ __webpack_exports__["a"] = getHandler;
+/**
+ * @module pxene.assets.mimeTypes
+ * Manages the collection of mime type handlers used by the {@link pxene.assets} module to process
+ * fetched assets.
+ */
+const mimeHandlers = {
+	"default":(response) => new Promise(resolve => response.blob().then(blob => resolve(blob)))
+};
+
+/**
+ * Adds a specialized handler for a given mime type. Can be used as a plugin system or to handle
+ * specialized asset types. See {@link mimeTimeHandler} for information about the callback.
+ *
+ * @Example
+ * ```javascript
+ * addMimeHandler("some-type/subtype", fn(originalUrl, response, resolve) {
+*   res.text().then(text => resolve(text, originalUrl, type));
+ * });
+ * @param {string} mimeType
+ * @param {mimeTypeHandler} cb callback
+ */
+function addHandler(mimeType, cb) {
+	if(mimeHandlers[mimeType] === undefined) mimeHandlers[mimeType] = cb;
+	else throw new Error("tried to add a mimeType but there's already a handler for it");
+}
+
+/**
+ * Looks up a mime type handler, returning the default handler if none is found.
+ */
+function getHandler(mimeType) {
+	if(typeof mimeHandlers[mimeType] === "function") return mimeHandlers[mimeType];
+	else return mimeHandlers.default;
+}
+
+/**
+ * A mime type handler callback function. This is a sort of middleware that does some preprocessing
+ * on certain asset types before passing them on to the storage system.
+ * @callback mimeTypeHandler
+ * @param {Response} the Response object returned from a fetch()
+ * @return {Promise} which resolves() with the final form of the asset to be stored
+ */
+
+/**
+ * A mime handler for image types.
+ */
+function mimeTypeHandlerImages(response) {
+	return new Promise((resolve) => {
+		response.blob().then((blob) => {
+			let img = document.createElement("img");
+			img.addEventListener("load", () => resolve(img));
+			img.src = URL.createObjectURL(blob);
+		});
+	});
+}
+
+/**
+ * A mime type handler for plain text.
+ */
+function mimeTypeHandlerText(response) {
+	return new Promise((resolve) => response.text().then(text => resolve(text)));
+}
+
+/**
+ * A mime type handler for json objects.
+ */
+function mimeTypeHandlerJSON(response) {
+	return new Promise((resolve) => response.json().then(json => resolve(json)));
+}
+
+addHandler("image/jpeg", mimeTypeHandlerImages);
+addHandler("image/gif",  mimeTypeHandlerImages);
+addHandler("image/png",  mimeTypeHandlerImages);
+addHandler("text/html", mimeTypeHandlerText);
+addHandler("text/plain", mimeTypeHandlerText);
+addHandler("application/json", mimeTypeHandlerJSON);
+
+
+/***/ }),
+/* 33 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony export (immutable) */ __webpack_exports__["DrawBuffer"] = DrawBuffer;
+/* harmony export (immutable) */ __webpack_exports__["CompositeBuffer"] = CompositeBuffer;
 
 /**
  * An offscreen draw buffer, which will be drawn to a composite buffer for display
@@ -4377,24 +6168,20 @@ function updateProps() {
  * @param {string} context [2d|webGL]
  * @return {DrawBuffer}
  */
+const {min} = Math;
+const SCALE_STRETCH = 0;
+/* harmony export (immutable) */ __webpack_exports__["SCALE_STRETCH"] = SCALE_STRETCH;
 
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.DrawBuffer = DrawBuffer;
-exports.CompositeBuffer = CompositeBuffer;
-var min = Math.min;
-var SCALE_STRETCH = exports.SCALE_STRETCH = 0;
-var SCALE_KEEP_ASPECT = exports.SCALE_KEEP_ASPECT = 1;
-var SCALE_NONE = exports.SCALE_NONE = 2;
-function DrawBuffer() {
-	var compositeMethod = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "source-over";
+const SCALE_KEEP_ASPECT = 1;
+/* harmony export (immutable) */ __webpack_exports__["SCALE_KEEP_ASPECT"] = SCALE_KEEP_ASPECT;
 
-	var _this = this;
+const SCALE_NONE = 2;
+/* harmony export (immutable) */ __webpack_exports__["SCALE_NONE"] = SCALE_NONE;
 
-	var scaleMethod = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : SCALE_STRETCH;
-	var context = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : "2d";
+const SCALE_CROP = 3;
+/* harmony export (immutable) */ __webpack_exports__["SCALE_CROP"] = SCALE_CROP;
 
+function DrawBuffer(compositeMethod = "source-over", scaleMethod = SCALE_STRETCH, context = "2d") {
 	this.canvas = document.createElement("canvas");
 	this.context = this.canvas.getContext(context);
 	this.offsetX = 0;
@@ -4402,16 +6189,8 @@ function DrawBuffer() {
 	this.compositeMethod = compositeMethod;
 	this.scaleMethod = scaleMethod;
 	Object.defineProperties(this, {
-		width: { get: function get() {
-				return _this.canvas.width;
-			}, set: function set(v) {
-				return _this.canvas.width = v;
-			} },
-		height: { get: function get() {
-				return _this.canvas.height;
-			}, set: function set(v) {
-				return _this.canvas.height = v;
-			} }
+		width:{get:() => this.canvas.width, set:(v) => this.canvas.width = v},
+		height:{get:() => this.canvas.height, set:(v) => this.canvas.height = v},
 	});
 	return this;
 }
@@ -4422,622 +6201,138 @@ function DrawBuffer() {
  * @return {CompositeBuffer}
  */
 function CompositeBuffer(container) {
-	var _this2 = this;
-
 	this.canvas = document.createElement("canvas");
 	this.context = this.canvas.getContext("2d");
 	this.container = container;
 	this.container.appendChild(this.canvas);
 	Object.defineProperties(this, {
-		width: { get: function get() {
-				return _this2.canvas.width;
-			}, set: function set(v) {
-				return _this2.canvas.width = v;
-			} },
-		height: { get: function get() {
-				return _this2.canvas.height;
-			}, set: function set(v) {
-				return _this2.canvas.height = v;
-			} }
+		width:{get:() => this.canvas.width, set:(v) => this.canvas.width = v},
+		height:{get:() => this.canvas.height, set:(v) => this.canvas.height = v},
 	});
 	return this;
 }
 
-var composite = exports.composite = function () {
-	var i = void 0,
-	    len = void 0,
-	    buffer = void 0,
-	    targetContext = void 0;
-	var sw = void 0,
-	    sh = void 0,
-	    sx = void 0,
-	    sy = void 0,
-	    dw = void 0,
-	    dh = void 0,
-	    dx = void 0,
-	    dy = void 0;
+const composite = (function() {
+	let i, len, sourceBuffer, targetContext;
+	let sw, sh, sx, sy, dw, dh, dx, dy;
 	return function composite(sourceBuffers, targetBuffer, displayProps) {
 		targetContext = targetBuffer.context;
-		for (i = 0, len = sourceBuffers.length; i < len; ++i) {
-			buffer = sourceBuffers[i];
-			if (targetContext.globalCompositeOperation !== buffer.compositeMethod) targetContext.globalCompositeOperation = buffer.compositeMethod;
-			switch (buffer.scaleMethod) {
+		// if using a pixel ratio, assume it's for pixel art and don't screw it up
+		if(displayProps.pixelRatio !== 1) targetContext.imageSmoothingEnabled = false;
+		for(i = 0, len = sourceBuffers.length; i < len; ++i) {
+			sourceBuffer = sourceBuffers[i];
+			if(targetContext.globalCompositeOperation !== sourceBuffer.compositeMethod)
+				targetContext.globalCompositeOperation = sourceBuffer.compositeMethod;
+			switch(sourceBuffer.scaleMethod) {
 				case SCALE_STRETCH:
-					sx = 0;sy = 0;sw = buffer.width;sh = buffer.height;
-					dx = buffer.offsetX;dy = buffer.offsetY;
-					dw = targetBuffer.width;dh = targetBuffer.height;
-					break;
+					sx = 0; sy = 0; sw = sourceBuffer.width; sh = sourceBuffer.height;
+					dx = sourceBuffer.offsetX; dy = sourceBuffer.offsetY; 
+					dw = targetBuffer.width; dh = targetBuffer.height;
+				break;
 				case SCALE_KEEP_ASPECT:
-					sx = 0;sy = 0;sw = buffer.width;sh = buffer.height;
-					dx = buffer.offsetX;dy = buffer.offsetY;
-					dw = targetBuffer.width;dh = targetBuffer.height;
-					if (displayProps.orientation) {
+					sx = 0; sy = 0; sw = sourceBuffer.width; sh = sourceBuffer.height;
+					dx = sourceBuffer.offsetX; dy = sourceBuffer.offsetY; 
+					dw = targetBuffer.width; dh = targetBuffer.height;
+					if(displayProps.orientation) {
 						sw = targetBuffer.width;
-						sh = min(targetBuffer.height, buffer.height);
-						dw = min(targetBuffer.width, buffer.width);
+						sh = min(targetBuffer.height, sourceBuffer.height);
+						dw = min(targetBuffer.width, sourceBuffer.width);
 						dh = targetBuffer.height;
-					} else {
-						sw = min(targetBuffer.width, buffer.width);
+					}
+					else {
+						sw = min(targetBuffer.width, sourceBuffer.width);
 						sh = targetBuffer.height;
 						dw = targetBuffer.width;
-						dh = min(targetBuffer.height, buffer.height);
+						dh = min(targetBuffer.height, sourceBuffer.height);
 					}
-					break;
-				default:
-					// SCALE_NONE
-					sx = 0;sy = 0;sw = buffer.width;sh = buffer.height;
-					dx = buffer.offsetX;dy = buffer.offsetY;
-					dw = buffer.width;dh = buffer.height;
-					break;
+				break;
+				case SCALE_CROP:
+					sx = 0; sy = 0; 
+					sw = min(targetBuffer.width - sourceBuffer.offsetX, sourceBuffer.width);
+					sh = min(targetBuffer.height - sourceBuffer.offsetY, sourceBuffer.height);
+					dx = sourceBuffer.offsetX; dy = sourceBuffer.offsetY; 
+					dw = min(targetBuffer.width - sourceBuffer.offsetX, sourceBuffer.width);
+					dh = min(targetBuffer.height - sourceBuffer.offsetY, sourceBuffer.height);
+				break;
+				default: // SCALE_NONE
+					sx = 0; sy = 0; sw = sourceBuffer.width; sh = sourceBuffer.height;
+					dx = sourceBuffer.offsetX; dy = sourceBuffer.offsetY; 
+					dw = sourceBuffer.width*displayProps.pixelRatio; dh = sourceBuffer.height*displayProps.pixelRatio;
+				break;
 			}
-			targetContext.drawImage(buffer.canvas, sx, sy, sw, sh, dx, dy, dw, dh);
+			targetContext.drawImage(sourceBuffer.canvas, sx, sy, sw, sh, dx, dy, dw, dh); 
 		}
-	};
-}();
+	}
+})();
+/* harmony export (immutable) */ __webpack_exports__["composite"] = composite;
+
+
 
 /***/ }),
-/* 18 */
-/***/ (function(module, exports, __webpack_require__) {
+/* 34 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-
-/**
- * Module for drawing entity layer.
- */
-
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.draw = exports.init = undefined;
-
-var _vectrix = __webpack_require__(1);
-
-var vectrix = _interopRequireWildcard(_vectrix);
-
-var _photonomixDisplay = __webpack_require__(12);
-
-var sprites = _interopRequireWildcard(_photonomixDisplay);
-
-var _photonomix = __webpack_require__(0);
-
-var constants = _interopRequireWildcard(_photonomix);
-
-var _photonomix2 = __webpack_require__(2);
-
-var _photonomix3 = __webpack_require__(4);
-
-var _photonomixGame = __webpack_require__(3);
-
-var _photonomixGame2 = __webpack_require__(8);
-
-var _photonomixGame3 = __webpack_require__(5);
-
-var _photonomixGame4 = __webpack_require__(7);
-
-var _photonomixGame5 = __webpack_require__(6);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-var _vectrix$vectors = vectrix.vectors,
-    vec2 = _vectrix$vectors.vec2,
-    lerp = _vectrix$vectors.lerp;
-var mut_plus = vectrix.matrices.mut_plus;
-var min = Math.min,
-    cos = Math.cos,
-    sin = Math.sin,
-    sqrt = Math.sqrt,
-    tan = Math.tan,
-    round = Math.round,
-    PI = Math.PI;
-
-var tf = constants.TARGET_FPS;
-
-var lightBuffer = void 0,
-    darkBuffer = void 0,
-    lightCtx = void 0,
-    darkCtx = void 0,
-    frameCount = void 0,
-    displayProps = void 0;
-
-var voidSprite = void 0,
-    emitterSprite = void 0,
-    moteCenterSprite = void 0,
-    photonSprites = Array(3),
-    mask = void 0;
-
-/**
- * Draws plasma lines between a mote and its target.
- */
-var drawPlasmaLine = function () {
-	var a = vec2(),
-	    b = vec2(),
-	    c = vec2(),
-	    d = vec2(),
-	    ra = vec2(),
-	    rb = vec2(),
-	    rax = 0 | 0,
-	    ray = 0 | 0,
-	    speeda = 0.0,
-	    ta = 0.0,
-	    tc = 0.0,
-	    rbx = 0 | 0,
-	    rby = 0 | 0,
-	    speedb = 0.0,
-	    tb = 0.0,
-	    td = 0.0,
-	    sx = 0 | 0,
-	    sy = 0 | 0,
-	    tx = 0 | 0,
-	    ty = 0 | 0;
-	return function drawPlasmaLine(ctx, source, target, outerColor, innerColor) {
-		var lineSize = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 4;
-		var frameOffset = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : 0;
-
-		// only these acts get lines
-		ta = 0.6;
-		tc = 0.9;
-		tb = 0.7;
-		td = 0.9;
-		speeda = 0.57121;
-		speedb = 0.71213;
-		lerp(source, target, ta, a);
-		lerp(source, target, tb, b);
-		lerp(source, target, tc, c);
-		lerp(source, target, td, d);
-
-		mut_plus((0, _photonomix2.rotate)(a, c, tan(cos((frameCount + frameOffset) * speeda)), ra), a);
-		mut_plus((0, _photonomix2.rotate)(b, d, tan(sin((frameCount + frameOffset) * speedb)), rb), b);
-
-		sx = source[0];sy = source[1];
-		tx = target[0];ty = target[1];
-		rax = ra[0];ray = ra[1];
-		rbx = rb[0];rby = rb[1];
-		if (lightBuffer.width > lightBuffer.height) {
-			sx = sx;
-			tx = tx;
-			rax = rax;
-			rbx = rbx;
-		} else {
-			sy = sy;
-			ty = ty;
-			ray = ray;
-			rby = rby;
-		}
-		ctx.beginPath();
-		ctx.moveTo(sx, sy);
-		ctx.bezierCurveTo(rax, ray, rbx, rby, tx, ty);
-		ctx.strokeStyle = outerColor;
-		ctx.lineWidth = round(cos((frameCount + frameOffset) * speeda) * lineSize);
-		ctx.lineCap = "round";
-		ctx.stroke();
-		ctx.closePath();
-
-		ctx.beginPath();
-		ctx.moveTo(sx, sy);
-		ctx.bezierCurveTo(rax, ray, rbx, rby, tx, ty);
-		ctx.strokeStyle = innerColor;
-		ctx.lineWidth = round(cos((frameCount + frameOffset) * speeda) * ~~(lineSize / 4));
-		ctx.lineCap = "round";
-		ctx.stroke();
-		ctx.closePath();
-	};
-}();
-
-/**
- * Draw a mote.
- */
-var drawMote = function () {
-	var pulse = 0 | 0,
-	    pregnant = 0 | 0,
-	    injured = 0 | 0,
-	    lastMeal = 0 | 0,
-	    size = 0.0,
-	    plasmaSource = vec2(),
-	    plasmaTarget = vec2(),
-	    sc = 0.0,
-	    sw = 0.0,
-	    sch = 0.0,
-	    swh = 0.0,
-	    colorIndex = 0 | 0,
-	    px = 0.0,
-	    py = 0.0,
-	    sprite = void 0;
-	return function drawMote(entity) {
-		lightCtx.globalCompositeOperation = "lighter";
-		px = (0, _photonomix3.screenSpace)(entity.pos[0]);
-		py = (0, _photonomix3.screenSpace)(entity.pos[1]);
-
-		pulse = entity.pulse;
-		pregnant = entity.pregnant;
-		injured = entity.injured;
-		lastMeal = entity.lastMeal;
-
-		size = entity.size * displayProps.minDimension;
-		if (pregnant) {
-			sc = size * cos((frameCount + pulse) * 0.2) * (sqrt(pregnant) + 1);
-			sw = size * sin((frameCount + pulse + tf) * 0.2) * (sqrt(pregnant) + 1) * 0.1;
-		} else if (injured) {
-			sc = size * cos((frameCount + pulse) * (0.2 + (1 - 1 / injured)));
-			sw = size * sin((frameCount + pulse + tf) * 0.2) * 0.1; //* (0.2+(1-1/injured)))*0.25;
-		} else {
-			sc = size * cos((frameCount + pulse) * 0.2);
-			sw = size * sin((frameCount + pulse + tf) * 0.2) * 0.1;
-		}
-		sch = sc * 0.5;
-		swh = sw * 0.5;
-		colorIndex = sprites.colorIndex(entity.color[_photonomixGame.COLOR_R], entity.color[_photonomixGame.COLOR_G], entity.color[_photonomixGame.COLOR_B]);
-		sprite = sprites.getMoteSprite(colorIndex);
-		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px - sch, py - sch, sc, sc);
-		sprite = moteCenterSprite;
-		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px - sch, py - sch, sc, sc);
-		if (entity.target && entity.action == _photonomixGame2.ACT_ATTACK) {
-			// need vectors but in screen space, not absolute space
-			plasmaSource[0] = px;
-			plasmaSource[1] = py;
-			plasmaTarget[0] = (0, _photonomix3.screenSpace)(entity.target.pos[0]);
-			plasmaTarget[1] = (0, _photonomix3.screenSpace)(entity.target.pos[1]);
-			drawPlasmaLine(lightCtx, plasmaSource, plasmaTarget, sprites.getColorString(colorIndex), "white", 5, pulse);
-		}
-	};
-}();
-
-/**
- * Draws a photon.
- */
-var drawPhoton = function () {
-	var sw = 0.0,
-	    swh = 0.0,
-	    px = 0.0,
-	    py = 0.0,
-	    ps = 0.0,
-	    pulse = 0 | 0,
-	    sprite = void 0;
-	return function drawPhoton(entity) {
-		(0, _photonomix3.updateCompositeOperation)(lightCtx, "lighter");
-		px = (0, _photonomix3.screenSpace)(entity.pos[0]);
-		py = (0, _photonomix3.screenSpace)(entity.pos[1]);
-		sprite = photonSprites[entity.color];
-		ps = constants.PHOTON_BASE_SIZE * displayProps.minDimension; //sprite.pixelSize;
-		pulse = entity.pulse;
-		sw = ps * 0.75 * (cos((frameCount + pulse) * 0.3) * sin((frameCount + pulse) * 0.1)) + ps * 0.25;
-		swh = sw * 0.5;
-		lightCtx.drawImage(sprite.canvas, 0, 0, sprite.pixelSize, sprite.pixelSize, px - swh, py - swh, sw, sw);
-	};
-}();
-
-/**
- * Draws a void.
- */
-var drawVoid = function () {
-	var sc = 0.0,
-	    sch = 0.0,
-	    px = 0.0,
-	    py = 0.0,
-	    ox = 0.0,
-	    oy = 0.0,
-	    sprite = void 0,
-	    sw = 0.0,
-	    swh = 0.0,
-	    colorIndex = 0 | 0;
-	return function drawVoid(entity) {
-		px = (0, _photonomix3.screenSpace)(entity.pos[0]);
-		py = (0, _photonomix3.screenSpace)(entity.pos[1]);
-
-		sc = entity.size * displayProps.minDimension * 1 + sin(frameCount * 0.2);
-		sch = sc * 0.5;
-
-		sprite = voidSprite;
-		(0, _photonomix3.updateCompositeOperation)(darkCtx, "source-over");
-		darkCtx.drawImage(sprite.canvas, px - sch, py - sch, sc, sc);
-		switch (entity.lastMeal) {
-			case -1:
-				colorIndex = 0x888;break;
-			case _photonomixGame.COLOR_R:
-				colorIndex = 0xf44;break;
-			case _photonomixGame.COLOR_G:
-				colorIndex = 0x4f4;break;
-			case _photonomixGame.COLOR_B:
-				colorIndex = 0x44f;break;
-		}
-		// white patch
-		sw = sc * 1.7;
-		swh = sw * 0.5;
-		ox = sin(frameCount * 0.0127) * sc * 0.1;
-		oy = cos(frameCount * 0.0127) * sc * 0.1;
-		sprite = sprites.getMoteSprite(0xfff);
-		(0, _photonomix3.updateCompositeOperation)(darkCtx, "soft-light");
-		darkCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px + ox - swh, py + oy - swh, sw, sw);
-		// color patch
-		sw = sc * 1.2;
-		swh = sw * 0.5;
-		ox = cos(frameCount * 0.023) * sc * 0.13;
-		oy = sin(frameCount * 0.023) * sc * 0.13;
-		sprite = sprites.getMoteSprite(colorIndex);
-		darkCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px + ox - swh, py + oy - swh, sw, sw);
-		// dark patch
-		sprite = sprites.getMoteSprite(0x000);
-		sw = sc * 1.65;
-		swh = sw * 0.5;
-		ox = sin(frameCount * 0.0122) * sc * 0.15;
-		oy = cos(frameCount * 0.0122) * sc * 0.15;
-		(0, _photonomix3.updateCompositeOperation)(darkCtx, "multiply");
-		darkCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px + ox - swh, py + oy - swh, sw, sw);
-	};
-}();
-
-/**
- * Draws an emitter.
- */
-var drawEmitter = function () {
-	var sc = 0.0,
-	    sch = 0.0,
-	    px = 0.0,
-	    py = 0.0,
-	    ox = 0.0,
-	    oy = 0.0,
-	    sprite = void 0,
-	    sw = 0.0,
-	    swh = 0.0;
-	return function drawEmitter(entity) {
-		(0, _photonomix3.updateCompositeOperation)(lightCtx, "lighter");
-		px = (0, _photonomix3.screenSpace)(entity.pos[0]);
-		py = (0, _photonomix3.screenSpace)(entity.pos[1]);
-
-		sc = entity.size * displayProps.minDimension;
-		//sc = sc + (sc*(sin(frameCount*0.05))/100);
-		sch = sc * 0.5;
-
-		sprite = emitterSprite;
-		lightCtx.drawImage(sprite.canvas, px - sch, py - sch, sc, sc);
-
-		sw = cos(frameCount * 0.2) * sc * 1.7;
-		swh = sw * 0.5;
-
-		sprite = sprites.getMoteSprite(0x333);
-		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px - swh, py - swh, sw, sw);
-
-		sw = sc * 1.3;
-		swh = sw * 0.5;
-		ox = sin(frameCount * 0.08) * sc * 0.1;
-		oy = cos(frameCount * 0.08) * sc * 0.1;
-		sprite = sprites.getMoteSprite(0x500);
-		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px + ox - swh, py + oy - swh, sw, sw);
-
-		ox = sin(frameCount * 0.08 + 2.094394) * sc * 0.1;
-		oy = cos(frameCount * 0.08 + 2.094394) * sc * 0.1;
-		sprite = sprites.getMoteSprite(0x050);
-		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px + ox - swh, py + oy - swh, sw, sw);
-
-		ox = sin(frameCount * 0.08 + 4.188789) * sc * 0.1;
-		oy = cos(frameCount * 0.08 + 4.188789) * sc * 0.1;
-		sprite = sprites.getMoteSprite(0x005);
-		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px + ox - swh, py + oy - swh, sw, sw);
-	};
-}();
-
-/**
- * Draws an antigraviton cluster.
- */
-var drawAntiGravitonCluster = function () {
-	var size = 0.0,
-	    plasmaSource = vec2(),
-	    plasmaTarget = vec2(),
-	    lw = 4,
-	    outerColor = "rgba(0,0,0,0.3)",
-	    innerColor = "rgba(0,0,0,0.7)",
-	    pi3rd = PI * (1 / 3),
-	    px = 0.0,
-	    py = 0.0,
-	    ox = 0.0,
-	    oy = 0.0,
-	    sc = 0.0,
-	    sch = 0.0,
-	    sprite = void 0;
-	function drawAntiPlasma(offset, length) {
-		ox = sin(frameCount * 0.08 + offset) * sc * length;
-		oy = cos(frameCount * 0.08 + offset) * sc * length;
-		plasmaTarget[0] = px + ox;
-		plasmaTarget[1] = py + oy;
-		drawPlasmaLine(darkCtx, plasmaSource, plasmaTarget, outerColor, innerColor, lw);
-	}
-	return function drawAntiGravitonCluster(entity) {
-		(0, _photonomix3.updateCompositeOperation)(darkCtx, "multiply");
-		px = (0, _photonomix3.screenSpace)(entity.pos[0]);
-		py = (0, _photonomix3.screenSpace)(entity.pos[1]);
-
-		size = entity.size * displayProps.minDimension;
-		sc = size;
-		lw = min(4, ~~(sc / 2));
-		sch = sc * 0.5;
-		plasmaSource[0] = px;
-		plasmaSource[1] = py;
-
-		drawAntiPlasma(0, 0.5);
-		drawAntiPlasma(pi3rd * 2, 0.5);
-		drawAntiPlasma(pi3rd * 4, 0.5);
-		drawAntiPlasma(pi3rd, 0.25);
-		drawAntiPlasma(pi3rd * 3, 0.25);
-		drawAntiPlasma(pi3rd * 5, 0.25);
-
-		sprite = sprites.getMoteSprite(0x000);
-		darkCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px - sch, py - sch, sc, sc);
-	};
-}();
-
-var init = exports.init = function init(buffer1, buffer2, props) {
-	displayProps = props;
-	lightBuffer = buffer1;
-	darkBuffer = buffer2;
-	lightCtx = lightBuffer.context;
-	darkCtx = darkBuffer.context;
-	updateProps();
-	displayProps.events.on("resize", updateProps);
-	voidSprite = sprites.createVoidSprite(1000, 1);
-	emitterSprite = sprites.createEmitterSprite(displayProps.minDimension, 1);
-	photonSprites[_photonomixGame.COLOR_R] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "red");
-	photonSprites[_photonomixGame.COLOR_G] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "green");
-	photonSprites[_photonomixGame.COLOR_B] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "blue");
-	sprites.initMoteSpriteSheet(1000, constants.MOTE_BASE_SIZE * 4);
-	mask = sprites.createGameSpaceMask();
-	moteCenterSprite = sprites.createMoteCenterSprite();
-};
-
-/**
- * Draw call for all entities. Loops through game entities and draws them according
- * to kind and displayProps.
- */
-var draw = exports.draw = function () {
-	// these variables are shared by draw calls below
-	var i = void 0,
-	    l = void 0,
-	    entity = void 0,
-	    px = void 0,
-	    py = void 0;
-	var lightClearStyle = "rgba(0,0,0,0.3)";
-	var darkClearStyle = "rgba(0,0,0,0.1)";
-
-	return function draw(state) {
-		(0, _photonomix3.updateCompositeOperation)(lightCtx, "source-over");
-		lightCtx.fillStyle = lightClearStyle;
-		lightCtx.fillRect(0, 0, lightBuffer.width, lightBuffer.height);
-		(0, _photonomix3.updateCompositeOperation)(darkCtx, "destination-out");
-		darkCtx.fillStyle = darkClearStyle;
-		darkCtx.clearRect(0, 0, darkBuffer.width, darkBuffer.height);
-		frameCount = (0, _photonomix3.getFrameCount)();
-		for (i = 0, l = state.entities.length; i < l; ++i) {
-			entity = state.entities[i];
-			px = (0, _photonomix3.screenSpace)(entity.pos[0]);
-			py = (0, _photonomix3.screenSpace)(entity.pos[1]);
-			if ((0, _photonomix3.offscreen)(px, py)) continue;
-			if (entity instanceof _photonomixGame2.Mote) drawMote(entity);else if (entity instanceof _photonomixGame.Photon) drawPhoton(entity);else if (entity instanceof _photonomixGame3.Void) drawVoid(entity);else if (entity instanceof _photonomixGame4.Emitter) drawEmitter(entity);else if (entity instanceof _photonomixGame5.AntiGravitonCluster) drawAntiGravitonCluster(entity);
-		}
-		(0, _photonomix3.updateCompositeOperation)(lightCtx, "destination-out");
-		lightCtx.drawImage(mask.canvas, 0, 0, displayProps.minDimension, displayProps.minDimension);
-		(0, _photonomix3.updateCompositeOperation)(darkCtx, "destination-out");
-		darkCtx.drawImage(mask.canvas, 0, 0, displayProps.minDimension, displayProps.minDimension);
-	};
-}();
-
-function updateProps() {
-	var _displayProps = displayProps,
-	    width = _displayProps.width,
-	    height = _displayProps.height,
-	    minDimension = _displayProps.minDimension,
-	    orientation = _displayProps.orientation;
-
-	var ox = void 0,
-	    oy = void 0;
-	lightBuffer.width = darkBuffer.width = minDimension;
-	lightBuffer.height = darkBuffer.height = minDimension;
-	if (orientation) {
-		ox = 0;
-		oy = (height - width) / 2;
-	} else {
-		ox = (width - height) / 2;
-		oy = 0;
-	}
-	lightBuffer.offsetX = darkBuffer.offsetX = ox;
-	lightBuffer.offsetY = darkBuffer.offsetY = oy;
-}
-
-/***/ }),
-/* 19 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony export (immutable) */ __webpack_exports__["draw"] = draw;
+/* harmony export (immutable) */ __webpack_exports__["init"] = init;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_display__ = __webpack_require__(17);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__pxene_constants__ = __webpack_require__(8);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__controls__ = __webpack_require__(16);
 
 
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.draw = draw;
-exports.init = init;
-
-var _photonomix = __webpack_require__(4);
-
-var _photonomix2 = __webpack_require__(0);
-
-var _photonomix3 = __webpack_require__(11);
-
-var controls = _interopRequireWildcard(_photonomix3);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-var max = Math.max;
 
 
-var ctx = void 0,
-    uiBuffer = void 0;
-var displayProps = void 0;
+const {max} = Math;
+
+let ctx, uiBuffer;
+let displayProps;
 
 /**
  * Creates debug markers on screen to show the center, top, left, bottom, right, topleft
  * and topright extremes of the main game area.
  */
-var debugMarkers = function () {
-	var w = void 0,
-	    h = void 0,
-	    wh = void 0,
-	    hh = void 0;
+const debugMarkers = (function() {
+	let w, h, wh, hh;
 	return function debugMarkers() {
 		w = displayProps.width;
 		h = displayProps.height;
-		wh = w / 2;
-		hh = h / 2;
-		(0, _photonomix.drawCircle)(ctx, 0, 0, 4, "yellow", 1, "white");
-		(0, _photonomix.drawCircle)(ctx, wh, 0, 4, "orange", 1, "white");
-		(0, _photonomix.drawCircle)(ctx, w, 0, 4, "red", 1, "white");
-		(0, _photonomix.drawCircle)(ctx, 0, hh, 4, "white", 1, "white");
-		(0, _photonomix.drawCircle)(ctx, wh, hh, 4, "gray", 1, "white");
-		(0, _photonomix.drawCircle)(ctx, w, hh, 4, "black", 1, "white");
-		(0, _photonomix.drawCircle)(ctx, 0, h, 4, "blue", 1, "white");
-		(0, _photonomix.drawCircle)(ctx, wh, h, 4, "cyan", 1, "white");
-		(0, _photonomix.drawCircle)(ctx, w, h, 4, "green", 1, "white");
-	};
-}();
+		wh = w/2; 
+		hh = h/2;
+		__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__pxene_display__["drawCircle"])(ctx,  0,  0, 4, "yellow", 1, "white");
+		__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__pxene_display__["drawCircle"])(ctx, wh,  0, 4, "orange", 1, "white");
+		__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__pxene_display__["drawCircle"])(ctx,  w,  0, 4, "red", 1, "white");
+		__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__pxene_display__["drawCircle"])(ctx,  0, hh, 4, "white", 1, "white");
+		__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__pxene_display__["drawCircle"])(ctx, wh, hh, 4, "gray", 1, "white");
+		__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__pxene_display__["drawCircle"])(ctx,  w, hh, 4, "black", 1, "white");
+		__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__pxene_display__["drawCircle"])(ctx,  0,  h, 4, "blue", 1, "white");
+		__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__pxene_display__["drawCircle"])(ctx, wh,  h, 4, "cyan", 1, "white");
+		__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__pxene_display__["drawCircle"])(ctx,  w,  h, 4, "green", 1, "white");
+	}
+})();
 
 /**
  * Draws an edge button.
  */
 function drawEdgeButton(ctx, x, y, w, h) {
-	var halfButtonWidth = w * 0.5;
-	var buttonHeight = h;
-	var cpXScale = w * 0.122;
-	var beginX = x - halfButtonWidth;
-	var beginY = y;
-	var topX = x;
-	var topY = y - buttonHeight;
-	var endX = x + halfButtonWidth;
-	var endY = y;
-	var aCPX = beginX + cpXScale;
-	var aCPY = beginY - cpXScale;
-	var bCPX = beginX + cpXScale;
-	var bCPY = topY;
-	var cCPX = endX - cpXScale;
-	var cCPY = topY;
-	var dCPX = endX - cpXScale;
-	var dCPY = endY - cpXScale;
-	var color = "rgba(255,255,255,0.1)";
+	let halfButtonWidth = w*0.5;
+	let buttonHeight = h;
+	let cpXScale = w*0.122;
+	let beginX = x-halfButtonWidth;
+	let beginY = y;
+	let topX = x;
+	let topY = y-buttonHeight;
+	let endX = x+halfButtonWidth;
+	let endY = y;
+	let aCPX = beginX + cpXScale;
+	let aCPY = beginY - cpXScale;
+	let bCPX = beginX + cpXScale;
+	let bCPY = topY;
+	let cCPX = endX - cpXScale;
+	let cCPY = topY;
+	let dCPX = endX - cpXScale;
+	let dCPY = endY - cpXScale;
+	let color = "rgba(255,255,255,0.1)";
 
 	ctx.beginPath();
 	ctx.moveTo(beginX, beginY);
@@ -5054,20 +6349,17 @@ function drawEdgeButton(ctx, x, y, w, h) {
  * Draws UI elements.
  */
 function draw() {
-	var w = displayProps.width;
-	var h = displayProps.height;
-	var bw = max(100, w * 0.1);
-	var bh = max(47, w * 0.047);
-	var _controls$pointer = controls.pointer,
-	    move = _controls$pointer.move,
-	    down = _controls$pointer.down;
-
+	let w = displayProps.width;
+	let h = displayProps.height;
+	let bw = max(100, w*0.1);
+	let bh = max(47,  w*0.047);
+	let {move, down} = __WEBPACK_IMPORTED_MODULE_2__controls__["pointer"];
 	ctx.clearRect(0, 0, w, h);
-	drawEdgeButton(ctx, w * 0.5, h, bw, bh);
-	drawEdgeButton(ctx, w * 0.333, h, bw, bh);
-	drawEdgeButton(ctx, w * 0.666, h, bw, bh);
-	(0, _photonomix.drawCircle)(ctx, move[0], move[1], 5, "white");
-	if (controls.buttons[0]) {
+	drawEdgeButton(ctx, w*0.5, h, bw, bh);
+	drawEdgeButton(ctx, w*0.333, h, bw, bh); 
+	drawEdgeButton(ctx, w*0.666, h, bw, bh);  
+	__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__pxene_display__["drawCircle"])(ctx, move[0], move[1], 5, "white");
+	if(__WEBPACK_IMPORTED_MODULE_2__controls__["buttons"][0]) {
 		ctx.beginPath();
 		ctx.moveTo(down[0], down[1]);
 		ctx.lineTo(move[0], move[1]);
@@ -5076,8 +6368,7 @@ function draw() {
 		ctx.stroke();
 		ctx.closePath();
 	}
-	//drawAntiGravitonCluster(agClusterIcon, ctx);
-	if (_photonomix2.DEBUG) debugMarkers();
+	if(__WEBPACK_IMPORTED_MODULE_1__pxene_constants__["d" /* DEBUG */]) debugMarkers();
 }
 
 /**
@@ -5097,90 +6388,37 @@ function updateProps() {
 	uiBuffer.height = displayProps.height;
 }
 
+
 /***/ }),
-/* 20 */
-/***/ (function(module, exports, __webpack_require__) {
+/* 35 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony export (immutable) */ __webpack_exports__["drawCircle"] = drawCircle;
 
 
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.MARKER_HIT = undefined;
-exports.Marker = Marker;
 
-var _photonomix = __webpack_require__(0);
-
-var _vectrix = __webpack_require__(1);
-
-var vectrix = _interopRequireWildcard(_vectrix);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-var MARKER_HIT = exports.MARKER_HIT = 0;
-function Marker(type, pos) {
-	var lifetime = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : _photonomix.TARGET_FPS;
-
-	this.type = type;
-	this.pos = vectrix.vectors.vec2(pos);
-	this.start = lifetime;
-	this.lifetime = lifetime;
+/**
+ * Draws a colored circle.
+ */
+function drawCircle(ctx, x, y, size, fillStyle, lineWidth = 0, strokeStyle = undefined) {
+	ctx.globalCompositeOperation = "source-over";
+	ctx.beginPath();
+	ctx.arc(x, y, size, 2 * Math.PI, false);
+	ctx.fillStyle = fillStyle;
+	ctx.fill();
+	if(strokeStyle) {
+		ctx.strokeStyle = strokeStyle;
+		ctx.lineWidth = lineWidth;
+		ctx.stroke();
+	}
+	ctx.closePath();
 }
 
-Marker.prototype.tick = function () {
-	this.lifetime--;
-};
 
 /***/ }),
-/* 21 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var _photonomix = __webpack_require__(4);
-
-var display = _interopRequireWildcard(_photonomix);
-
-var _photonomix2 = __webpack_require__(0);
-
-var constants = _interopRequireWildcard(_photonomix2);
-
-var _photonomix3 = __webpack_require__(14);
-
-var game = _interopRequireWildcard(_photonomix3);
-
-var _photonomix4 = __webpack_require__(2);
-
-var util = _interopRequireWildcard(_photonomix4);
-
-var _photonomix5 = __webpack_require__(11);
-
-var controls = _interopRequireWildcard(_photonomix5);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-var photonomix = {
-	util: util,
-	constants: constants,
-	display: display,
-	game: game,
-	state: {}
-};
-
-window.photonomix = photonomix;
-
-window.addEventListener("load", function () {
-	photonomix.state.game = new game.Game();
-	controls.init(photonomix.state);
-	photonomix.state.controls = controls.state;
-	photonomix.display.init(photonomix.state);
-	photonomix.display.startGame();
-});
-
-/***/ }),
-/* 22 */
+/* 36 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5189,8 +6427,8 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["normalize"] = normalize;
 /* harmony export (immutable) */ __webpack_exports__["create"] = create;
 /* harmony export (immutable) */ __webpack_exports__["wrap"] = wrap;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__vectrix_vectors__ = __webpack_require__(10);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__vectrix_matrices__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__vectrix_vectors__ = __webpack_require__(11);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__vectrix_matrices__ = __webpack_require__(10);
 
 /**
 The quaternions module focuses on quaternion operations that are useful for performing 3-dimensional rotations. Quaternions inherit from [[vectrix.vectors#vec4|4d-vectors]], which in turn inherit from [[vectrix.matrices|matrices]], so most of the operations supported by vec4 and generic matrices are supported by quats (TODO: remove the ones that don't make sense for quaternions)
@@ -5521,5 +6759,969 @@ create.fromAxisAngle = (function() {
 })();
 
 
+/***/ }),
+/* 37 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/**
+ * Derived from bokeh generator by Jack Rugile at [CodePen](http://codepen.io/jackrugile/pen/gaFub)
+ */
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.init = init;
+exports.draw = draw;
+var bgBuffer = void 0,
+    bokehBuffer = void 0,
+    bgCtx = void 0,
+    bokehCtx = void 0,
+    cw = void 0,
+    ch = void 0,
+    w = void 0,
+    h = void 0,
+    tau = Math.PI * 2,
+    parts = [],
+    sizeBase = void 0,
+    hue = void 0,
+    opt = void 0,
+    count = void 0,
+    displayProps = void 0;
+
+function rand(min, max) {
+	return Math.random() * (max - min) + min;
+}
+
+function hsla(h, s, l, a) {
+	return "hsla(" + h + "," + s + "%," + l + "%," + a + ")";
+}
+
+function init(display) {
+	displayProps = display.props;
+	bgBuffer = display.buffersByLabel.bokehBack; //buffer1;
+	bgCtx = bgBuffer.context;
+	bokehBuffer = display.buffersByLabel.bokehFront; //buffer2;
+	bokehCtx = bokehBuffer.context;
+	updateProps();
+	displayProps.events.on("resize", updateProps);
+	// this can't get resized or we'd have to regenerate it, so set it up now
+	cw = bgBuffer.width = 1920;
+	ch = bgBuffer.height = 1920;
+	w = bokehBuffer.width;
+	h = bokehBuffer.height;
+
+	sizeBase = cw + ch;
+	count = Math.floor(sizeBase * 0.1);
+	hue = rand(0, 360);
+	opt = {
+		radiusMin: sizeBase * 0.02,
+		radiusMax: sizeBase * 0.10,
+		blurMin: sizeBase * 0.01,
+		blurMax: sizeBase * 0.04,
+		hueMin: hue,
+		hueMax: hue + rand(25, 75),
+		saturationMin: 10,
+		saturationMax: 70,
+		lightnessMin: 1,
+		lightnessMax: 5,
+		alphaMin: 0.1,
+		alphaMax: 0.4
+	};
+	bgCtx.fillStyle = "#000000";
+	bgCtx.fillRect(0, 0, cw, ch);
+	bgCtx.globalCompositeOperation = "lighter";
+	while (count--) {
+		var radius = rand(opt.radiusMin, opt.radiusMax),
+		    blur = rand(opt.blurMin, opt.blurMax),
+		    x = rand(0, cw),
+		    y = rand(0, ch),
+		    _hue = rand(opt.hueMin, opt.hueMax),
+		    saturation = rand(opt.saturationMin, opt.saturationMax),
+		    lightness = rand(opt.lightnessMin, opt.lightnessMax),
+		    alpha = rand(opt.alphaMin, opt.alphaMax);
+
+		bgCtx.shadowColor = hsla(_hue, saturation, lightness, alpha);
+		bgCtx.shadowBlur = blur;
+		bgCtx.beginPath();
+		bgCtx.arc(x, y, radius, 0, tau);
+		bgCtx.fill();
+		bgCtx.closePath();
+	}
+
+	parts.length = 0;
+	for (var i = 0; i < Math.floor((w + h) * 0.01); i++) {
+		parts.push({
+			radius: rand(sizeBase * 0.005, sizeBase * 0.02),
+			x: rand(0, w),
+			y: rand(0, h),
+			angle: rand(0, tau),
+			vel: rand(0.05, 0.2),
+			tick: rand(0, 10000)
+		});
+	}
+}
+
+function draw() {
+	var i = parts.length;
+	bokehCtx.fillStyle = "rgba(0,0,0,0)";
+	bokehCtx.globalCompositeOperation = "source-over";
+	bokehCtx.clearRect(0, 0, cw, ch);
+	bokehCtx.shadowBlur = 15;
+	bokehCtx.shadowColor = "#fff";
+	w = bokehBuffer.width;
+	h = bokehBuffer.height;
+	while (i--) {
+		var part = parts[i];
+
+		part.x += Math.cos(part.angle) * part.vel;
+		part.y += Math.sin(part.angle) * part.vel;
+		part.angle += rand(-0.05, 0.05);
+
+		bokehCtx.beginPath();
+		bokehCtx.arc(part.x, part.y, part.radius, 0, tau);
+		bokehCtx.fillStyle = hsla(0, 0, 100, 0.03 + Math.cos(part.tick * 0.02) * 0.01);
+		bokehCtx.fill();
+
+		if (part.x - part.radius > cw) part.x = -part.radius;
+		if (part.x + part.radius < 0) part.x = w + part.radius;
+		if (part.y - part.radius > ch) part.y = -part.radius;
+		if (part.y + part.radius < 0) part.y = h + part.radius;
+
+		part.tick++;
+	}
+}
+
+function updateProps() {
+	bokehBuffer.width = displayProps.width;
+	bokehBuffer.height = displayProps.height;
+}
+
+/***/ }),
+/* 38 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * Module for drawing entity layer.
+ */
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.draw = exports.init = undefined;
+
+var _vectrix = __webpack_require__(4);
+
+var vectrix = _interopRequireWildcard(_vectrix);
+
+var _sprites = __webpack_require__(19);
+
+var sprites = _interopRequireWildcard(_sprites);
+
+var _photonomix = __webpack_require__(0);
+
+var constants = _interopRequireWildcard(_photonomix);
+
+var _photonomix2 = __webpack_require__(2);
+
+var _ = __webpack_require__(6);
+
+var _photonomixGame = __webpack_require__(3);
+
+var _photonomixGame2 = __webpack_require__(14);
+
+var _photonomixGame3 = __webpack_require__(5);
+
+var _photonomixGame4 = __webpack_require__(13);
+
+var _photonomixGame5 = __webpack_require__(12);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+var _vectrix$vectors = vectrix.vectors,
+    vec2 = _vectrix$vectors.vec2,
+    lerp = _vectrix$vectors.lerp;
+var mut_plus = vectrix.matrices.mut_plus;
+var min = Math.min,
+    cos = Math.cos,
+    sin = Math.sin,
+    sqrt = Math.sqrt,
+    tan = Math.tan,
+    round = Math.round,
+    PI = Math.PI;
+
+var tf = constants.TARGET_FPS;
+
+var lightBuffer = void 0,
+    darkBuffer = void 0,
+    lightCtx = void 0,
+    darkCtx = void 0,
+    frameCount = void 0,
+    timing = void 0,
+    displayProps = void 0;
+
+var voidSprite = void 0,
+    emitterSprite = void 0,
+    moteCenterSprite = void 0,
+    photonSprites = Array(3),
+    mask = void 0;
+
+/**
+ * Draws plasma lines between a mote and its target.
+ */
+var drawPlasmaLine = function () {
+	var a = vec2(),
+	    b = vec2(),
+	    c = vec2(),
+	    d = vec2(),
+	    ra = vec2(),
+	    rb = vec2(),
+	    rax = 0 | 0,
+	    ray = 0 | 0,
+	    speeda = 0.0,
+	    ta = 0.0,
+	    tc = 0.0,
+	    rbx = 0 | 0,
+	    rby = 0 | 0,
+	    speedb = 0.0,
+	    tb = 0.0,
+	    td = 0.0,
+	    sx = 0 | 0,
+	    sy = 0 | 0,
+	    tx = 0 | 0,
+	    ty = 0 | 0;
+	return function drawPlasmaLine(ctx, source, target, outerColor, innerColor) {
+		var lineSize = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 4;
+		var frameOffset = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : 0;
+
+		// only these acts get lines
+		ta = 0.6;
+		tc = 0.9;
+		tb = 0.7;
+		td = 0.9;
+		speeda = 0.57121;
+		speedb = 0.71213;
+		lerp(source, target, ta, a);
+		lerp(source, target, tb, b);
+		lerp(source, target, tc, c);
+		lerp(source, target, td, d);
+
+		mut_plus((0, _photonomix2.rotate)(a, c, tan(cos((frameCount + frameOffset) * speeda)), ra), a);
+		mut_plus((0, _photonomix2.rotate)(b, d, tan(sin((frameCount + frameOffset) * speedb)), rb), b);
+
+		sx = source[0];sy = source[1];
+		tx = target[0];ty = target[1];
+		rax = ra[0];ray = ra[1];
+		rbx = rb[0];rby = rb[1];
+		if (lightBuffer.width > lightBuffer.height) {
+			sx = sx;
+			tx = tx;
+			rax = rax;
+			rbx = rbx;
+		} else {
+			sy = sy;
+			ty = ty;
+			ray = ray;
+			rby = rby;
+		}
+		ctx.beginPath();
+		ctx.moveTo(sx, sy);
+		ctx.bezierCurveTo(rax, ray, rbx, rby, tx, ty);
+		ctx.strokeStyle = outerColor;
+		ctx.lineWidth = round(cos((frameCount + frameOffset) * speeda) * lineSize);
+		ctx.lineCap = "round";
+		ctx.stroke();
+		ctx.closePath();
+
+		ctx.beginPath();
+		ctx.moveTo(sx, sy);
+		ctx.bezierCurveTo(rax, ray, rbx, rby, tx, ty);
+		ctx.strokeStyle = innerColor;
+		ctx.lineWidth = round(cos((frameCount + frameOffset) * speeda) * ~~(lineSize / 4));
+		ctx.lineCap = "round";
+		ctx.stroke();
+		ctx.closePath();
+	};
+}();
+
+/**
+ * Draw a mote.
+ */
+var drawMote = function () {
+	var pulse = 0 | 0,
+	    pregnant = 0 | 0,
+	    injured = 0 | 0,
+	    lastMeal = 0 | 0,
+	    size = 0.0,
+	    plasmaSource = vec2(),
+	    plasmaTarget = vec2(),
+	    sc = 0.0,
+	    sw = 0.0,
+	    sch = 0.0,
+	    swh = 0.0,
+	    colorIndex = 0 | 0,
+	    px = 0.0,
+	    py = 0.0,
+	    sprite = void 0;
+	return function drawMote(entity) {
+		lightCtx.globalCompositeOperation = "lighter";
+		px = (0, _.screenSpace)(entity.pos[0]);
+		py = (0, _.screenSpace)(entity.pos[1]);
+
+		pulse = entity.pulse;
+		pregnant = entity.pregnant;
+		injured = entity.injured;
+		lastMeal = entity.lastMeal;
+
+		size = entity.size * displayProps.minDimension;
+		if (pregnant) {
+			sc = size * cos((frameCount + pulse) * 0.2) * (sqrt(pregnant) + 1);
+			sw = size * sin((frameCount + pulse + tf) * 0.2) * (sqrt(pregnant) + 1) * 0.1;
+		} else if (injured) {
+			sc = size * cos((frameCount + pulse) * (0.2 + (1 - 1 / injured)));
+			sw = size * sin((frameCount + pulse + tf) * 0.2) * 0.1; //* (0.2+(1-1/injured)))*0.25;
+		} else {
+			sc = size * cos((frameCount + pulse) * 0.2);
+			sw = size * sin((frameCount + pulse + tf) * 0.2) * 0.1;
+		}
+		sch = sc * 0.5;
+		swh = sw * 0.5;
+		colorIndex = sprites.colorIndex(entity.color[_photonomixGame.COLOR_R], entity.color[_photonomixGame.COLOR_G], entity.color[_photonomixGame.COLOR_B]);
+		sprite = sprites.getMoteSprite(colorIndex);
+		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px - sch, py - sch, sc, sc);
+		sprite = moteCenterSprite;
+		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px - sch, py - sch, sc, sc);
+		if (entity.target && entity.action == _photonomixGame2.ACT_ATTACK) {
+			// need vectors but in screen space, not absolute space
+			plasmaSource[0] = px;
+			plasmaSource[1] = py;
+			plasmaTarget[0] = (0, _.screenSpace)(entity.target.pos[0]);
+			plasmaTarget[1] = (0, _.screenSpace)(entity.target.pos[1]);
+			drawPlasmaLine(lightCtx, plasmaSource, plasmaTarget, sprites.getColorString(colorIndex), "white", 5, pulse);
+		}
+	};
+}();
+
+/**
+ * Draws a photon.
+ */
+var drawPhoton = function () {
+	var sw = 0.0,
+	    swh = 0.0,
+	    px = 0.0,
+	    py = 0.0,
+	    ps = 0.0,
+	    pulse = 0 | 0,
+	    sprite = void 0;
+	return function drawPhoton(entity) {
+		(0, _.updateCompositeOperation)(lightCtx, "lighter");
+		px = (0, _.screenSpace)(entity.pos[0]);
+		py = (0, _.screenSpace)(entity.pos[1]);
+		sprite = photonSprites[entity.color];
+		ps = constants.PHOTON_BASE_SIZE * displayProps.minDimension; //sprite.pixelSize;
+		pulse = entity.pulse;
+		sw = ps * 0.75 * (cos((frameCount + pulse) * 0.3) * sin((frameCount + pulse) * 0.1)) + ps * 0.25;
+		swh = sw * 0.5;
+		lightCtx.drawImage(sprite.canvas, 0, 0, sprite.pixelSize, sprite.pixelSize, px - swh, py - swh, sw, sw);
+	};
+}();
+
+/**
+ * Draws a void.
+ */
+var drawVoid = function () {
+	var sc = 0.0,
+	    sch = 0.0,
+	    px = 0.0,
+	    py = 0.0,
+	    ox = 0.0,
+	    oy = 0.0,
+	    sprite = void 0,
+	    sw = 0.0,
+	    swh = 0.0,
+	    colorIndex = 0 | 0;
+	return function drawVoid(entity) {
+		px = (0, _.screenSpace)(entity.pos[0]);
+		py = (0, _.screenSpace)(entity.pos[1]);
+
+		sc = entity.size * displayProps.minDimension * 1 + sin(frameCount * 0.2);
+		sch = sc * 0.5;
+
+		sprite = voidSprite;
+		(0, _.updateCompositeOperation)(darkCtx, "source-over");
+		darkCtx.drawImage(sprite.canvas, px - sch, py - sch, sc, sc);
+		switch (entity.lastMeal) {
+			case -1:
+				colorIndex = 0x888;break;
+			case _photonomixGame.COLOR_R:
+				colorIndex = 0xf44;break;
+			case _photonomixGame.COLOR_G:
+				colorIndex = 0x4f4;break;
+			case _photonomixGame.COLOR_B:
+				colorIndex = 0x44f;break;
+		}
+		// white patch
+		sw = sc * 1.7;
+		swh = sw * 0.5;
+		ox = sin(frameCount * 0.0127) * sc * 0.1;
+		oy = cos(frameCount * 0.0127) * sc * 0.1;
+		sprite = sprites.getMoteSprite(0xfff);
+		(0, _.updateCompositeOperation)(darkCtx, "soft-light");
+		darkCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px + ox - swh, py + oy - swh, sw, sw);
+		// color patch
+		sw = sc * 1.2;
+		swh = sw * 0.5;
+		ox = cos(frameCount * 0.023) * sc * 0.13;
+		oy = sin(frameCount * 0.023) * sc * 0.13;
+		sprite = sprites.getMoteSprite(colorIndex);
+		darkCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px + ox - swh, py + oy - swh, sw, sw);
+		// dark patch
+		sprite = sprites.getMoteSprite(0x000);
+		sw = sc * 1.65;
+		swh = sw * 0.5;
+		ox = sin(frameCount * 0.0122) * sc * 0.15;
+		oy = cos(frameCount * 0.0122) * sc * 0.15;
+		(0, _.updateCompositeOperation)(darkCtx, "multiply");
+		darkCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px + ox - swh, py + oy - swh, sw, sw);
+	};
+}();
+
+/**
+ * Draws an emitter.
+ */
+var drawEmitter = function () {
+	var sc = 0.0,
+	    sch = 0.0,
+	    px = 0.0,
+	    py = 0.0,
+	    ox = 0.0,
+	    oy = 0.0,
+	    sprite = void 0,
+	    sw = 0.0,
+	    swh = 0.0;
+	return function drawEmitter(entity) {
+		(0, _.updateCompositeOperation)(lightCtx, "lighter");
+		px = (0, _.screenSpace)(entity.pos[0]);
+		py = (0, _.screenSpace)(entity.pos[1]);
+
+		sc = entity.size * displayProps.minDimension;
+		//sc = sc + (sc*(sin(frameCount*0.05))/100);
+		sch = sc * 0.5;
+
+		sprite = emitterSprite;
+		lightCtx.drawImage(sprite.canvas, px - sch, py - sch, sc, sc);
+
+		sw = cos(frameCount * 0.2) * sc * 1.7;
+		swh = sw * 0.5;
+
+		sprite = sprites.getMoteSprite(0x333);
+		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px - swh, py - swh, sw, sw);
+
+		sw = sc * 1.3;
+		swh = sw * 0.5;
+		ox = sin(frameCount * 0.08) * sc * 0.1;
+		oy = cos(frameCount * 0.08) * sc * 0.1;
+		sprite = sprites.getMoteSprite(0x500);
+		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px + ox - swh, py + oy - swh, sw, sw);
+
+		ox = sin(frameCount * 0.08 + 2.094394) * sc * 0.1;
+		oy = cos(frameCount * 0.08 + 2.094394) * sc * 0.1;
+		sprite = sprites.getMoteSprite(0x050);
+		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px + ox - swh, py + oy - swh, sw, sw);
+
+		ox = sin(frameCount * 0.08 + 4.188789) * sc * 0.1;
+		oy = cos(frameCount * 0.08 + 4.188789) * sc * 0.1;
+		sprite = sprites.getMoteSprite(0x005);
+		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px + ox - swh, py + oy - swh, sw, sw);
+	};
+}();
+
+/**
+ * Draws an antigraviton cluster.
+ */
+var drawAntiGravitonCluster = function () {
+	var size = 0.0,
+	    plasmaSource = vec2(),
+	    plasmaTarget = vec2(),
+	    lw = 4,
+	    outerColor = "rgba(0,0,0,0.3)",
+	    innerColor = "rgba(0,0,0,0.7)",
+	    pi3rd = PI * (1 / 3),
+	    px = 0.0,
+	    py = 0.0,
+	    ox = 0.0,
+	    oy = 0.0,
+	    sc = 0.0,
+	    sch = 0.0,
+	    sprite = void 0;
+	function drawAntiPlasma(offset, length) {
+		ox = sin(frameCount * 0.08 + offset) * sc * length;
+		oy = cos(frameCount * 0.08 + offset) * sc * length;
+		plasmaTarget[0] = px + ox;
+		plasmaTarget[1] = py + oy;
+		drawPlasmaLine(darkCtx, plasmaSource, plasmaTarget, outerColor, innerColor, lw);
+	}
+	return function drawAntiGravitonCluster(entity) {
+		(0, _.updateCompositeOperation)(darkCtx, "multiply");
+		px = (0, _.screenSpace)(entity.pos[0]);
+		py = (0, _.screenSpace)(entity.pos[1]);
+
+		size = entity.size * displayProps.minDimension;
+		sc = size;
+		lw = min(4, ~~(sc / 2));
+		sch = sc * 0.5;
+		plasmaSource[0] = px;
+		plasmaSource[1] = py;
+
+		drawAntiPlasma(0, 0.5);
+		drawAntiPlasma(pi3rd * 2, 0.5);
+		drawAntiPlasma(pi3rd * 4, 0.5);
+		drawAntiPlasma(pi3rd, 0.25);
+		drawAntiPlasma(pi3rd * 3, 0.25);
+		drawAntiPlasma(pi3rd * 5, 0.25);
+
+		sprite = sprites.getMoteSprite(0x000);
+		darkCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px - sch, py - sch, sc, sc);
+	};
+}();
+
+var init = exports.init = function init(display) {
+	displayProps = display.props;
+	timing = display.timing;
+	lightBuffer = display.buffersByLabel.entitiesLight;
+	darkBuffer = display.buffersByLabel.entitiesDark;
+	lightCtx = lightBuffer.context;
+	darkCtx = darkBuffer.context;
+	updateProps();
+	displayProps.events.on("resize", updateProps);
+	voidSprite = sprites.createVoidSprite(1000, 1);
+	emitterSprite = sprites.createEmitterSprite(displayProps.minDimension, 1);
+	photonSprites[_photonomixGame.COLOR_R] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "red");
+	photonSprites[_photonomixGame.COLOR_G] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "green");
+	photonSprites[_photonomixGame.COLOR_B] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "blue");
+	sprites.initMoteSpriteSheet(1000, constants.MOTE_BASE_SIZE * 4);
+	mask = sprites.createGameSpaceMask();
+	moteCenterSprite = sprites.createMoteCenterSprite();
+};
+
+/**
+ * Draw call for all entities. Loops through game entities and draws them according
+ * to kind and displayProps.
+ */
+var draw = exports.draw = function () {
+	// these variables are shared by draw calls below
+	var i = void 0,
+	    l = void 0,
+	    entity = void 0,
+	    px = void 0,
+	    py = void 0;
+	var lightClearStyle = "rgba(0,0,0,0.3)";
+	var darkClearStyle = "rgba(0,0,0,0.1)";
+
+	return function draw(state) {
+		(0, _.updateCompositeOperation)(lightCtx, "source-over");
+		lightCtx.fillStyle = lightClearStyle;
+		lightCtx.fillRect(0, 0, lightBuffer.width, lightBuffer.height);
+		(0, _.updateCompositeOperation)(darkCtx, "destination-out");
+		darkCtx.fillStyle = darkClearStyle;
+		darkCtx.clearRect(0, 0, darkBuffer.width, darkBuffer.height);
+		frameCount = timing.frameCount;
+		for (i = 0, l = state.entities.length; i < l; ++i) {
+			entity = state.entities[i];
+			px = (0, _.screenSpace)(entity.pos[0]);
+			py = (0, _.screenSpace)(entity.pos[1]);
+			if ((0, _.offscreen)(px, py)) continue;
+			if (entity instanceof _photonomixGame2.Mote) drawMote(entity);else if (entity instanceof _photonomixGame.Photon) drawPhoton(entity);else if (entity instanceof _photonomixGame3.Void) drawVoid(entity);else if (entity instanceof _photonomixGame4.Emitter) drawEmitter(entity);else if (entity instanceof _photonomixGame5.AntiGravitonCluster) drawAntiGravitonCluster(entity);
+		}
+		(0, _.updateCompositeOperation)(lightCtx, "destination-out");
+		lightCtx.drawImage(mask.canvas, 0, 0, displayProps.minDimension, displayProps.minDimension);
+		(0, _.updateCompositeOperation)(darkCtx, "destination-out");
+		darkCtx.drawImage(mask.canvas, 0, 0, displayProps.minDimension, displayProps.minDimension);
+	};
+}();
+
+function updateProps() {
+	var _displayProps = displayProps,
+	    width = _displayProps.width,
+	    height = _displayProps.height,
+	    minDimension = _displayProps.minDimension,
+	    orientation = _displayProps.orientation;
+
+	var ox = void 0,
+	    oy = void 0;
+	lightBuffer.width = darkBuffer.width = minDimension;
+	lightBuffer.height = darkBuffer.height = minDimension;
+	if (orientation) {
+		ox = 0;
+		oy = (height - width) / 2;
+	} else {
+		ox = (width - height) / 2;
+		oy = 0;
+	}
+	lightBuffer.offsetX = darkBuffer.offsetX = ox;
+	lightBuffer.offsetY = darkBuffer.offsetY = oy;
+}
+
+/***/ }),
+/* 39 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.draw = draw;
+exports.init = init;
+
+var _ = __webpack_require__(6);
+
+var _photonomix = __webpack_require__(0);
+
+var _photonomix2 = __webpack_require__(15);
+
+var controls = _interopRequireWildcard(_photonomix2);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+var max = Math.max;
+
+
+var ctx = void 0,
+    uiBuffer = void 0;
+var displayProps = void 0;
+
+/**
+ * Creates debug markers on screen to show the center, top, left, bottom, right, topleft
+ * and topright extremes of the main game area.
+ */
+var debugMarkers = function () {
+	var w = void 0,
+	    h = void 0,
+	    wh = void 0,
+	    hh = void 0;
+	return function debugMarkers() {
+		w = displayProps.width;
+		h = displayProps.height;
+		wh = w / 2;
+		hh = h / 2;
+		(0, _.drawCircle)(ctx, 0, 0, 4, "yellow", 1, "white");
+		(0, _.drawCircle)(ctx, wh, 0, 4, "orange", 1, "white");
+		(0, _.drawCircle)(ctx, w, 0, 4, "red", 1, "white");
+		(0, _.drawCircle)(ctx, 0, hh, 4, "white", 1, "white");
+		(0, _.drawCircle)(ctx, wh, hh, 4, "gray", 1, "white");
+		(0, _.drawCircle)(ctx, w, hh, 4, "black", 1, "white");
+		(0, _.drawCircle)(ctx, 0, h, 4, "blue", 1, "white");
+		(0, _.drawCircle)(ctx, wh, h, 4, "cyan", 1, "white");
+		(0, _.drawCircle)(ctx, w, h, 4, "green", 1, "white");
+	};
+}();
+
+/**
+ * Draws an edge button.
+ */
+function drawEdgeButton(ctx, x, y, w, h) {
+	var halfButtonWidth = w * 0.5;
+	var buttonHeight = h;
+	var cpXScale = w * 0.122;
+	var beginX = x - halfButtonWidth;
+	var beginY = y;
+	var topX = x;
+	var topY = y - buttonHeight;
+	var endX = x + halfButtonWidth;
+	var endY = y;
+	var aCPX = beginX + cpXScale;
+	var aCPY = beginY - cpXScale;
+	var bCPX = beginX + cpXScale;
+	var bCPY = topY;
+	var cCPX = endX - cpXScale;
+	var cCPY = topY;
+	var dCPX = endX - cpXScale;
+	var dCPY = endY - cpXScale;
+	var color = "rgba(255,255,255,0.1)";
+
+	ctx.beginPath();
+	ctx.moveTo(beginX, beginY);
+	ctx.bezierCurveTo(aCPX, aCPY, bCPX, bCPY, topX, topY);
+	ctx.bezierCurveTo(cCPX, cCPY, dCPX, dCPY, endX, endY);
+	ctx.fillStyle = color;
+	ctx.strokeStyle = color;
+	ctx.lineWidth = 4;
+	ctx.fill();
+	ctx.closePath();
+}
+
+/**
+ * Draws UI elements.
+ */
+function draw() {
+	var w = displayProps.width;
+	var h = displayProps.height;
+	var bw = max(100, w * 0.1);
+	var bh = max(47, w * 0.047);
+	var _controls$pointer = controls.pointer,
+	    move = _controls$pointer.move,
+	    down = _controls$pointer.down;
+
+	ctx.clearRect(0, 0, w, h);
+	drawEdgeButton(ctx, w * 0.5, h, bw, bh);
+	drawEdgeButton(ctx, w * 0.333, h, bw, bh);
+	drawEdgeButton(ctx, w * 0.666, h, bw, bh);
+	(0, _.drawCircle)(ctx, move[0], move[1], 5, "white");
+	if (controls.buttons[0]) {
+		ctx.beginPath();
+		ctx.moveTo(down[0], down[1]);
+		ctx.lineTo(move[0], move[1]);
+		ctx.strokeStyle = "white";
+		ctx.lineWidth = 2;
+		ctx.stroke();
+		ctx.closePath();
+	}
+	//drawAntiGravitonCluster(agClusterIcon, ctx);
+	if (_photonomix.DEBUG) debugMarkers();
+}
+
+/**
+ * Initializes the UI submodule.
+ * @param {Object} display pxene display object initialized with a ui buffer
+ */
+function init(display) {
+	displayProps = display.props;
+	uiBuffer = display.buffersByLabel.ui;
+	updateProps();
+	displayProps.events.on("resize", updateProps);
+	ctx = uiBuffer.context;
+}
+
+function updateProps() {
+	uiBuffer.width = displayProps.width;
+	uiBuffer.height = displayProps.height;
+}
+
+/***/ }),
+/* 40 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.BufferPool = BufferPool;
+var MAX_POOL_SIZE = exports.MAX_POOL_SIZE = Math.pow(2, 21); // 2mb
+
+function calculatePoolSize(itemLength) {
+	return MAX_POOL_SIZE - MAX_POOL_SIZE % itemLength;
+}
+
+function createFreedList(freedLength) {
+	if (freedLength < Math.pow(2, 8)) return new Uint8Array(freedLength);else if (freedLength < Math.pow(2, 16)) return new Uint16Array(freedLength);else return new Uint32Array(freedLength);
+}
+
+function BufferPool(itemLength, maxItems) {
+	var size = 0 | 0;
+	if (maxItems) {
+		if (itemLength * maxItems > MAX_POOL_SIZE) {
+			throw new Error("requested buffer size is too large");
+		} else size = itemLength * maxItems;
+	} else size = calculatePoolSize(itemLength);
+	var buffer = new ArrayBuffer(size);
+	var freedLength = maxItems ? maxItems : size / itemLength;
+	var freed = createFreedList(freedLength);
+	Object.defineProperties(this, {
+		"itemLength": { get: function get() {
+				return itemLength;
+			} },
+		"buffer": { get: function get() {
+				return buffer;
+			} },
+		"size": { get: function get() {
+				return size;
+			} },
+		"freed": { get: function get() {
+				return freed;
+			} }
+	});
+	this.next = 0;
+	this.freedPos = 0;
+	return this;
+}
+
+var offset = 0 | 0;
+BufferPool.prototype.allocate = function () {
+	if (this.freedPos > 0) offset = this.popFree();else if (this.next < this.size - 1) {
+		offset = this.next;
+		this.next = this.next + this.itemLength;
+	} else throw new Error("pool buffer is full");
+	return offset;
+};
+
+BufferPool.prototype.popFree = function () {
+	this.freedPos--;
+	offset = this.freed[this.freedPos] * this.itemLength;
+	this.freed[this.freedPos] = 0;
+	return offset;
+};
+
+BufferPool.prototype.free = function (offset) {
+	this.freed[this.freedPos] = offset === 0 ? offset : offset / this.itemLength;
+	this.freedPos++;
+};
+
+/***/ }),
+/* 41 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.Events = Events;
+function Events() {
+	this.queue = {};
+	return this;
+}
+
+Events.prototype.on = function (event, callback) {
+	if (this.queue[event] === undefined) this.queue[event] = [];
+	this.queue[event].push(callback);
+};
+
+Events.prototype.fire = function () {
+	var i = void 0,
+	    len = void 0;
+	return function (event, params) {
+		if (this.queue[event] === undefined) return;
+		for (i = 0, len = this.queue[event].length; i < len; ++i) {
+			this.queue[event][i].call(params);
+		}
+	};
+}();
+
+/***/ }),
+/* 42 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.MARKER_HIT = undefined;
+exports.Marker = Marker;
+
+var _photonomix = __webpack_require__(0);
+
+var _vectrix = __webpack_require__(1);
+
+var vectrix = _interopRequireWildcard(_vectrix);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+var MARKER_HIT = exports.MARKER_HIT = 0;
+function Marker(type, pos) {
+	var lifetime = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : _photonomix.TARGET_FPS;
+
+	this.type = type;
+	this.pos = vectrix.vectors.vec2(pos);
+	this.start = lifetime;
+	this.lifetime = lifetime;
+}
+
+Marker.prototype.tick = function () {
+	this.lifetime--;
+};
+
+/***/ }),
+/* 43 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.startGame = startGame;
+
+var _pxene = __webpack_require__(20);
+
+var _draw = __webpack_require__(6);
+
+var draw = _interopRequireWildcard(_draw);
+
+var _photonomix = __webpack_require__(0);
+
+var constants = _interopRequireWildcard(_photonomix);
+
+var _photonomix2 = __webpack_require__(21);
+
+var game = _interopRequireWildcard(_photonomix2);
+
+var _photonomix3 = __webpack_require__(2);
+
+var util = _interopRequireWildcard(_photonomix3);
+
+var _photonomix4 = __webpack_require__(15);
+
+var controls = _interopRequireWildcard(_photonomix4);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+var displayConfig = {
+	container: "body",
+	bufferDescriptions: [{ label: "bokehBack", compositeMethod: "source-over", scaleMethod: _pxene.display.buffers.SCALE_KEEP_ASPECT }, { label: "bokehFront", compositeMethod: "lighter", scaleMethod: _pxene.display.buffers.SCALE_NONE }, { label: "entitiesLight", compositeMethod: "lighter", scaleMethod: _pxene.display.buffers.SCALE_NONE }, { label: "entitiesDark", compositeMethod: "hard-light", scaleMethod: _pxene.display.buffers.SCALE_NONE }, { label: "ui", compositeMethod: "source-over", scaleMethod: _pxene.display.buffers.SCALE_NONE }],
+	pixelRatio: 1,
+	frameCallback: main
+};
+
+var photonomix = {
+	util: util,
+	constants: constants,
+	display: _pxene.display,
+	game: game,
+	draw: draw,
+	state: {}
+};
+
+window.photonomix = photonomix;
+
+window.addEventListener("load", function () {
+	photonomix.state.game = new game.Game();
+	_pxene.display.init(displayConfig);
+	draw.init(photonomix.state, _pxene.display);
+	controls.init(photonomix.state);
+	photonomix.state.controls = controls.state;
+	startGame();
+});
+
+function main() {
+	//let tickSpeed = display.timing.interval/display.timing.elapsed;
+	if (photonomix.state.game.started) photonomix.state.game.tick(_pxene.display.timing);
+	photonomix.draw.tick();
+}
+
+/**
+ * Starts up the game.
+ */
+function startGame() {
+	photonomix.state.game.start();
+	/*
+ body.removeEventListener("click", startGame);
+ body.classList.remove("start");
+ if(AUTO_FULLSCREEN) toggleFullScreen();
+ */
+	console.log("game started");
+}
+
 /***/ })
 /******/ ]);
+//# sourceMappingURL=photonomix.js.map

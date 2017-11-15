@@ -2,7 +2,6 @@
  * Derived from bokeh generator by Jack Rugile at [CodePen](http://codepen.io/jackrugile/pen/gaFub)
  */
 "use strict";
-//import * as sprites from "./photonomix.display.sprites";
 let bgBuffer, bokehBuffer, bgCtx, bokehCtx, cw, ch, w, h, tau = Math.PI * 2,
 	parts = [], sizeBase, hue, opt, count, displayProps;
 
@@ -14,11 +13,11 @@ function hsla( h, s, l, a ) {
 	return "hsla(" + h + "," + s + "%," + l + "%," + a + ")";
 }
 	
-export function init(buffer1, buffer2, props) {
-	displayProps = props;
-	bgBuffer = buffer1;
+export function init(display) {
+	displayProps = display.props;
+	bgBuffer = display.buffersByLabel.bokehBack;//buffer1;
 	bgCtx = bgBuffer.context;
-	bokehBuffer = buffer2;
+	bokehBuffer = display.buffersByLabel.bokehFront; //buffer2;
 	bokehCtx = bokehBuffer.context;
 	updateProps();
 	displayProps.events.on("resize", updateProps);

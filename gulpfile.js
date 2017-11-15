@@ -16,7 +16,7 @@ var istanbul = require("gulp-babel-istanbul");
 
 const webpackConfig = {
 	entry:path.resolve(__dirname, "target/scripts/photonomix.js"),
-	//devtool:"source-map",
+	devtool:"source-map",
 	output:{
 		filename:"photonomix.js",
 		path:path.resolve(__dirname, "dist/scripts")
@@ -40,7 +40,7 @@ gulp.task("clean:markup", function() {
 });
 
 gulp.task("scripts", ["clean:scripts"], function() {
-	return gulp.src(["src/scripts/*js"])
+	return gulp.src(["src/scripts/*js", "src/scripts/*/*js"])
 	.pipe(babel())
 	.pipe(gulp.dest("target/scripts/"));
 });

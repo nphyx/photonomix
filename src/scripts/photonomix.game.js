@@ -7,7 +7,7 @@ import * as photons from "./photonomix.game.photons";
 import * as antigravitons from "./photonomix.game.antigravitons";
 export {motes, voids, emitters, markers, photons, antigravitons};
 
-import {shuffle, rotate, outOfBounds} from "./photonomix.util";
+import {rotate, outOfBounds} from "./photonomix.util";
 import {BufferPool} from "./photonomix.bufferPools";
 import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
 const {minus} = vectrix.matrices;
@@ -37,6 +37,7 @@ export function Game() {
 	}
 	this.actions = {};
 	this.registerActions();
+	this.started = false;
 	return this;
 }
 
@@ -46,11 +47,14 @@ Game.prototype.start = function() {
 	for(let i = 0; i < START_POP; ++i) {
 		this.entities.push(new Mote.random(this.motePool))
 	}
+	this.started = true;
 }
 
 Game.prototype.tick = (function() {
 	let entities, entity, i = 0|0, len = 0|0, tick_delta = 0.0;
-	return function tick(delta, frameCount) {
+	return function tick(timing) {
+		let delta = timing.interval/timing.elapsed;
+		let frameCount = timing.frameCount;
 		entities = this.entities;
 		this.stats.target = 0;
 		this.stats.pop = 0;

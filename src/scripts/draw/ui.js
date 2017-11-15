@@ -1,7 +1,7 @@
 "use strict";
-import {drawCircle} from "./photonomix.display";
-import {DEBUG} from "./photonomix.constants";
-import * as controls from "./photonomix.controls";
+import {drawCircle} from "./";
+import {DEBUG} from "../photonomix.constants";
+import * as controls from "../photonomix.controls";
 const {max} = Math;
 
 let ctx, uiBuffer;
@@ -93,11 +93,11 @@ export function draw() {
 
 /**
  * Initializes the UI submodule.
- * @param {DrawBuffer} buffer
+ * @param {Object} display pxene display object initialized with a ui buffer
  */
-export function init(buffer, props) {
-	displayProps = props;
-	uiBuffer = buffer;
+export function init(display) {
+	displayProps = display.props;
+	uiBuffer = display.buffersByLabel.ui;
 	updateProps();
 	displayProps.events.on("resize", updateProps);
 	ctx = uiBuffer.context;

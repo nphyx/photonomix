@@ -2,23 +2,23 @@
 /**
  * Module for drawing entity layer.
  */
-import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
-import * as sprites from "./photonomix.display.sprites";
-import * as constants from "./photonomix.constants";
-import {rotate} from "./photonomix.util";
-import {offscreen, getFrameCount, screenSpace, updateCompositeOperation} from "./photonomix.display";
+import * as vectrix from  "@nphyx/vectrix";
+import * as sprites from "./sprites";
+import * as constants from "../photonomix.constants";
+import {rotate} from "../photonomix.util";
+import {offscreen, screenSpace, updateCompositeOperation} from "./";
 const {vec2, lerp} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
-import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.game.photons";
-import {Mote, ACT_ATTACK} from "./photonomix.game.motes";
-import {Void} from "./photonomix.game.voids";
-import {Emitter} from "./photonomix.game.emitters";
-import {AntiGravitonCluster} from "./photonomix.game.antigravitons";
+import {Photon, COLOR_R, COLOR_G, COLOR_B} from "../photonomix.game.photons";
+import {Mote, ACT_ATTACK} from "../photonomix.game.motes";
+import {Void} from "../photonomix.game.voids";
+import {Emitter} from "../photonomix.game.emitters";
+import {AntiGravitonCluster} from "../photonomix.game.antigravitons";
 
 let {min, cos, sin, sqrt, tan, round, PI} = Math;
 const tf = constants.TARGET_FPS;
 
-let lightBuffer, darkBuffer, lightCtx, darkCtx, frameCount, displayProps;
+let lightBuffer, darkBuffer, lightCtx, darkCtx, frameCount, timing, displayProps;
 
 let voidSprite, emitterSprite, moteCenterSprite, photonSprites = Array(3), mask;
 
@@ -276,10 +276,11 @@ const drawAntiGravitonCluster = (function() {
 	}
 })();
 
-export const init = function(buffer1, buffer2, props) {
-	displayProps = props;
-	lightBuffer = buffer1;
-	darkBuffer = buffer2;
+export const init = function(display) {
+	displayProps = display.props;
+	timing = display.timing;
+	lightBuffer = display.buffersByLabel.entitiesLight;
+	darkBuffer = display.buffersByLabel.entitiesDark;
 	lightCtx = lightBuffer.context;
 	darkCtx = darkBuffer.context;
 	updateProps();
@@ -311,7 +312,7 @@ export const draw = (function() {
 		updateCompositeOperation(darkCtx, "destination-out");
 		darkCtx.fillStyle = darkClearStyle;
 		darkCtx.clearRect(0, 0, darkBuffer.width, darkBuffer.height);
-		frameCount = getFrameCount();
+		frameCount = timing.frameCount;
 		for(i = 0, l = state.entities.length; i < l; ++i) {
 			entity = state.entities[i];
 			px = screenSpace(entity.pos[0]);

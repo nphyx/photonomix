@@ -1,6 +1,5 @@
 "use strict";
-import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
-import {gameSpaceVec} from "./photonomix.display.js";
+import * as vectrix from  "@nphyx/vectrix";
 import {Events} from "./photonomix.events.js";
 const {vec2} = vectrix.vectors;
 
