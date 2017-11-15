@@ -127,26 +127,10 @@ var BUFFER_TYPE = exports.BUFFER_TYPE = type;
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__vectrix_vectors__ = __webpack_require__(11);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__vectrix_matrices__ = __webpack_require__(10);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__vectrix_quaternions__ = __webpack_require__(36);
-/**
-Master module for vectrix. See individual modules for documentation.
-@module vectrix
- */
-
-
-
-
-
-const vectors = __WEBPACK_IMPORTED_MODULE_0__vectrix_vectors__;
-/* harmony export (immutable) */ __webpack_exports__["vectors"] = vectors;
-
-const matrices = __WEBPACK_IMPORTED_MODULE_1__vectrix_matrices__;
-/* harmony export (immutable) */ __webpack_exports__["matrices"] = matrices;
-
-const quaternions = __WEBPACK_IMPORTED_MODULE_2__vectrix_quaternions__;
-/* harmony export (immutable) */ __webpack_exports__["quaternions"] = quaternions;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_vectrix__ = __webpack_require__(15);
+/* harmony namespace reexport (by provided) */ __webpack_require__.d(__webpack_exports__, "vectors", function() { return __WEBPACK_IMPORTED_MODULE_0__src_vectrix__["vectors"]; });
+/* harmony namespace reexport (by provided) */ __webpack_require__.d(__webpack_exports__, "matrices", function() { return __WEBPACK_IMPORTED_MODULE_0__src_vectrix__["matrices"]; });
+/* harmony namespace reexport (by provided) */ __webpack_require__.d(__webpack_exports__, "quaternions", function() { return __WEBPACK_IMPORTED_MODULE_0__src_vectrix__["quaternions"]; });
 
 
 
@@ -170,7 +154,7 @@ exports.ratio = ratio;
 exports.rat_vec2 = rat_vec2;
 exports.evenNumber = evenNumber;
 
-var _vectrix = __webpack_require__(1);
+var _vectrix = __webpack_require__(15);
 
 var vectrix = _interopRequireWildcard(_vectrix);
 
@@ -537,237 +521,230 @@ function evenNumber(n) {
 Object.defineProperty(exports, "__esModule", {
 	value: true
 });
-exports.COLOR_B = exports.COLOR_G = exports.COLOR_R = exports.BUFFER_LENGTH = undefined;
-exports.Photon = Photon;
+exports.AntiGravitonCluster = exports.Photon = exports.Marker = exports.Emitter = exports.Void = exports.Mote = undefined;
+exports.Game = Game;
+
+var _Mote = __webpack_require__(17);
+
+var _Mote2 = _interopRequireDefault(_Mote);
+
+var _Void = __webpack_require__(18);
+
+var _Void2 = _interopRequireDefault(_Void);
+
+var _Emitter = __webpack_require__(39);
+
+var _Emitter2 = _interopRequireDefault(_Emitter);
+
+var _Marker = __webpack_require__(40);
+
+var _Marker2 = _interopRequireDefault(_Marker);
+
+var _Photon = __webpack_require__(10);
+
+var _Photon2 = _interopRequireDefault(_Photon);
+
+var _AntiGravitonCluster = __webpack_require__(38);
+
+var _AntiGravitonCluster2 = _interopRequireDefault(_AntiGravitonCluster);
+
+var _photonomix = __webpack_require__(2);
+
+var _photonomix2 = __webpack_require__(41);
 
 var _vectrix = __webpack_require__(1);
 
 var vectrix = _interopRequireWildcard(_vectrix);
 
-var _photonomix = __webpack_require__(2);
-
-var _photonomix2 = __webpack_require__(0);
+var _photonomix3 = __webpack_require__(0);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.Mote = _Mote2.default;
+exports.Void = _Void2.default;
+exports.Emitter = _Emitter2.default;
+exports.Marker = _Marker2.default;
+exports.Photon = _Photon2.default;
+exports.AntiGravitonCluster = _AntiGravitonCluster2.default;
+var minus = vectrix.matrices.minus;
 var _vectrix$vectors = vectrix.vectors,
     vec2 = _vectrix$vectors.vec2,
-    times = _vectrix$vectors.times;
-var mut_plus = vectrix.matrices.mut_plus;
+    mut_copy = _vectrix$vectors.mut_copy;
+
+var marks = new Uint16Array(_photonomix3.MAX_MOTES + _photonomix3.MAX_PHOTONS + 100);
 var random = Math.random;
 
+var markpos = 0;
+var mark = 0;
 
-var I8 = 1;
-var F32 = 4;
-var O_POS = 0;
-var O_VEL = F32 * 2;
-var FLOAT_LENGTH = O_VEL + F32 * 2;
-var O_COLOR = 0;
-var O_LIFE = O_COLOR + I8;
-var O_MASS = O_LIFE + I8;
-var U8_LENGTH = O_MASS + I8;
-var BUFFER_LENGTH = exports.BUFFER_LENGTH = FLOAT_LENGTH + U8_LENGTH + (F32 - (FLOAT_LENGTH + U8_LENGTH) % F32);
-
-var COLOR_R = exports.COLOR_R = 0,
-    COLOR_G = exports.COLOR_G = 1,
-    COLOR_B = exports.COLOR_B = 2;
-function Photon(ipos, ivel, color) {
-	var _this = this;
-
-	var pool = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
-
-	var buffer = void 0;
-	this.pool = pool;
-	if (pool) {
-		buffer = pool.buffer;
-		this.offset = pool.allocate();
-	} else {
-		buffer = new ArrayBuffer(BUFFER_LENGTH);
-		this.offset = 0;
-	}
-	this.pos = vec2(ipos[0], ipos[1], buffer, O_POS + this.offset);
-	this.vel = vec2(ivel[0], ivel[1], buffer, O_VEL + this.offset);
-	this.intVals = new Uint8ClampedArray(buffer, FLOAT_LENGTH + this.offset, U8_LENGTH);
-
-	Object.defineProperties(this, {
-		"color": { get: function get() {
-				return _this.intVals[O_COLOR];
-			}, set: function set(x) {
-				return _this.intVals[O_COLOR] = x;
-			} },
-		"lifetime": { get: function get() {
-				return _this.intVals[O_LIFE];
-			}, set: function set(x) {
-				return _this.intVals[O_LIFE] = x;
-			} },
-		"mass": { get: function get() {
-				return _this.intVals[O_MASS];
-			}, set: function set(x) {
-				return _this.intVals[O_MASS] = x;
-			} }
-	});
-	this.color = color;
-	this.lifetime = _photonomix2.PHOTON_LIFETIME;
-	this.size = _photonomix2.PHOTON_BASE_SIZE;
-	this.mass = 1;
-	this.pulse = ~~(_photonomix2.TARGET_FPS * random());
+function Game() {
+	this.entities = [];
+	this.photonBuffer = null;
+	this.stats = {
+		pop: 0,
+		born: 0,
+		died: 0,
+		target: 0
+	};
+	this.actions = {};
+	this.registerActions();
+	this.started = false;
+	return this;
 }
 
-var tmpvec = vec2(),
-    pos = void 0,
-    vel = void 0;
-Photon.prototype.tick = function (surrounding, delta) {
-	if (this.lifetime > 0) this.lifetime--;
-	pos = this.pos;vel = this.vel;
-	mut_plus(pos, times(vel, delta, tmpvec));
-	mut_plus(vel, (0, _photonomix.drag)(vel, _photonomix2.GLOBAL_DRAG));
+Game.prototype.start = function () {
+	this.motePool = new _photonomix2.BufferPool(_Mote.BUFFER_LENGTH, _photonomix3.MAX_MOTES);
+	this.photonPool = new _photonomix2.BufferPool(_Photon.BUFFER_LENGTH, _photonomix3.MAX_PHOTONS);
+	for (var i = 0; i < _photonomix3.START_POP; ++i) {
+		this.entities.push(new _Mote2.default.random(this.motePool));
+	}
+	this.started = true;
 };
 
-Photon.prototype.destroy = function () {
-	if (this.pool) this.pool.free(this.offset);else throw new Error("called photon.destroy, but photon has no pool");
+Game.prototype.tick = function () {
+	var entities = void 0,
+	    entity = void 0,
+	    i = 0 | 0,
+	    len = 0 | 0,
+	    tick_delta = 0.0;
+	return function tick(timing) {
+		var delta = timing.interval / timing.elapsed;
+		var frameCount = timing.frameCount;
+		entities = this.entities;
+		this.stats.target = 0;
+		this.stats.pop = 0;
+		tick_delta = delta / _photonomix3.TARGET_FPS;
+		for (i = 0, len = entities.length; i < len; ++i) {
+			entity = entities[i];
+			entity.tick(this.entities, tick_delta, frameCount);
+			// do mote-specific stuff
+			if (entity instanceof _Mote2.default) {
+				this.stats.pop++;
+				if (entity.target) this.stats.target++;
+				if (entity.injured) {
+					if (frameCount % ~~(_photonomix3.TARGET_FPS * 0.1) === 0) {
+						this.entities.push(entity.bleed(this.photonPool));
+					}
+				}
+				// mark dead for removal
+				if (entity.dying === _photonomix3.DEATH_THRESHOLD) {
+					this.killMote(entity);
+					marks[markpos] = i;
+					this.stats.died++;
+					markpos++;
+				} else if (entity.pregnant === _photonomix3.PREGNANT_TIME) {
+					this.entities.push(entity.split());
+					this.stats.born++;
+				}
+			} else if (entity instanceof _Photon2.default || entity instanceof _Marker2.default) {
+				if (entity.lifetime <= 0) {
+					marks[markpos] = i;
+					markpos++;
+				}
+			} else if (entity.mass <= 0) {
+				marks[markpos] = i;
+				markpos++;
+			}
+			// physics effects sometimes chuck things way out of bounds
+			// just delete them, they ain't comin' back
+			if ((0, _photonomix.outOfBounds)(entity.pos, 20)) {
+				marks[markpos] = i;
+				markpos++;
+			}
+		}
+
+		// sweep dead
+		while (markpos > 0) {
+			markpos--;
+			mark = marks[markpos];
+			entity = entities[mark];
+			if (entity && entity.pool !== undefined) {
+				entity.destroy();
+			}
+			entities.splice(mark, 1);
+			marks[markpos] = 0;
+		}
+
+		// shuffling helps action lock issues and reduces first in list advantage
+		//shuffle(entities);
+	};
+}();
+
+Game.prototype.emitPhoton = function () {
+	var pos = vec2(),
+	    vel = vec2(),
+	    center = vec2(),
+	    p_c = 0,
+	    base_vel = vec2(0.05, 0.05);
+	return function emitPhoton(ipos, ivel, color) {
+		var count = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : p_c;
+		var max = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 12;
+
+		ipos = ipos || [random() * 1.8 - 0.9, random() * 1.8 - 0.9];
+		if (ivel) {
+			mut_copy(vel, ivel);
+		} else {
+			mut_copy(vel, base_vel);
+			(0, _photonomix.rotate)(vel, center, p_c % max / (max / 2), vel);
+		}
+		color = color || ~~(random() * 3);
+		mut_copy(pos, ipos);
+		this.entities.push(new _Photon2.default(pos, vel, color, this.photonPool));
+		p_c++;
+		return color;
+	};
+}();
+
+Game.prototype.killMote = function () {
+	var sum = 0 | 0,
+	    c = 0 | 0,
+	    i = 0 | 0,
+	    pos = vec2(),
+	    r = 0 | 0,
+	    g = 0 | 0,
+	    b = 0 | 0;
+	return function killMote(mote) {
+		if (random() < _photonomix3.POSITIVE_ENERGY) {
+			this.entities.push(new _Emitter2.default(mote.pos, mote.vel, ~~(_photonomix3.DEATH_THRESHOLD * 10 * random()), this.photonPool));
+		}
+		if (random() < _photonomix3.NEGATIVE_ENERGY) {
+			this.entities.push(new _Void2.default(mote.pos, mote.vel, ~~(_photonomix3.DEATH_THRESHOLD * 10 * random())));
+		}
+		mut_copy(pos, mote.pos);
+		r = mote.photons[0];
+		g = mote.photons[1];
+		b = mote.photons[2];
+		sum = r + b + g;
+		c = 0;
+		for (i = 0; i < sum; ++i) {
+			if (r === i) c = 1;
+			if (r + g === i) c = 2;
+			this.emitPhoton(pos, undefined, c, i, sum);
+		}
+	};
+}();
+
+/**
+ * Actions are callbacks accepting the following parameters:
+ * @param {vec2} center center of the click region for the action (i.e. the UI element)
+ * @param {float} dist the distance from region center to mouseUp position
+ */
+Game.prototype.registerAction = function (name, callback) {
+	this.actions[name] = callback.bind(this);
+};
+
+var delta = vec2();
+Game.prototype.registerActions = function () {
+	this.registerAction("launchAntiGravitonCluster", function (center) {
+		minus(this.player.mouseUp, center, delta);
+		this.entities.push(new _AntiGravitonCluster2.default(center, delta, 148));
+	});
 };
 
 /***/ }),
 /* 4 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_vectrix__ = __webpack_require__(1);
-/* harmony namespace reexport (by provided) */ __webpack_require__.d(__webpack_exports__, "vectors", function() { return __WEBPACK_IMPORTED_MODULE_0__src_vectrix__["vectors"]; });
-/* harmony namespace reexport (by provided) */ __webpack_require__.d(__webpack_exports__, "matrices", function() { return __WEBPACK_IMPORTED_MODULE_0__src_vectrix__["matrices"]; });
-/* harmony namespace reexport (by provided) */ __webpack_require__.d(__webpack_exports__, "quaternions", function() { return __WEBPACK_IMPORTED_MODULE_0__src_vectrix__["quaternions"]; });
-
-
-
-
-/***/ }),
-/* 5 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.Void = Void;
-
-var _vectrix = __webpack_require__(1);
-
-var vectrix = _interopRequireWildcard(_vectrix);
-
-var _photonomix = __webpack_require__(2);
-
-var _photonomixGame = __webpack_require__(14);
-
-var _photonomixGame2 = __webpack_require__(3);
-
-var _photonomixGame3 = __webpack_require__(13);
-
-var _photonomixGame4 = __webpack_require__(12);
-
-var _photonomix2 = __webpack_require__(0);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-var _vectrix$vectors = vectrix.vectors,
-    vec2 = _vectrix$vectors.vec2,
-    times = _vectrix$vectors.times,
-    mut_times = _vectrix$vectors.mut_times,
-    distance = _vectrix$vectors.distance;
-var mut_plus = vectrix.matrices.mut_plus;
-var random = Math.random,
-    sqrt = Math.sqrt,
-    PI = Math.PI,
-    ceil = Math.ceil,
-    min = Math.min;
-
-var POS_C = vec2(0, 0);
-
-function Void() {
-	var ipos = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : vec2();
-	var ivel = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : vec2();
-	var mass = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
-
-	this.pos = vec2(ipos);
-	this.vel = vec2(ivel);
-	this.size = 0;
-	this.birthMass = mass;
-	this.mass = 1;
-	this.lastMeal = -1;
-	this.eatTime = 0;
-	return this;
-}
-
-var scratchVec1 = vec2(),
-    entity = void 0,
-    i = 0 | 0,
-    len = 0 | 0,
-    a_dist = 0.0,
-    consume = 0 | 0;
-Void.prototype.tick = function (entities, delta) {
-	if (this.birthMass > 0) {
-		consume = min(this.birthMass, ceil(this.mass / 100));
-		this.birthMass -= consume;
-		this.mass += consume;
-	}
-	if (this.eatTime > 30) this.eatTime--;else this.lastMeal = -1;
-	if ((0, _photonomix.outOfBounds)(this.pos, 1.3)) {
-		this.mass = this.mass - 1;
-	}
-	this.size = sqrt(this.mass / PI) * _photonomix2.VOID_SIZE;
-	// last turn's move, has to happen first
-	mut_plus(this.pos, times(this.vel, delta, scratchVec1));
-
-	// apply basic forces
-	// don't go off the screen
-	mut_plus(this.vel, (0, _photonomix.avoid)(this.vel, this.pos, POS_C, 1.3, 0.01, scratchVec1));
-	// apply drag
-	mut_plus(this.vel, (0, _photonomix.drag)(this.vel, _photonomix2.GLOBAL_DRAG));
-	(0, _photonomix.limitVecMut)(this.vel, 0, 1);
-
-	for (i = 0, len = entities.length; i < len; ++i) {
-		entity = entities[i];
-		if (entity === this) continue;
-		a_dist = distance(this.pos, entity.pos);
-
-		if (entity instanceof _photonomixGame2.Photon && a_dist < this.size) {
-			entity.lifetime = entity.lifetime - 1;
-			if (entity.lifetime === 0 || a_dist < this.size * 0.6) {
-				this.mass = this.mass + 1;
-				this.lastMeal = entity.color;
-				this.eatTime = 15;
-				entity.lifetime = 0;
-			}
-		}
-		if (entity instanceof _photonomixGame.Mote && a_dist < this.size * 0.6) {
-			// probablistic injury, so they don't get shredded instantly
-			if (random() * 30 * a_dist < 1) entity.injured = entity.injured + 1;
-		}
-		if (entity instanceof Void) {
-			if (a_dist < (entity.size + this.size) * 0.44) {
-				// bigger ones eat smaller ones
-				if (this.mass > entity.mass) {
-					consume = min(entity.mass, ceil(this.birthMass + this.mass / 100));
-					this.birthMass += consume;
-					entity.mass -= consume;
-				}
-			}
-		}
-		if (!entity.mass) continue; // zero mass means gravity bugs
-		// apply gravity
-		if (entity instanceof _photonomixGame3.Emitter) {
-			// emitters have negative & repelling mass
-			mut_plus(entity.vel, mut_times((0, _photonomix.gravitate)(entity.pos, this.pos, this.mass / entity.mass, scratchVec1), 1 / entity.mass));
-		} else if (!(entity instanceof _photonomixGame4.AntiGravitonCluster)) {
-			mut_plus(entity.vel, mut_times((0, _photonomix.gravitate)(entity.pos, this.pos, entity.mass * this.mass, scratchVec1), 1 / entity.mass));
-		}
-	}
-};
-
-/***/ }),
-/* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -786,19 +763,19 @@ exports.drawCircle = drawCircle;
 exports.tick = tick;
 exports.init = init;
 
-var _bokeh = __webpack_require__(37);
+var _bokeh = __webpack_require__(35);
 
 var bokeh = _interopRequireWildcard(_bokeh);
 
-var _entities = __webpack_require__(38);
+var _entities = __webpack_require__(36);
 
 var entities = _interopRequireWildcard(_entities);
 
-var _sprites = __webpack_require__(19);
+var _sprites = __webpack_require__(16);
 
 var sprites = _interopRequireWildcard(_sprites);
 
-var _ui = __webpack_require__(39);
+var _ui = __webpack_require__(37);
 
 var ui = _interopRequireWildcard(_ui);
 
@@ -905,7 +882,7 @@ function init(state, display) {
 }
 
 /***/ }),
-/* 7 */
+/* 5 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -916,7 +893,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["enqueueAssetList"] = enqueueAssetList;
 /* harmony export (immutable) */ __webpack_exports__["processQueue"] = processQueue;
 /* harmony export (immutable) */ __webpack_exports__["setGlobalAssetPrefix"] = setGlobalAssetPrefix;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_assets_mimeTypes__ = __webpack_require__(32);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_assets_mimeTypes__ = __webpack_require__(30);
 
 
 
@@ -1083,7 +1060,7 @@ function setGlobalAssetPrefix(prefix) {
 
 
 /***/ }),
-/* 8 */
+/* 6 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -1110,7 +1087,7 @@ const VALIDATE_VECTORS = DEBUG || true;
 
 
 /***/ }),
-/* 9 */
+/* 7 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -1129,8 +1106,8 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["screenSpaceVec"] = screenSpaceVec;
 /* harmony export (immutable) */ __webpack_exports__["gameSpaceVec"] = gameSpaceVec;
 /* harmony export (immutable) */ __webpack_exports__["flatten"] = flatten;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_constants__ = __webpack_require__(8);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_constants__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__ = __webpack_require__(1);
 
 
 
@@ -1442,7 +1419,7 @@ function flatten(a) {
 
 
 /***/ }),
-/* 10 */
+/* 8 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -1457,7 +1434,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["toArray"] = toArray;
 /* harmony export (immutable) */ __webpack_exports__["create"] = create;
 /* harmony export (immutable) */ __webpack_exports__["wrap"] = wrap;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__vectrix_vectors__ = __webpack_require__(11);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__vectrix_vectors__ = __webpack_require__(9);
 /**
 Require the module:
 ```javascript
@@ -2071,7 +2048,7 @@ create.rotateZ = (function() {
 
 
 /***/ }),
-/* 11 */
+/* 9 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2086,7 +2063,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["toString"] = toString;
 /* harmony export (immutable) */ __webpack_exports__["create"] = create;
 /* harmony export (immutable) */ __webpack_exports__["wrap"] = wrap;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__vectrix_matrices__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__vectrix_matrices__ = __webpack_require__(8);
 /**
 The vectors module contains functions and objects related to 2d, 3d, and 4d vectors.
 
@@ -2894,7 +2871,7 @@ const vec4 = create.vec4 = create.bind(null, 4);
 
 
 /***/ }),
-/* 12 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2903,7 +2880,8 @@ const vec4 = create.vec4 = create.bind(null, 4);
 Object.defineProperty(exports, "__esModule", {
 	value: true
 });
-exports.AntiGravitonCluster = AntiGravitonCluster;
+exports.COLOR_B = exports.COLOR_G = exports.COLOR_R = exports.BUFFER_LENGTH = undefined;
+exports.default = Photon;
 
 var _vectrix = __webpack_require__(1);
 
@@ -2911,998 +2889,89 @@ var vectrix = _interopRequireWildcard(_vectrix);
 
 var _photonomix = __webpack_require__(2);
 
-var _photonomixGame = __webpack_require__(5);
-
-var _photonomixGame2 = __webpack_require__(3);
-
 var _photonomix2 = __webpack_require__(0);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
 var _vectrix$vectors = vectrix.vectors,
     vec2 = _vectrix$vectors.vec2,
-    times = _vectrix$vectors.times,
-    distance = _vectrix$vectors.distance,
-    mut_copy = _vectrix$vectors.mut_copy;
+    times = _vectrix$vectors.times;
 var mut_plus = vectrix.matrices.mut_plus;
-var random = Math.random,
-    sqrt = Math.sqrt,
-    PI = Math.PI,
-    ceil = Math.ceil,
-    min = Math.min,
-    max = Math.max;
-
-var POS_C = vec2(0, 0);
-
-function AntiGravitonCluster() {
-	var ipos = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : vec2();
-	var ivel = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : vec2();
-	var mass = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
-	var photonPool = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
-
-	this.pos = vec2(ipos);
-	this.vel = vec2(ivel);
-	this.size = 0;
-	this.birthMass = this.initialMass = mass;
-	this.mass = 1;
-	this.photonPool = photonPool;
-	this.instability = 0;
-	this.size = 0;
-	return this;
-}
-
-var scratch = vec2(),
-    entity = void 0,
-    i = 0 | 0,
-    len = 0 | 0,
-    dist = 0.0,
-    consume = 0 | 0;
-AntiGravitonCluster.prototype.tick = function (entities, delta, frameCount) {
-	if (this.birthMass > 0) {
-		consume = min(this.birthMass, ceil(this.mass / 10));
-		this.birthMass -= consume;
-		this.mass += consume;
-	}
-	this.size = sqrt(this.mass * 0.05 / PI) * _photonomix2.MOTE_BASE_SIZE;
-	// last turn's move, has to happen first
-	mut_plus(this.pos, times(this.vel, delta, scratch));
-	this.initialMass = max(this.mass, this.initialMass);
-
-	// apply basic forces
-	// don't go off the screen
-	mut_plus(this.vel, (0, _photonomix.avoid)(this.vel, this.pos, POS_C, 1.3, 0.01, scratch));
-	// apply drag
-	mut_plus(this.vel, (0, _photonomix.drag)(this.vel, _photonomix2.GLOBAL_DRAG));
-
-	if (this.birthMass === 0) {
-		this.instability += this.mass * 0.003;
-	}
-	if (frameCount % ceil(_photonomix2.TARGET_FPS * 0.05) === 0) {
-		while (this.instability > 0 && this.mass > 0) {
-			entities.push(this.emitPhoton());
-			this.mass -= min(this.mass, 7);
-			this.instability -= 0.9;
-		}
-	}
-
-	for (i = 0, len = entities.length; i < len; ++i) {
-		entity = entities[i];
-		if (entity === this) continue;
-		dist = distance(this.pos, entity.pos);
-
-		if (entity instanceof _photonomixGame.Void) {
-			if (dist < (entity.size + this.size) * 0.5) {
-				consume = min(entity.mass, ceil((entity.mass + entity.birthMass) / 10));
-				this.mass += consume;
-				entity.mass -= consume;
-				this.instability += consume * 0.07;
-			}
-			if (dist < this.size * 10) mut_plus(this.vel, (0, _photonomix.accelerate)(this.pos, entity.pos, this.size * dist * 5, scratch));
-			return;
-		}
-	}
-};
-
-AntiGravitonCluster.prototype.emitPhoton = function () {
-	var pos = vec2(),
-	    vel = vec2(),
-	    rot = vec2(),
-	    radians = 0.0,
-	    mim = 0.0,
-	    color = 0 | 0;
-	return function emitPhoton() {
-		color = ~~(random() * 3);
-		pos[0] = this.size * 0.1;
-		pos[1] = this.size * 0.1;
-		mut_plus(pos, this.pos);
-		mut_copy(vel, this.vel);
-		mim = this.mass % this.initialMass;
-		radians = mim / (this.initialMass / 2);
-		radians = radians + mim % 100 * (2 / 100); // split across arms
-		mut_copy(rot, (0, _photonomix.rotate)(pos, this.pos, radians, pos));
-		mut_plus(rot, this.pos);
-		mut_plus(pos, rot);
-		// introduce some jitter
-		mut_plus(vel, (0, _photonomix.accelerate)(this.pos, pos, this.size * 2, scratch));
-		return new _photonomixGame2.Photon(pos, vel, color, this.photonPool);
-	};
-}();
-
-/***/ }),
-/* 13 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
+var random = Math.random;
 
 
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.Emitter = Emitter;
-
-var _vectrix = __webpack_require__(1);
-
-var vectrix = _interopRequireWildcard(_vectrix);
-
-var _photonomix = __webpack_require__(0);
-
-var _photonomix2 = __webpack_require__(2);
-
-var _photonomixGame = __webpack_require__(3);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-var _vectrix$vectors = vectrix.vectors,
-    vec2 = _vectrix$vectors.vec2,
-    times = _vectrix$vectors.times,
-    mut_times = _vectrix$vectors.mut_times,
-    distance = _vectrix$vectors.distance;
-var mut_plus = vectrix.matrices.mut_plus;
-var random = Math.random,
-    sqrt = Math.sqrt,
-    ceil = Math.ceil,
-    min = Math.min,
-    PI = Math.PI;
-
-var POS_C = vec2(0, 0);
-
-/**
- * Emitters are "white holes" that spit out photons on a fixed schedule until depleted.
- */
-function Emitter() {
-	var ipos = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : vec2();
-	var ivel = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : vec2();
-	var mass = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
-	var photonPool = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
-	var arms = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
-
-	this.pos = vec2(ipos);
-	this.vel = vec2(ivel);
-	this.birthMass = mass;
-	this.mass = 1;
-	this.initialMass = mass;
-	this.photonPool = photonPool;
-	this.arms = arms || ceil(random() * random() * 50);
-	this.size = 0;
-	this.next = ~~(random() * 3);
-	return this;
-}
-
-var scratchVec1 = vec2(),
-    emissionsPerSecond = 0 | 0,
-    emissionsPerFrame = 0 | 0,
-    targetFrame = 0 | 0,
-    i = 0 | 0,
-    len = 0 | 0,
-    entity = void 0,
-    a_dist = 0.0,
-    consume = 0 | 0;
-Emitter.prototype.tick = function (entities, delta, frameCount) {
-	/* jshint unused:false */
-	if (this.birthMass > 0) {
-		consume = min(this.birthMass, ceil(this.mass / 100));
-		this.birthMass -= consume;
-		this.mass += consume;
-	}
-	this.size = sqrt(this.mass / PI) * _photonomix.EMITTER_SIZE;
-	if (this.birthMass === 0) {
-		// don't start producing until finished spawning
-		emissionsPerSecond = this.initialMass / 20;
-		targetFrame = ceil(_photonomix.TARGET_FPS / emissionsPerSecond);
-		emissionsPerFrame = emissionsPerSecond / _photonomix.TARGET_FPS;
-		if (frameCount % targetFrame === 0) {
-			while (emissionsPerFrame-- > 0 && this.mass > 0) {
-				this.mass--;
-				entities.push(this.emitPhoton());
-			}
-		}
-	}
-	// last turn's move, has to happen first
-	mut_plus(this.pos, times(this.vel, delta, scratchVec1));
-	// apply drag
-	mut_plus(this.vel, (0, _photonomix2.drag)(this.vel, _photonomix.GLOBAL_DRAG));
-	// avoid edge
-	mut_plus(this.vel, (0, _photonomix2.avoid)(this.vel, this.pos, POS_C, 1.3, 0.001, scratchVec1));
-
-	for (i = 0, len = entities.length; i < len; ++i) {
-		entity = entities[i];
-		if (entity === this) continue;
-		a_dist = distance(this.pos, entity.pos);
-		if (entity instanceof Emitter) {
-			mut_plus(entity.vel, mut_times((0, _photonomix2.gravitate)(entity.pos, this.pos, this.mass * entity.mass, scratchVec1), 1 / entity.mass));
-		} else {
-			mut_plus(entity.vel, mut_times((0, _photonomix2.gravitate)(entity.pos, this.pos, -this.mass * entity.mass, scratchVec1), 1 / entity.mass));
-		}
-	}
-};
-
-Emitter.prototype.emitPhoton = function () {
-	var pos = vec2(),
-	    radians = 0.0,
-	    mim = 0.0,
-	    color = 0 | 0;
-	return function emitPhoton() {
-		color = this.next;
-		pos[0] = this.size / 5;
-		pos[1] = this.size / 5;
-		mut_plus(pos, this.pos);
-		mim = this.mass % this.initialMass;
-		radians = mim / (this.initialMass / 2);
-		radians = radians + mim % this.arms * (2 / this.arms); // split across arms
-		mut_plus((0, _photonomix2.rotate)(pos, this.pos, radians, pos), this.pos);
-		this.next = ~~(random() * 3);
-		// introduce some jitter
-		return new _photonomixGame.Photon(pos, vec2(0, 0), color, this.photonPool);
-	};
-}();
-
-/***/ }),
-/* 14 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.BUFFER_LENGTH = exports.ACT_LINK = exports.ACT_ATTACK = exports.ACT_AVOID = exports.ACT_CHASE = exports.ACT_SEARCH = exports.ACT_IDLE = undefined;
-exports.Mote = Mote;
-
-var _photonomix = __webpack_require__(0);
-
-var _vectrix = __webpack_require__(1);
-
-var vectrix = _interopRequireWildcard(_vectrix);
-
-var _photonomix2 = __webpack_require__(2);
-
-var _photonomixGame = __webpack_require__(3);
-
-var _photonomixGame2 = __webpack_require__(5);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-var random = Math.random,
-    max = Math.max,
-    min = Math.min,
-    floor = Math.floor,
-    ceil = Math.ceil,
-    sin = Math.sin;
-var _vectrix$vectors = vectrix.vectors,
-    vec2 = _vectrix$vectors.vec2,
-    times = _vectrix$vectors.times,
-    mut_clamp = _vectrix$vectors.mut_clamp,
-    magnitude = _vectrix$vectors.magnitude,
-    distance = _vectrix$vectors.distance,
-    mut_copy = _vectrix$vectors.mut_copy,
-    mut_times = _vectrix$vectors.mut_times;
-var _vectrix$matrices = vectrix.matrices,
-    plus = _vectrix$matrices.plus,
-    mut_plus = _vectrix$matrices.mut_plus;
-
-var clamp = mut_clamp;
-// Center of the playfield is at 0,0 (ranging from -1 to 1 on X and Y axis)
-var POS_C = vec2(0.0, 0.0);
-// activity type constants
-var ACT_IDLE = exports.ACT_IDLE = 0;
-var ACT_SEARCH = exports.ACT_SEARCH = 1;
-var ACT_CHASE = exports.ACT_CHASE = 2;
-var ACT_AVOID = exports.ACT_AVOID = 3;
-var ACT_ATTACK = exports.ACT_ATTACK = 4;
-var ACT_LINK = exports.ACT_LINK = 5;
-
-// twiddle to slightly offset the values, avoids divide by zero and other errors
-// inherent to acceleration, friction, drag and gravity equations
-(0, _photonomix2.twiddleVec)(POS_C);
-// relative color values derived from a Mote's photons, used to produce color string
-// for rendering
-
-// various consts below are indexes and byte counts for mote data
-// byte length of these value types
 var I8 = 1;
 var F32 = 4;
+var O_POS = 0;
+var O_VEL = F32 * 2;
+var FLOAT_LENGTH = O_VEL + F32 * 2;
+var O_COLOR = 0;
+var O_LIFE = O_COLOR + I8;
+var O_MASS = O_LIFE + I8;
+var U8_LENGTH = O_MASS + I8;
+var BUFFER_LENGTH = exports.BUFFER_LENGTH = FLOAT_LENGTH + U8_LENGTH + (F32 - (FLOAT_LENGTH + U8_LENGTH) % F32);
 
-// uint8 values = photons[3]
-var U8_PHO = 0,
-    U8_COL = U8_PHO + I8 * 3,
-    U8_VAL_LENGTH = U8_COL + I8 * 3,
-    I8_BYTE_OFFSET = U8_VAL_LENGTH;
-// int8 values =  dying, pregnant, injured, lastMeal, pulse
-var I8_DYING = 0,
-    I8_PREG = I8_DYING + I8,
-    I8_INJURED = I8_PREG + I8,
-    I8_LAST_INJURY = I8_INJURED + I8,
-    I8_MEAL = I8_LAST_INJURY + I8,
-    I8_UPD = I8_MEAL + I8,
-    I8_PULSE = I8_UPD + I8,
-    I8_ACT = I8_PULSE + I8,
-    I8_VAL_LENGTH = I8_ACT + I8,
-    INT_VAL_LENGTH = U8_VAL_LENGTH + I8_VAL_LENGTH;
+var COLOR_R = exports.COLOR_R = 0,
+    COLOR_G = exports.COLOR_G = 1,
+    COLOR_B = exports.COLOR_B = 2;
+function Photon(ipos, ivel, color) {
+	var _this = this;
 
-// float32 values = p[3], v[3], color[4], size, sizeMin, sizeMax, speed, sight, agro, fear, potential, resistance
-// from here on, increments of value * 4
-// vectors
-var VEC_BYTE_OFFSET = INT_VAL_LENGTH + (F32 - INT_VAL_LENGTH % F32),
-    // float32 offsets must be multiples of 4
-F32_POS = 0,
-    F32_VEL = F32_POS + 2,
-    F32_RAT = F32_VEL + 2,
-    F32_PREF = F32_RAT + 3,
-    VEC_VAL_LENGTH = F32_PREF + 3;
+	var pool = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
 
-var F32_BYTE_OFFSET = VEC_BYTE_OFFSET + VEC_VAL_LENGTH * F32,
-
-// scalars
-F32_SIZE = 0,
-    F32_SIZE_MIN = F32_SIZE + 1,
-    F32_SIZE_MAX = F32_SIZE_MIN + 1,
-    F32_SPEED = F32_SIZE_MAX + 1,
-    F32_SIGHT = F32_SPEED + 1,
-    F32_AGRO = F32_SIGHT + 1,
-    F32_FEAR = F32_AGRO + 1,
-    F32_POTENTIAL = F32_FEAR + 1,
-    F32_RESISTANCE = F32_POTENTIAL + 1,
-    F32_MASS = F32_RESISTANCE + 1,
-    FLOAT_VAL_LENGTH = F32_MASS + 1;
-
-var BUFFER_LENGTH = exports.BUFFER_LENGTH = F32_BYTE_OFFSET + FLOAT_VAL_LENGTH * F32;
-
-// scratch vectors used in various functions
-var scratch1 = vec2(),
-    scratch2 = vec2();
-
-/**
- * Constructor for Motes.
- * @param {Float32Array(3)} photons initial photons (0-255, R, G, B)
- * @param {vec2} pos initial position
- * @param {Float} bSpeed (optional) base acceleration: inheritance and predesigned motes 
- * @param {Float} bSight (optional) base vision radius: inheritance and predesigned motes 
- * @param {Float} bAgro (optional) base aggressiveness: inheritance and predesigned motes 
- * @param {Float} bFear (optional) base fearfulness: inheritance and predesigned motes 
- * @param {BufferPool} pool (optional) buffer pool to build the mote on
- * @property {vec2} pos position vector
- * @property {vec2} vel velocity vector
- * @property {Uint8} r red photon value (setter updates values and derived props)
- * @property {Uint8} g green photon value (setter updates value and derived props)
- * @property {Uint8} b blue photon value (setter updates value and derived props)
- * @property {string} color_string rgba color string, used for drawing in 2d
- * @property {Int8} dying counter from 1 to DEATH_THRESHOLD when a mote is dying
- * @property {Int8} pregnant coundown from PREGNANT_DURATION when a mote is pregnant
- * @property {Int8} injured injury counter, counts down in mote.bleed
- * @property {Int8} lastInjury strength of most recent injury taken
- * @property {Int8} pulse frame offset for pulse animation
- * @property {Int8} lastMeal color value for last meal (see R, G, B constants)
- * @property {Int8} action action choice in relation to target 
- * @property {Float32} speed derived acceleration speed based on Mote properties
- * @property {Float32} sight derived vision radius based on Mote properties 
- * @property {Float32} agro derived aggression factor based on Mote properties 
- * @property {Float32} fear derived fearfulness factor based on Mote properties 
- * @property {Float32} potential accumulated charge potential
- * @property {Float32} resistance accumulated resistance to charge
- * @property {Float32} size derived size radius as fraction of screen size
- * @property {Float32} sizeMin minimum size the mote can reach as it shrinks
- * @property {Float32} sizeMax maximum size the mote can reach as it grows
- * @property {UintClamped8Array} photons current photon values (R, G, B)
- * @property {UintClamped8Array} color current mote color (R, G, B)
- * @property {Int8Array} intVals direct access to integer value array (for debug)
- * @property {Float32Array} ratios current photon ratios (R, G, B)
- * @property {Float32Array} prefs preferred photon ratios
- * @property {Float32Array} floatVals direct access to float value array (for debug)
- * @return {Mote}
- */
-function Mote() {
-	var _photons = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : new Uint8Array(3);
-
-	var pos = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : new Float32Array(2);
-	var pool = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : undefined;
-	var bSpeed = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : _photonomix.MOTE_BASE_SPEED;
-	var bSight = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : _photonomix.MOTE_BASE_SIGHT;
-	var bAgro = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 1.0;
-	var bFear = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : 1.0;
-
-	var buffer = void 0,
-	    offset = 0 | 0;
+	var buffer = void 0;
+	this.pool = pool;
 	if (pool) {
 		buffer = pool.buffer;
-		offset = pool.allocate();
+		this.offset = pool.allocate();
 	} else {
 		buffer = new ArrayBuffer(BUFFER_LENGTH);
-		offset = 0;
+		this.offset = 0;
 	}
-
-	// "private" properties
-	// use a single buffer for properties so that they're guaranteed to be contiguous
-	// in memory and typed
-	var photons = new Uint8ClampedArray(buffer, U8_PHO + offset, 3);
-	var color = new Uint8ClampedArray(buffer, U8_COL + offset, 3);
-	photons[_photonomixGame.COLOR_R] = _photons[_photonomixGame.COLOR_R];
-	photons[_photonomixGame.COLOR_G] = _photons[_photonomixGame.COLOR_G];
-	photons[_photonomixGame.COLOR_B] = _photons[_photonomixGame.COLOR_B];
-	var intVals = new Int8Array(buffer, I8_BYTE_OFFSET + offset, I8_VAL_LENGTH - U8_PHO);
-	var floatVals = new Float32Array(buffer, F32_BYTE_OFFSET + offset, FLOAT_VAL_LENGTH);
-	this.pos = vec2(pos, buffer, F32_POS * F32 + VEC_BYTE_OFFSET + offset);
-	this.vel = vec2(0.0, 0.0, buffer, F32_VEL * F32 + VEC_BYTE_OFFSET + offset);
-	var ratios = new Float32Array(buffer, F32_RAT * F32 + VEC_BYTE_OFFSET + offset, 3);
-	var prefs = new Float32Array(buffer, F32_PREF * F32 + VEC_BYTE_OFFSET + offset, 3);
-	this.target = undefined;
-	this.color_string = "";
-	bSpeed = bSpeed + (0, _photonomix2.adjRand)(0.0005);
-	bSight = bSight + (0, _photonomix2.adjRand)(0.001); // vision distance
-	bAgro = bAgro + (0, _photonomix2.adjRand)(0.001);
-	bFear = bFear + (0, _photonomix2.adjRand)(0.001);
+	this.pos = vec2(ipos[0], ipos[1], buffer, O_POS + this.offset);
+	this.vel = vec2(ivel[0], ivel[1], buffer, O_VEL + this.offset);
+	this.intVals = new Uint8ClampedArray(buffer, FLOAT_LENGTH + this.offset, U8_LENGTH);
 
 	Object.defineProperties(this, {
-		"photons": { get: function get() {
-				return photons;
-			} },
 		"color": { get: function get() {
-				return color;
+				return _this.intVals[O_COLOR];
+			}, set: function set(x) {
+				return _this.intVals[O_COLOR] = x;
 			} },
-		"dying": { get: function get() {
-				return intVals[I8_DYING];
-			}, set: function set(v) {
-				return intVals[I8_DYING] = v;
-			} },
-		"action": { get: function get() {
-				return intVals[I8_ACT];
-			}, set: function set(v) {
-				return intVals[I8_ACT] = v;
-			} },
-		"pregnant": { get: function get() {
-				return intVals[I8_PREG];
-			}, set: function set(v) {
-				return intVals[I8_PREG] = v;
-			} },
-		"injured": { get: function get() {
-				return intVals[I8_INJURED];
-			}, set: function set(v) {
-				return intVals[I8_INJURED] = v;
-			} },
-		"lastInjury": { get: function get() {
-				return intVals[I8_LAST_INJURY];
-			}, set: function set(v) {
-				return intVals[I8_LAST_INJURY] = v;
-			} },
-		"needsUpdate": { get: function get() {
-				return intVals[I8_UPD];
-			}, set: function set(v) {
-				return intVals[I8_UPD] = v;
-			} },
-		"pulse": { get: function get() {
-				return intVals[I8_PULSE];
-			}, set: function set(v) {
-				return intVals[I8_PULSE] = v;
-			} },
-		"lastMeal": { get: function get() {
-				return intVals[I8_MEAL];
-			}, set: function set(v) {
-				return intVals[I8_MEAL] = v;
-			} },
-		"size": { get: function get() {
-				return floatVals[F32_SIZE];
-			}, set: function set(v) {
-				return floatVals[F32_SIZE] = v;
-			} },
-		"sizeMin": { get: function get() {
-				return floatVals[F32_SIZE_MIN];
-			}, set: function set(v) {
-				return floatVals[F32_SIZE_MIN] = v;
-			} },
-		"sizeMax": { get: function get() {
-				return floatVals[F32_SIZE_MAX];
-			}, set: function set(v) {
-				return floatVals[F32_SIZE_MAX] = v;
-			} },
-		"speed": { get: function get() {
-				return floatVals[F32_SPEED];
-			}, set: function set(v) {
-				return floatVals[F32_SPEED] = v;
-			} },
-		"sight": { get: function get() {
-				return floatVals[F32_SIGHT];
-			}, set: function set(v) {
-				return floatVals[F32_SIGHT] = v;
-			} },
-		"agro": { get: function get() {
-				return floatVals[F32_AGRO];
-			}, set: function set(v) {
-				return floatVals[F32_AGRO] = v;
-			} },
-		"fear": { get: function get() {
-				return floatVals[F32_FEAR];
-			}, set: function set(v) {
-				return floatVals[F32_FEAR] = v;
-			} },
-		"potential": { get: function get() {
-				return floatVals[F32_POTENTIAL];
-			}, set: function set(v) {
-				return floatVals[F32_POTENTIAL] = v;
-			} },
-		"resistance": { get: function get() {
-				return floatVals[F32_RESISTANCE];
-			}, set: function set(v) {
-				return floatVals[F32_RESISTANCE] = v;
+		"lifetime": { get: function get() {
+				return _this.intVals[O_LIFE];
+			}, set: function set(x) {
+				return _this.intVals[O_LIFE] = x;
 			} },
 		"mass": { get: function get() {
-				return floatVals[F32_MASS];
-			}, set: function set(v) {
-				return floatVals[F32_MASS] = v;
-			} },
-		"base_speed": { get: function get() {
-				return bSpeed;
-			} },
-		"base_sight": { get: function get() {
-				return bSight;
-			} },
-		"base_agro": { get: function get() {
-				return bAgro;
-			} },
-		"base_fear": { get: function get() {
-				return bFear;
-			} },
-		"pool": { get: function get() {
-				return pool;
-			} },
-		"offset": { get: function get() {
-				return offset;
-			} },
-		"ratios": { get: function get() {
-				return ratios;
-			} },
-		"prefs": { get: function get() {
-				return prefs;
+				return _this.intVals[O_MASS];
+			}, set: function set(x) {
+				return _this.intVals[O_MASS] = x;
 			} }
 	});
-
-	/*
-  * Debug access only.
-  */
-	if (_photonomix.DEBUG) Object.defineProperties(this, {
-		"intVals": { get: function get() {
-				return intVals;
-			} },
-		"floatVals": { get: function get() {
-				return floatVals;
-			} }
-	});
-
-	// initialize values, important to do since buffer may be reused
-	this.dying = 0;
-	this.pregnant = 0;
-	this.injured = 0;
-	this.lastInjury = 0;
-	this.speed = bSpeed;
-	this.sight = bSight;
-	this.agro = bAgro;
-	this.fear = bFear;
-	this.potential = this.agro * 2;
-	this.resistance = this.fear * 2;
-	this.lastMeal = ~~(random() * 3);
-	this.pulse = ~~(_photonomix.TARGET_FPS * random());
-	this.size = _photonomix.MOTE_BASE_SIZE;
-	this.sizeMin = _photonomix.MOTE_BASE_SIZE * 0.5;
-	this.sizeMax = _photonomix.MOTE_BASE_SIZE * 3;
-
-	this.updateProperties();
-	this.prefs[_photonomixGame.COLOR_R] = this.ratios[_photonomixGame.COLOR_R];
-	this.prefs[_photonomixGame.COLOR_G] = this.ratios[_photonomixGame.COLOR_G];
-	this.prefs[_photonomixGame.COLOR_B] = this.ratios[_photonomixGame.COLOR_B];
-	return this;
+	this.color = color;
+	this.lifetime = _photonomix2.PHOTON_LIFETIME;
+	this.size = _photonomix2.PHOTON_BASE_SIZE;
+	this.mass = 1;
+	this.pulse = ~~(_photonomix2.TARGET_FPS * random());
 }
 
-/**
- * Updates derived properties for mote.
- */
-Mote.prototype.updateProperties = function () {
-	var r = 0 | 0,
-	    g = 0 | 0,
-	    b = 0 | 0,
-	    photons = void 0,
-	    color = void 0,
-	    ratios = void 0;
-	return function updateProperties() {
-		photons = this.photons;
-		ratios = this.ratios;
-		color = this.color;
-
-		r = photons[_photonomixGame.COLOR_R];
-		g = photons[_photonomixGame.COLOR_G];
-		b = photons[_photonomixGame.COLOR_B];
-		this.mass = r + g + b;
-		if (this.mass > 0) {
-			// otherwise skip this stuff since the mote is dead anyway
-			this.size = clamp(this.mass / (_photonomix.PREGNANT_THRESHOLD / 3) * _photonomix.MOTE_BASE_SIZE, this.sizeMin, this.sizeMax);
-			ratios[_photonomixGame.COLOR_R] = (0, _photonomix2.ratio)(r, g + b);
-			ratios[_photonomixGame.COLOR_G] = (0, _photonomix2.ratio)(g, r + b);
-			ratios[_photonomixGame.COLOR_B] = (0, _photonomix2.ratio)(b, g + r);
-			this.speed = this.base_speed * (1 - this.size) * (1 + ratios[_photonomixGame.COLOR_B]);
-			this.sight = this.base_sight + this.size * 0.5; // see from edge onward
-			this.agro = this.base_agro * (1 + ratios[_photonomixGame.COLOR_R]);
-			this.fear = this.base_fear * (1 + ratios[_photonomixGame.COLOR_G]);
-			if (_photonomix.DEBUG) {
-				if (isNaN(this.speed)) throw new Error("Mote.updateProperties: NaN speed");
-				if (isNaN(this.sight)) throw new Error("Mote.updateProperties: NaN sight");
-				if (isNaN(this.size)) throw new Error("Mote.updateProperties: NaN size");
-				if (isNaN(this.agro)) throw new Error("Mote.updateProperties: NaN agro");
-				if (isNaN(this.fear)) throw new Error("Mote.updateProperties: NaN fear");
-			}
-		} // end of stuff to do only if sum > 0
-
-		if (this.mass > _photonomix.PREGNANT_THRESHOLD && this.pregnant === 0) this.pregnant = _photonomix.PREGNANT_TIME;
-		if (this.mass < _photonomix.DEATH_THRESHOLD && this.dying === 0) this.dying = 1;
-
-		color[_photonomixGame.COLOR_R] = ~~(r / this.mass * 255);
-		color[_photonomixGame.COLOR_G] = ~~(g / this.mass * 255);
-		color[_photonomixGame.COLOR_B] = ~~(b / this.mass * 255);
-		this.needsUpdate = 0;
-	};
-}();
-
-/**
- * Maintenance tasks to be done each tick
- */
-Mote.prototype.runMaintenance = function () {
-	var pregnant = 0 | 0,
-	    dying = 0 | 0,
-	    tmpPot = 0.0,
-	    tmpRes = 0.0,
-	    agro = 0.0,
-	    fear = 0.0,
-	    size = 0.0,
-	    speed = 0.0,
-	    sight = 0.0,
-	    pos = void 0,
-	    vel = void 0,
-	    target = void 0;
-	return function runMaintenance(delta) {
-		pos = this.pos;
-		vel = this.vel;
-		pregnant = this.pregnant;
-		dying = this.dying;
-		agro = this.agro;
-		fear = this.fear;
-		size = this.size;
-		speed = this.speed;
-		sight = this.sight;
-		target = this.target;
-
-		if (pregnant > 0) this.pregnant = pregnant - 1;
-		if (dying > 0) this.dying = dying + 1; // start counting up
-		if (this.needsUpdate) this.updateProperties();
-		// build potential and resistance each tick
-		tmpPot = agro * (size * 100);
-		tmpRes = fear * (size * 100);
-		this.potential = clamp(this.potential + agro * delta, -tmpPot, tmpPot);
-		this.resistance = clamp(this.resistance + fear * delta, -tmpRes, tmpRes);
-
-		// last turn's move, has to happen first to avoid prediction inaccuracy
-		// during chases
-		mut_plus(pos, times(vel, delta, scratch1));
-
-		// don't go off the screen
-		mut_plus(vel, (0, _photonomix2.avoid)(vel, pos, POS_C, 1.3, speed, scratch1));
-		// apply drag
-		mut_plus(vel, (0, _photonomix2.drag)(vel, _photonomix.GLOBAL_DRAG));
-	};
-}();
-
-/**
- * Checks if a target is valid.
- * @param {Object} entity any game object that can be targeted
- * @return {float} distance if valid, otherwise -1
- */
-Mote.prototype.validateTarget = function () {
-	var dist = 0.0,
-	    sight = 0.0,
-	    pos = void 0;
-	return function (entity) {
-		pos = this.pos;
-		sight = this.sight;
-
-		dist = distance(pos, entity.pos);
-		// these targets are invalid
-		if (entity === this) return -1;
-		if (entity.dying) return -1;
-		if (entity.lifetime && entity.lifetime < 3) return -1;
-		if (entity.mass < 1) return -1;
-		if (dist > sight + entity.size * 0.5) return -1;
-		if ((0, _photonomix2.outOfBounds)(entity, 0.7)) return -1;
-		return dist;
-	};
-}();
-
-/**
- * Search for a target and decide how to act toward it.
- */
-Mote.prototype.search = function () {
-	var i = 0 | 0,
-	    len = 0 | 0,
-	    sight = 0.0,
-	    cur = 0.0,
-	    pos = void 0,
-	    vel = void 0,
-	    highest = void 0,
-	    dist = void 0,
-	    entity = void 0,
-	    deltar = 0.0,
-	    deltag = 0.0,
-	    deltab = 0.0,
-	    mind = 0.0,
-	    maxd = 0.0,
-	    weight = 0.0;
-	return function search(entities) {
-		pos = this.pos;
-		vel = this.vel;
-		sight = this.sight;
-
-		highest = -Infinity;
-		dist = 0;
-		if (this.pregnant || this.dying) {
-			this.action = ACT_IDLE;
-			highest = Infinity;
-		}
-
-		for (i = 0, len = entities.length; i < len && highest < Infinity; ++i) {
-			entity = entities[i];
-			var _dist = this.validateTarget(entity);
-			if (_dist === -1) continue;
-			// ignore things outside sight range
-			if (entity instanceof Mote) {
-				cur = 3 * (1 / _dist);
-				if (cur > highest) {
-					this.target = entity;
-					if (entity.target === this || _dist < (this.size + entity.size) * 0.5) {
-						this.action = ACT_AVOID;
-					} else this.action = ACT_CHASE;
-					highest = cur;
-				}
-			} else if (entity instanceof _photonomixGame2.Void) {
-				this.target = entity;
-				this.action = ACT_AVOID;
-				highest = Infinity;
-			} else if (entity instanceof _photonomixGame.Photon && entity.lifetime > 3) {
-				deltar = this.prefs[_photonomixGame.COLOR_R] - this.ratios[_photonomixGame.COLOR_R];
-				deltag = this.prefs[_photonomixGame.COLOR_G] - this.ratios[_photonomixGame.COLOR_G];
-				deltab = this.prefs[_photonomixGame.COLOR_B] - this.ratios[_photonomixGame.COLOR_B];
-				maxd = max(deltar, deltag, deltab);
-				mind = min(deltar, deltag, deltab);
-				if (maxd == deltar && entity.color == _photonomixGame.COLOR_R || maxd == deltag && entity.color == _photonomixGame.COLOR_G || maxd == deltab && entity.color == _photonomixGame.COLOR_B) weight = 30;
-				if (mind == deltar && entity.color == _photonomixGame.COLOR_R || mind == deltag && entity.color == _photonomixGame.COLOR_G || mind == deltab && entity.color == _photonomixGame.COLOR_B) weight = 10;else weight = 20;
-				cur = weight * (1 / _dist);
-				if (cur > highest) {
-					this.target = entity;
-					this.action = ACT_CHASE;
-					highest = cur;
-				}
-			}
-		}
-		if (highest < 0) return false;
-		return true;
-	};
-}();
-
-/**
- * Decide how to act each tick based on nearby objects.
- * @param Array surrounding array of nearby objects to consider in movement
- * @param Float delta time delta
- */
-Mote.prototype.tick = function () {
-	var pos = void 0,
-	    vel = void 0,
-	    size = void 0,
-	    sight = void 0,
-	    speed = void 0,
-	    agro = void 0,
-	    fear = void 0,
-	    resistance = void 0,
-	    potential = void 0,
-	    target = void 0,
-	    dist = void 0;
-	return function tick(entities, delta, frameCount) {
-		pos = this.pos;
-		vel = this.vel;
-		size = this.size;
-		sight = this.sight;
-		speed = this.speed;
-		agro = this.agro;
-		fear = this.fear;
-		resistance = this.resistance;
-		potential = this.potential;
-		target = this.target;
-
-		this.runMaintenance(delta);
-
-		// validate current target 
-		if (target && (dist = this.validateTarget(target)) === -1) {
-			this.action = ACT_IDLE;
-		}
-
-		switch (this.action) {
-			case ACT_IDLE:
-				// lost target, gave up, or completed task
-				this.target = undefined;
-				if (magnitude(vel) < 0.001) {
-					// not going anywhere, so pick a random direction
-					scratch1[0] = random() * 2 - 1;
-					scratch1[1] = random() * 2 - 1;
-				} else {
-					mut_copy(scratch1, pos);
-					mut_plus(scratch1, times(vel, delta, scratch2));
-					mut_plus(scratch1, (0, _photonomix2.rotate)(scratch1, pos, sin((frameCount + this.pulse) * speed), scratch2));
-				}
-				mut_plus(vel, (0, _photonomix2.accelerate)(pos, scratch1, speed, scratch2));
-				this.action = ACT_SEARCH;
-				break;
-			case ACT_CHASE:
-				// chasing a target
-				// predict target's next move
-				plus(target.pos, times(target.vel, delta, scratch1), scratch2);
-				mut_plus(vel, (0, _photonomix2.accelerate)(pos, scratch2, speed, scratch1));
-				if (dist < sight) {
-					if (target instanceof Mote && this.potential > this.agro * 3) this.action = ACT_ATTACK;else this.action = ACT_ATTACK;
-				}
-				break;
-			case ACT_AVOID:
-				// avoiding a target
-				// predict target's next move
-				plus(target.pos, times(target.vel, delta, scratch1), scratch2);
-				mut_plus(vel, (0, _photonomix2.accelerate)(scratch2, pos, speed, scratch1));
-				if (this.resistance > fear * 3) this.action = ACT_IDLE;
-				break;
-			case ACT_ATTACK:
-				// attacking a target
-				if (target instanceof Mote) this.discharge(target);else if (target instanceof _photonomixGame.Photon) this.eatPhoton(target);
-				break;
-			case ACT_LINK:
-				// linking with a target
-				break;
-			case ACT_SEARCH:
-				if (!this.search(entities)) this.action = ACT_IDLE;
-				break;
-			default:
-				break;
-		}
-	};
-}();
-
-var delta = 0.0;
-Mote.prototype.discharge = function (target) {
-	delta = this.potential - target.resistance;
-	target.resistance -= max(this.agro, delta * this.agro);
-	this.potential -= max(this.fear, delta * this.fear);
-	target.injure(this, max(0, ~~delta));
-	if (this.potential < 0) this.action = ACT_IDLE;
+var tmpvec = vec2(),
+    pos = void 0,
+    vel = void 0;
+Photon.prototype.tick = function (surrounding, delta) {
+	if (this.lifetime > 0) this.lifetime--;
+	pos = this.pos;vel = this.vel;
+	mut_plus(pos, times(vel, delta, tmpvec));
+	mut_plus(vel, (0, _photonomix.drag)(vel, _photonomix2.GLOBAL_DRAG));
 };
 
-Mote.prototype.injure = function (by, strength) {
-	this.injured += strength;
-	this.lastInjury = this.injured;
-	if (this.resistance < this.agro * 3 || this.injured < this.fear) this.target = by;
-};
-
-Mote.prototype.bleed = function () {
-	var choice = 0 | 0,
-	    choiceVal = 0 | 0,
-	    pvel = vec2(),
-	    photons = void 0;
-	return function bleed(photonPool) {
-		photons = this.photons;
-		do {
-			choice = ~~(random() * 3);
-			switch (choice) {
-				case _photonomixGame.COLOR_R:
-					choiceVal = photons[_photonomixGame.COLOR_R];break;
-				case _photonomixGame.COLOR_G:
-					choiceVal = photons[_photonomixGame.COLOR_G];break;
-				case _photonomixGame.COLOR_B:
-					choiceVal = photons[_photonomixGame.COLOR_B];break;
-			}
-		} while (choiceVal === 0);
-		switch (choice) {
-			case _photonomixGame.COLOR_R:
-				photons[_photonomixGame.COLOR_R] = photons[_photonomixGame.COLOR_R] - 1;break;
-			case _photonomixGame.COLOR_G:
-				photons[_photonomixGame.COLOR_G] = photons[_photonomixGame.COLOR_G] - 1;break;
-			case _photonomixGame.COLOR_B:
-				photons[_photonomixGame.COLOR_B] = photons[_photonomixGame.COLOR_B] - 1;break;
-		}
-		this.injured--;
-		mut_times(this.vel, 1 + this.speed);
-		mut_copy(pvel, this.vel);
-		mut_times(pvel, -1);
-		this.needsUpdate = 1;
-		return new _photonomixGame.Photon(this.pos, pvel, choice, photonPool);
-		//return choice;
-	};
-}();
-
-Mote.prototype.split = function () {
-	var baby = void 0,
-	    photons = void 0;
-	return function () {
-		photons = this.photons;
-		baby = new Mote([floor(photons[_photonomixGame.COLOR_R] / 2), floor(photons[_photonomixGame.COLOR_G] / 2), floor(photons[_photonomixGame.COLOR_B] / 2)], this.pos, this.pool, this.base_speed, this.base_sight, this.base_agro, this.base_fear);
-		photons[_photonomixGame.COLOR_R] = ceil(photons[_photonomixGame.COLOR_R] / 2);
-		photons[_photonomixGame.COLOR_G] = ceil(photons[_photonomixGame.COLOR_G] / 2);
-		photons[_photonomixGame.COLOR_B] = ceil(photons[_photonomixGame.COLOR_B] / 2);
-		this.pregnant = _photonomix.PREGNANT_TIME - 1;
-		baby.pregnant = _photonomix.PREGNANT_TIME - 1;
-		this.target = baby;
-		baby.target = this;
-		baby.needsUpdate = 1;
-		this.needsUpdate = 1;
-		return baby;
-	};
-}();
-
-Mote.prototype.eatPhoton = function () {
-	var photons = void 0;
-	return function eatPhotons(photon) {
-		if (photon.lifetime > 2 && distance(this.pos, photon.pos) < this.sight) {
-			photons = this.photons;
-			photon.lifetime = 2;
-			switch (photon.color) {
-				case _photonomixGame.COLOR_R:
-					photons[_photonomixGame.COLOR_R] += 1;break;
-				case _photonomixGame.COLOR_G:
-					photons[_photonomixGame.COLOR_G] += 1;break;
-				case _photonomixGame.COLOR_B:
-					photons[_photonomixGame.COLOR_B] += 1;break;
-			}
-			this.lastMeal = photon.color;
-			this.potential -= this.agro * 0.5;
-			this.resistance -= this.fear * 0.5;
-			this.needsUpdate = 1;
-		}
-		this.action = ACT_IDLE;
-	};
-}();
-
-var rpos = new Float32Array(2);
-var rphotons = new Uint8ClampedArray(3);
-/**
- * Generates mote with randomized position and photon values.
- * @param {BufferPool} pool storage pool
- * @return {Mote}
- */
-Mote.random = function (pool) {
-	do {
-		rpos[0] = random() * (0, _photonomix2.posneg)();
-		rpos[1] = random() * (0, _photonomix2.posneg)();
-	} while (magnitude(rpos) > 0.8);
-	rphotons[0] = ~~(random() * 64);
-	rphotons[1] = ~~(random() * 64);
-	rphotons[2] = ~~(random() * 64);
-	return new Mote(rphotons, rpos, pool);
-};
-
-Mote.prototype.destroy = function () {
-	this.pool.free(this.offset);
+Photon.prototype.destroy = function () {
+	if (this.pool) this.pool.free(this.offset);else throw new Error("called photon.destroy, but photon has no pool");
 };
 
 /***/ }),
-/* 15 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3914,11 +2983,11 @@ Object.defineProperty(exports, "__esModule", {
 exports.buttons = exports.keys = exports.pointer = undefined;
 exports.init = init;
 
-var _vectrix = __webpack_require__(4);
+var _vectrix = __webpack_require__(1);
 
 var vectrix = _interopRequireWildcard(_vectrix);
 
-var _photonomixEvents = __webpack_require__(41);
+var _photonomixEvents = __webpack_require__(42);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
@@ -3985,7 +3054,7 @@ function init(env) {
 }
 
 /***/ }),
-/* 16 */
+/* 12 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -3995,9 +3064,9 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["lookupMap"] = lookupMap;
 /* harmony export (immutable) */ __webpack_exports__["lookupKeyState"] = lookupKeyState;
 /* harmony export (immutable) */ __webpack_exports__["init"] = init;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_util__ = __webpack_require__(9);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__KeyState__ = __webpack_require__(23);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__KeyMap__ = __webpack_require__(22);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_util__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__KeyState__ = __webpack_require__(21);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__KeyMap__ = __webpack_require__(20);
 
 
 
@@ -4133,22 +3202,22 @@ function init() {
 
 
 /***/ }),
-/* 17 */
+/* 13 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["updateCompositeOperation"] = updateCompositeOperation;
 /* harmony export (immutable) */ __webpack_exports__["init"] = init;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_display_util_js__ = __webpack_require__(35);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__pxene_display_buffers__ = __webpack_require__(33);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__pxene_events__ = __webpack_require__(18);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__pxene_display_ui__ = __webpack_require__(34);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_display_util_js__ = __webpack_require__(33);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__pxene_display_buffers__ = __webpack_require__(31);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__pxene_events__ = __webpack_require__(14);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__pxene_display_ui__ = __webpack_require__(32);
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "buffers", function() { return __WEBPACK_IMPORTED_MODULE_1__pxene_display_buffers__; });
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "ui", function() { return __WEBPACK_IMPORTED_MODULE_3__pxene_display_ui__; });
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "util", function() { return __WEBPACK_IMPORTED_MODULE_0__pxene_display_util_js__; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__pxene_constants__ = __webpack_require__(8);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__pxene_util__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__pxene_constants__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__pxene_util__ = __webpack_require__(7);
 
 
 
@@ -4327,7 +3396,7 @@ function init(config) {
 
 
 /***/ }),
-/* 18 */
+/* 14 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -4360,7 +3429,37 @@ Events.prototype.fire = (function() {
 
 
 /***/ }),
-/* 19 */
+/* 15 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__vectrix_vectors__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__vectrix_matrices__ = __webpack_require__(8);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__vectrix_quaternions__ = __webpack_require__(34);
+/**
+Master module for vectrix. See individual modules for documentation.
+@module vectrix
+ */
+
+
+
+
+
+const vectors = __WEBPACK_IMPORTED_MODULE_0__vectrix_vectors__;
+/* harmony export (immutable) */ __webpack_exports__["vectors"] = vectors;
+
+const matrices = __WEBPACK_IMPORTED_MODULE_1__vectrix_matrices__;
+/* harmony export (immutable) */ __webpack_exports__["matrices"] = matrices;
+
+const quaternions = __WEBPACK_IMPORTED_MODULE_2__vectrix_quaternions__;
+/* harmony export (immutable) */ __webpack_exports__["quaternions"] = quaternions;
+
+
+
+
+/***/ }),
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4679,20 +3778,890 @@ function createGameSpaceMask() {
 }
 
 /***/ }),
-/* 20 */
+/* 17 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.BUFFER_LENGTH = exports.ACT_LINK = exports.ACT_ATTACK = exports.ACT_AVOID = exports.ACT_CHASE = exports.ACT_SEARCH = exports.ACT_IDLE = undefined;
+exports.default = Mote;
+
+var _photonomix = __webpack_require__(0);
+
+var _vectrix = __webpack_require__(1);
+
+var vectrix = _interopRequireWildcard(_vectrix);
+
+var _photonomix2 = __webpack_require__(2);
+
+var _Photon = __webpack_require__(10);
+
+var _Photon2 = _interopRequireDefault(_Photon);
+
+var _Void = __webpack_require__(18);
+
+var _Void2 = _interopRequireDefault(_Void);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+var random = Math.random,
+    max = Math.max,
+    min = Math.min,
+    floor = Math.floor,
+    ceil = Math.ceil,
+    sin = Math.sin;
+var _vectrix$vectors = vectrix.vectors,
+    vec2 = _vectrix$vectors.vec2,
+    times = _vectrix$vectors.times,
+    mut_clamp = _vectrix$vectors.mut_clamp,
+    magnitude = _vectrix$vectors.magnitude,
+    distance = _vectrix$vectors.distance,
+    mut_copy = _vectrix$vectors.mut_copy,
+    mut_times = _vectrix$vectors.mut_times;
+var _vectrix$matrices = vectrix.matrices,
+    plus = _vectrix$matrices.plus,
+    mut_plus = _vectrix$matrices.mut_plus;
+
+var clamp = mut_clamp;
+// Center of the playfield is at 0,0 (ranging from -1 to 1 on X and Y axis)
+var POS_C = vec2(0.0, 0.0);
+// activity type constants
+var ACT_IDLE = exports.ACT_IDLE = 0;
+var ACT_SEARCH = exports.ACT_SEARCH = 1;
+var ACT_CHASE = exports.ACT_CHASE = 2;
+var ACT_AVOID = exports.ACT_AVOID = 3;
+var ACT_ATTACK = exports.ACT_ATTACK = 4;
+var ACT_LINK = exports.ACT_LINK = 5;
+
+// twiddle to slightly offset the values, avoids divide by zero and other errors
+// inherent to acceleration, friction, drag and gravity equations
+(0, _photonomix2.twiddleVec)(POS_C);
+// relative color values derived from a Mote's photons, used to produce color string
+// for rendering
+
+// various consts below are indexes and byte counts for mote data
+// byte length of these value types
+var I8 = 1;
+var F32 = 4;
+
+// uint8 values = photons[3]
+var U8_PHO = 0,
+    U8_COL = U8_PHO + I8 * 3,
+    U8_VAL_LENGTH = U8_COL + I8 * 3,
+    I8_BYTE_OFFSET = U8_VAL_LENGTH;
+// int8 values =  dying, pregnant, injured, lastMeal, pulse
+var I8_DYING = 0,
+    I8_PREG = I8_DYING + I8,
+    I8_INJURED = I8_PREG + I8,
+    I8_LAST_INJURY = I8_INJURED + I8,
+    I8_MEAL = I8_LAST_INJURY + I8,
+    I8_UPD = I8_MEAL + I8,
+    I8_PULSE = I8_UPD + I8,
+    I8_ACT = I8_PULSE + I8,
+    I8_VAL_LENGTH = I8_ACT + I8,
+    INT_VAL_LENGTH = U8_VAL_LENGTH + I8_VAL_LENGTH;
+
+// float32 values = p[3], v[3], color[4], size, sizeMin, sizeMax, speed, sight, agro, fear, potential, resistance
+// from here on, increments of value * 4
+// vectors
+var VEC_BYTE_OFFSET = INT_VAL_LENGTH + (F32 - INT_VAL_LENGTH % F32),
+    // float32 offsets must be multiples of 4
+F32_POS = 0,
+    F32_VEL = F32_POS + 2,
+    F32_RAT = F32_VEL + 2,
+    F32_PREF = F32_RAT + 3,
+    VEC_VAL_LENGTH = F32_PREF + 3;
+
+var F32_BYTE_OFFSET = VEC_BYTE_OFFSET + VEC_VAL_LENGTH * F32,
+
+// scalars
+F32_SIZE = 0,
+    F32_SIZE_MIN = F32_SIZE + 1,
+    F32_SIZE_MAX = F32_SIZE_MIN + 1,
+    F32_SPEED = F32_SIZE_MAX + 1,
+    F32_SIGHT = F32_SPEED + 1,
+    F32_AGRO = F32_SIGHT + 1,
+    F32_FEAR = F32_AGRO + 1,
+    F32_POTENTIAL = F32_FEAR + 1,
+    F32_RESISTANCE = F32_POTENTIAL + 1,
+    F32_MASS = F32_RESISTANCE + 1,
+    FLOAT_VAL_LENGTH = F32_MASS + 1;
+
+var BUFFER_LENGTH = exports.BUFFER_LENGTH = F32_BYTE_OFFSET + FLOAT_VAL_LENGTH * F32;
+
+// scratch vectors used in various functions
+var scratch1 = vec2(),
+    scratch2 = vec2();
+
+/**
+ * Constructor for Motes.
+ * @param {Float32Array(3)} photons initial photons (0-255, R, G, B)
+ * @param {vec2} pos initial position
+ * @param {Float} bSpeed (optional) base acceleration: inheritance and predesigned motes 
+ * @param {Float} bSight (optional) base vision radius: inheritance and predesigned motes 
+ * @param {Float} bAgro (optional) base aggressiveness: inheritance and predesigned motes 
+ * @param {Float} bFear (optional) base fearfulness: inheritance and predesigned motes 
+ * @param {BufferPool} pool (optional) buffer pool to build the mote on
+ * @property {vec2} pos position vector
+ * @property {vec2} vel velocity vector
+ * @property {Uint8} r red photon value (setter updates values and derived props)
+ * @property {Uint8} g green photon value (setter updates value and derived props)
+ * @property {Uint8} b blue photon value (setter updates value and derived props)
+ * @property {string} color_string rgba color string, used for drawing in 2d
+ * @property {Int8} dying counter from 1 to DEATH_THRESHOLD when a mote is dying
+ * @property {Int8} pregnant coundown from PREGNANT_DURATION when a mote is pregnant
+ * @property {Int8} injured injury counter, counts down in mote.bleed
+ * @property {Int8} lastInjury strength of most recent injury taken
+ * @property {Int8} pulse frame offset for pulse animation
+ * @property {Int8} lastMeal color value for last meal (see R, G, B constants)
+ * @property {Int8} action action choice in relation to target 
+ * @property {Float32} speed derived acceleration speed based on Mote properties
+ * @property {Float32} sight derived vision radius based on Mote properties 
+ * @property {Float32} agro derived aggression factor based on Mote properties 
+ * @property {Float32} fear derived fearfulness factor based on Mote properties 
+ * @property {Float32} potential accumulated charge potential
+ * @property {Float32} resistance accumulated resistance to charge
+ * @property {Float32} size derived size radius as fraction of screen size
+ * @property {Float32} sizeMin minimum size the mote can reach as it shrinks
+ * @property {Float32} sizeMax maximum size the mote can reach as it grows
+ * @property {UintClamped8Array} photons current photon values (R, G, B)
+ * @property {UintClamped8Array} color current mote color (R, G, B)
+ * @property {Int8Array} intVals direct access to integer value array (for debug)
+ * @property {Float32Array} ratios current photon ratios (R, G, B)
+ * @property {Float32Array} prefs preferred photon ratios
+ * @property {Float32Array} floatVals direct access to float value array (for debug)
+ * @return {Mote}
+ */
+function Mote() {
+	var _photons = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : new Uint8Array(3);
+
+	var pos = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : new Float32Array(2);
+	var pool = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : undefined;
+	var bSpeed = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : _photonomix.MOTE_BASE_SPEED;
+	var bSight = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : _photonomix.MOTE_BASE_SIGHT;
+	var bAgro = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 1.0;
+	var bFear = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : 1.0;
+
+	var buffer = void 0,
+	    offset = 0 | 0;
+	if (pool) {
+		buffer = pool.buffer;
+		offset = pool.allocate();
+	} else {
+		buffer = new ArrayBuffer(BUFFER_LENGTH);
+		offset = 0;
+	}
+
+	// "private" properties
+	// use a single buffer for properties so that they're guaranteed to be contiguous
+	// in memory and typed
+	var photons = new Uint8ClampedArray(buffer, U8_PHO + offset, 3);
+	var color = new Uint8ClampedArray(buffer, U8_COL + offset, 3);
+	photons[_Photon.COLOR_R] = _photons[_Photon.COLOR_R];
+	photons[_Photon.COLOR_G] = _photons[_Photon.COLOR_G];
+	photons[_Photon.COLOR_B] = _photons[_Photon.COLOR_B];
+	var intVals = new Int8Array(buffer, I8_BYTE_OFFSET + offset, I8_VAL_LENGTH - U8_PHO);
+	var floatVals = new Float32Array(buffer, F32_BYTE_OFFSET + offset, FLOAT_VAL_LENGTH);
+	this.pos = vec2(pos, buffer, F32_POS * F32 + VEC_BYTE_OFFSET + offset);
+	this.vel = vec2(0.0, 0.0, buffer, F32_VEL * F32 + VEC_BYTE_OFFSET + offset);
+	var ratios = new Float32Array(buffer, F32_RAT * F32 + VEC_BYTE_OFFSET + offset, 3);
+	var prefs = new Float32Array(buffer, F32_PREF * F32 + VEC_BYTE_OFFSET + offset, 3);
+	this.target = undefined;
+	this.color_string = "";
+	bSpeed = bSpeed + (0, _photonomix2.adjRand)(0.0005);
+	bSight = bSight + (0, _photonomix2.adjRand)(0.001); // vision distance
+	bAgro = bAgro + (0, _photonomix2.adjRand)(0.001);
+	bFear = bFear + (0, _photonomix2.adjRand)(0.001);
+
+	Object.defineProperties(this, {
+		"photons": { get: function get() {
+				return photons;
+			} },
+		"color": { get: function get() {
+				return color;
+			} },
+		"dying": { get: function get() {
+				return intVals[I8_DYING];
+			}, set: function set(v) {
+				return intVals[I8_DYING] = v;
+			} },
+		"action": { get: function get() {
+				return intVals[I8_ACT];
+			}, set: function set(v) {
+				return intVals[I8_ACT] = v;
+			} },
+		"pregnant": { get: function get() {
+				return intVals[I8_PREG];
+			}, set: function set(v) {
+				return intVals[I8_PREG] = v;
+			} },
+		"injured": { get: function get() {
+				return intVals[I8_INJURED];
+			}, set: function set(v) {
+				return intVals[I8_INJURED] = v;
+			} },
+		"lastInjury": { get: function get() {
+				return intVals[I8_LAST_INJURY];
+			}, set: function set(v) {
+				return intVals[I8_LAST_INJURY] = v;
+			} },
+		"needsUpdate": { get: function get() {
+				return intVals[I8_UPD];
+			}, set: function set(v) {
+				return intVals[I8_UPD] = v;
+			} },
+		"pulse": { get: function get() {
+				return intVals[I8_PULSE];
+			}, set: function set(v) {
+				return intVals[I8_PULSE] = v;
+			} },
+		"lastMeal": { get: function get() {
+				return intVals[I8_MEAL];
+			}, set: function set(v) {
+				return intVals[I8_MEAL] = v;
+			} },
+		"size": { get: function get() {
+				return floatVals[F32_SIZE];
+			}, set: function set(v) {
+				return floatVals[F32_SIZE] = v;
+			} },
+		"sizeMin": { get: function get() {
+				return floatVals[F32_SIZE_MIN];
+			}, set: function set(v) {
+				return floatVals[F32_SIZE_MIN] = v;
+			} },
+		"sizeMax": { get: function get() {
+				return floatVals[F32_SIZE_MAX];
+			}, set: function set(v) {
+				return floatVals[F32_SIZE_MAX] = v;
+			} },
+		"speed": { get: function get() {
+				return floatVals[F32_SPEED];
+			}, set: function set(v) {
+				return floatVals[F32_SPEED] = v;
+			} },
+		"sight": { get: function get() {
+				return floatVals[F32_SIGHT];
+			}, set: function set(v) {
+				return floatVals[F32_SIGHT] = v;
+			} },
+		"agro": { get: function get() {
+				return floatVals[F32_AGRO];
+			}, set: function set(v) {
+				return floatVals[F32_AGRO] = v;
+			} },
+		"fear": { get: function get() {
+				return floatVals[F32_FEAR];
+			}, set: function set(v) {
+				return floatVals[F32_FEAR] = v;
+			} },
+		"potential": { get: function get() {
+				return floatVals[F32_POTENTIAL];
+			}, set: function set(v) {
+				return floatVals[F32_POTENTIAL] = v;
+			} },
+		"resistance": { get: function get() {
+				return floatVals[F32_RESISTANCE];
+			}, set: function set(v) {
+				return floatVals[F32_RESISTANCE] = v;
+			} },
+		"mass": { get: function get() {
+				return floatVals[F32_MASS];
+			}, set: function set(v) {
+				return floatVals[F32_MASS] = v;
+			} },
+		"base_speed": { get: function get() {
+				return bSpeed;
+			} },
+		"base_sight": { get: function get() {
+				return bSight;
+			} },
+		"base_agro": { get: function get() {
+				return bAgro;
+			} },
+		"base_fear": { get: function get() {
+				return bFear;
+			} },
+		"pool": { get: function get() {
+				return pool;
+			} },
+		"offset": { get: function get() {
+				return offset;
+			} },
+		"ratios": { get: function get() {
+				return ratios;
+			} },
+		"prefs": { get: function get() {
+				return prefs;
+			} }
+	});
+
+	/*
+  * Debug access only.
+  */
+	if (_photonomix.DEBUG) Object.defineProperties(this, {
+		"intVals": { get: function get() {
+				return intVals;
+			} },
+		"floatVals": { get: function get() {
+				return floatVals;
+			} }
+	});
+
+	// initialize values, important to do since buffer may be reused
+	this.dying = 0;
+	this.pregnant = 0;
+	this.injured = 0;
+	this.lastInjury = 0;
+	this.speed = bSpeed;
+	this.sight = bSight;
+	this.agro = bAgro;
+	this.fear = bFear;
+	this.potential = this.agro * 2;
+	this.resistance = this.fear * 2;
+	this.lastMeal = ~~(random() * 3);
+	this.pulse = ~~(_photonomix.TARGET_FPS * random());
+	this.size = _photonomix.MOTE_BASE_SIZE;
+	this.sizeMin = _photonomix.MOTE_BASE_SIZE * 0.5;
+	this.sizeMax = _photonomix.MOTE_BASE_SIZE * 3;
+
+	this.updateProperties();
+	this.prefs[_Photon.COLOR_R] = this.ratios[_Photon.COLOR_R];
+	this.prefs[_Photon.COLOR_G] = this.ratios[_Photon.COLOR_G];
+	this.prefs[_Photon.COLOR_B] = this.ratios[_Photon.COLOR_B];
+	return this;
+}
+
+/**
+ * Updates derived properties for mote.
+ */
+Mote.prototype.updateProperties = function () {
+	var r = 0 | 0,
+	    g = 0 | 0,
+	    b = 0 | 0,
+	    photons = void 0,
+	    color = void 0,
+	    ratios = void 0;
+	return function updateProperties() {
+		photons = this.photons;
+		ratios = this.ratios;
+		color = this.color;
+
+		r = photons[_Photon.COLOR_R];
+		g = photons[_Photon.COLOR_G];
+		b = photons[_Photon.COLOR_B];
+		this.mass = r + g + b;
+		if (this.mass > 0) {
+			// otherwise skip this stuff since the mote is dead anyway
+			this.size = clamp(this.mass / (_photonomix.PREGNANT_THRESHOLD / 3) * _photonomix.MOTE_BASE_SIZE, this.sizeMin, this.sizeMax);
+			ratios[_Photon.COLOR_R] = (0, _photonomix2.ratio)(r, g + b);
+			ratios[_Photon.COLOR_G] = (0, _photonomix2.ratio)(g, r + b);
+			ratios[_Photon.COLOR_B] = (0, _photonomix2.ratio)(b, g + r);
+			this.speed = this.base_speed * (1 - this.size) * (1 + ratios[_Photon.COLOR_B]);
+			this.sight = this.base_sight + this.size * 0.5; // see from edge onward
+			this.agro = this.base_agro * (1 + ratios[_Photon.COLOR_R]);
+			this.fear = this.base_fear * (1 + ratios[_Photon.COLOR_G]);
+			if (_photonomix.DEBUG) {
+				if (isNaN(this.speed)) throw new Error("Mote.updateProperties: NaN speed");
+				if (isNaN(this.sight)) throw new Error("Mote.updateProperties: NaN sight");
+				if (isNaN(this.size)) throw new Error("Mote.updateProperties: NaN size");
+				if (isNaN(this.agro)) throw new Error("Mote.updateProperties: NaN agro");
+				if (isNaN(this.fear)) throw new Error("Mote.updateProperties: NaN fear");
+			}
+		} // end of stuff to do only if sum > 0
+
+		if (this.mass > _photonomix.PREGNANT_THRESHOLD && this.pregnant === 0) this.pregnant = _photonomix.PREGNANT_TIME;
+		if (this.mass < _photonomix.DEATH_THRESHOLD && this.dying === 0) this.dying = 1;
+
+		color[_Photon.COLOR_R] = ~~(r / this.mass * 255);
+		color[_Photon.COLOR_G] = ~~(g / this.mass * 255);
+		color[_Photon.COLOR_B] = ~~(b / this.mass * 255);
+		this.needsUpdate = 0;
+	};
+}();
+
+/**
+ * Maintenance tasks to be done each tick
+ */
+Mote.prototype.runMaintenance = function () {
+	var pregnant = 0 | 0,
+	    dying = 0 | 0,
+	    tmpPot = 0.0,
+	    tmpRes = 0.0,
+	    agro = 0.0,
+	    fear = 0.0,
+	    size = 0.0,
+	    speed = 0.0,
+	    sight = 0.0,
+	    pos = void 0,
+	    vel = void 0,
+	    target = void 0;
+	return function runMaintenance(delta) {
+		pos = this.pos;
+		vel = this.vel;
+		pregnant = this.pregnant;
+		dying = this.dying;
+		agro = this.agro;
+		fear = this.fear;
+		size = this.size;
+		speed = this.speed;
+		sight = this.sight;
+		target = this.target;
+
+		if (pregnant > 0) this.pregnant = pregnant - 1;
+		if (dying > 0) this.dying = dying + 1; // start counting up
+		if (this.needsUpdate) this.updateProperties();
+		// build potential and resistance each tick
+		tmpPot = agro * (size * 100);
+		tmpRes = fear * (size * 100);
+		this.potential = clamp(this.potential + agro * delta, -tmpPot, tmpPot);
+		this.resistance = clamp(this.resistance + fear * delta, -tmpRes, tmpRes);
+
+		// last turn's move, has to happen first to avoid prediction inaccuracy
+		// during chases
+		mut_plus(pos, times(vel, delta, scratch1));
+
+		// don't go off the screen
+		mut_plus(vel, (0, _photonomix2.avoid)(vel, pos, POS_C, 1.3, speed, scratch1));
+		// apply drag
+		mut_plus(vel, (0, _photonomix2.drag)(vel, _photonomix.GLOBAL_DRAG));
+	};
+}();
+
+/**
+ * Checks if a target is valid.
+ * @param {Object} entity any game object that can be targeted
+ * @return {float} distance if valid, otherwise -1
+ */
+Mote.prototype.validateTarget = function () {
+	var dist = 0.0,
+	    sight = 0.0,
+	    pos = void 0;
+	return function (entity) {
+		pos = this.pos;
+		sight = this.sight;
+
+		dist = distance(pos, entity.pos);
+		// these targets are invalid
+		if (entity === this) return -1;
+		if (entity.dying) return -1;
+		if (entity.lifetime && entity.lifetime < 3) return -1;
+		if (entity.mass < 1) return -1;
+		if (dist > sight + entity.size * 0.5) return -1;
+		if ((0, _photonomix2.outOfBounds)(entity, 0.7)) return -1;
+		return dist;
+	};
+}();
+
+/**
+ * Search for a target and decide how to act toward it.
+ */
+Mote.prototype.search = function () {
+	var i = 0 | 0,
+	    len = 0 | 0,
+	    sight = 0.0,
+	    cur = 0.0,
+	    pos = void 0,
+	    vel = void 0,
+	    highest = void 0,
+	    dist = void 0,
+	    entity = void 0,
+	    deltar = 0.0,
+	    deltag = 0.0,
+	    deltab = 0.0,
+	    mind = 0.0,
+	    maxd = 0.0,
+	    weight = 0.0;
+	return function search(entities) {
+		pos = this.pos;
+		vel = this.vel;
+		sight = this.sight;
+
+		highest = -Infinity;
+		dist = 0;
+		if (this.pregnant || this.dying) {
+			this.action = ACT_IDLE;
+			highest = Infinity;
+		}
+
+		for (i = 0, len = entities.length; i < len && highest < Infinity; ++i) {
+			entity = entities[i];
+			var _dist = this.validateTarget(entity);
+			if (_dist === -1) continue;
+			// ignore things outside sight range
+			if (entity instanceof Mote) {
+				cur = 3 * (1 / _dist);
+				if (cur > highest) {
+					this.target = entity;
+					if (entity.target === this || _dist < (this.size + entity.size) * 0.5) {
+						this.action = ACT_AVOID;
+					} else this.action = ACT_CHASE;
+					highest = cur;
+				}
+			} else if (entity instanceof _Void2.default) {
+				this.target = entity;
+				this.action = ACT_AVOID;
+				highest = Infinity;
+			} else if (entity instanceof _Photon2.default && entity.lifetime > 3) {
+				deltar = this.prefs[_Photon.COLOR_R] - this.ratios[_Photon.COLOR_R];
+				deltag = this.prefs[_Photon.COLOR_G] - this.ratios[_Photon.COLOR_G];
+				deltab = this.prefs[_Photon.COLOR_B] - this.ratios[_Photon.COLOR_B];
+				maxd = max(deltar, deltag, deltab);
+				mind = min(deltar, deltag, deltab);
+				if (maxd == deltar && entity.color == _Photon.COLOR_R || maxd == deltag && entity.color == _Photon.COLOR_G || maxd == deltab && entity.color == _Photon.COLOR_B) weight = 30;
+				if (mind == deltar && entity.color == _Photon.COLOR_R || mind == deltag && entity.color == _Photon.COLOR_G || mind == deltab && entity.color == _Photon.COLOR_B) weight = 10;else weight = 20;
+				cur = weight * (1 / _dist);
+				if (cur > highest) {
+					this.target = entity;
+					this.action = ACT_CHASE;
+					highest = cur;
+				}
+			}
+		}
+		if (highest < 0) return false;
+		return true;
+	};
+}();
+
+/**
+ * Decide how to act each tick based on nearby objects.
+ * @param Array surrounding array of nearby objects to consider in movement
+ * @param Float delta time delta
+ */
+Mote.prototype.tick = function () {
+	var pos = void 0,
+	    vel = void 0,
+	    size = void 0,
+	    sight = void 0,
+	    speed = void 0,
+	    agro = void 0,
+	    fear = void 0,
+	    resistance = void 0,
+	    potential = void 0,
+	    target = void 0,
+	    dist = void 0;
+	return function tick(entities, delta, frameCount) {
+		pos = this.pos;
+		vel = this.vel;
+		size = this.size;
+		sight = this.sight;
+		speed = this.speed;
+		agro = this.agro;
+		fear = this.fear;
+		resistance = this.resistance;
+		potential = this.potential;
+		target = this.target;
+
+		this.runMaintenance(delta);
+
+		// validate current target 
+		if (target && (dist = this.validateTarget(target)) === -1) {
+			this.action = ACT_IDLE;
+		}
+
+		switch (this.action) {
+			case ACT_IDLE:
+				// lost target, gave up, or completed task
+				this.target = undefined;
+				if (magnitude(vel) < 0.001) {
+					// not going anywhere, so pick a random direction
+					scratch1[0] = random() * 2 - 1;
+					scratch1[1] = random() * 2 - 1;
+				} else {
+					mut_copy(scratch1, pos);
+					mut_plus(scratch1, times(vel, delta, scratch2));
+					mut_plus(scratch1, (0, _photonomix2.rotate)(scratch1, pos, sin((frameCount + this.pulse) * speed), scratch2));
+				}
+				mut_plus(vel, (0, _photonomix2.accelerate)(pos, scratch1, speed, scratch2));
+				this.action = ACT_SEARCH;
+				break;
+			case ACT_CHASE:
+				// chasing a target
+				// predict target's next move
+				plus(target.pos, times(target.vel, delta, scratch1), scratch2);
+				mut_plus(vel, (0, _photonomix2.accelerate)(pos, scratch2, speed, scratch1));
+				if (dist < sight) {
+					if (target instanceof Mote && this.potential > this.agro * 3) this.action = ACT_ATTACK;else this.action = ACT_ATTACK;
+				}
+				break;
+			case ACT_AVOID:
+				// avoiding a target
+				// predict target's next move
+				plus(target.pos, times(target.vel, delta, scratch1), scratch2);
+				mut_plus(vel, (0, _photonomix2.accelerate)(scratch2, pos, speed, scratch1));
+				if (this.resistance > fear * 3) this.action = ACT_IDLE;
+				break;
+			case ACT_ATTACK:
+				// attacking a target
+				if (target instanceof Mote) this.discharge(target);else if (target instanceof _Photon2.default) this.eatPhoton(target);
+				break;
+			case ACT_LINK:
+				// linking with a target
+				break;
+			case ACT_SEARCH:
+				if (!this.search(entities)) this.action = ACT_IDLE;
+				break;
+			default:
+				break;
+		}
+	};
+}();
+
+var delta = 0.0;
+Mote.prototype.discharge = function (target) {
+	delta = this.potential - target.resistance;
+	target.resistance -= max(this.agro, delta * this.agro);
+	this.potential -= max(this.fear, delta * this.fear);
+	target.injure(this, max(0, ~~delta));
+	if (this.potential < 0) this.action = ACT_IDLE;
+};
+
+Mote.prototype.injure = function (by, strength) {
+	this.injured += strength;
+	this.lastInjury = this.injured;
+	if (this.resistance < this.agro * 3 || this.injured < this.fear) this.target = by;
+};
+
+Mote.prototype.bleed = function () {
+	var choice = 0 | 0,
+	    choiceVal = 0 | 0,
+	    pvel = vec2(),
+	    photons = void 0;
+	return function bleed(photonPool) {
+		photons = this.photons;
+		do {
+			choice = ~~(random() * 3);
+			switch (choice) {
+				case _Photon.COLOR_R:
+					choiceVal = photons[_Photon.COLOR_R];break;
+				case _Photon.COLOR_G:
+					choiceVal = photons[_Photon.COLOR_G];break;
+				case _Photon.COLOR_B:
+					choiceVal = photons[_Photon.COLOR_B];break;
+			}
+		} while (choiceVal === 0);
+		switch (choice) {
+			case _Photon.COLOR_R:
+				photons[_Photon.COLOR_R] = photons[_Photon.COLOR_R] - 1;break;
+			case _Photon.COLOR_G:
+				photons[_Photon.COLOR_G] = photons[_Photon.COLOR_G] - 1;break;
+			case _Photon.COLOR_B:
+				photons[_Photon.COLOR_B] = photons[_Photon.COLOR_B] - 1;break;
+		}
+		this.injured--;
+		mut_times(this.vel, 1 + this.speed);
+		mut_copy(pvel, this.vel);
+		mut_times(pvel, -1);
+		this.needsUpdate = 1;
+		return new _Photon2.default(this.pos, pvel, choice, photonPool);
+		//return choice;
+	};
+}();
+
+Mote.prototype.split = function () {
+	var baby = void 0,
+	    photons = void 0;
+	return function () {
+		photons = this.photons;
+		baby = new Mote([floor(photons[_Photon.COLOR_R] / 2), floor(photons[_Photon.COLOR_G] / 2), floor(photons[_Photon.COLOR_B] / 2)], this.pos, this.pool, this.base_speed, this.base_sight, this.base_agro, this.base_fear);
+		photons[_Photon.COLOR_R] = ceil(photons[_Photon.COLOR_R] / 2);
+		photons[_Photon.COLOR_G] = ceil(photons[_Photon.COLOR_G] / 2);
+		photons[_Photon.COLOR_B] = ceil(photons[_Photon.COLOR_B] / 2);
+		this.pregnant = _photonomix.PREGNANT_TIME - 1;
+		baby.pregnant = _photonomix.PREGNANT_TIME - 1;
+		this.target = baby;
+		baby.target = this;
+		baby.needsUpdate = 1;
+		this.needsUpdate = 1;
+		return baby;
+	};
+}();
+
+Mote.prototype.eatPhoton = function () {
+	var photons = void 0;
+	return function eatPhotons(photon) {
+		if (photon.lifetime > 2 && distance(this.pos, photon.pos) < this.sight) {
+			photons = this.photons;
+			photon.lifetime = 2;
+			switch (photon.color) {
+				case _Photon.COLOR_R:
+					photons[_Photon.COLOR_R] += 1;break;
+				case _Photon.COLOR_G:
+					photons[_Photon.COLOR_G] += 1;break;
+				case _Photon.COLOR_B:
+					photons[_Photon.COLOR_B] += 1;break;
+			}
+			this.lastMeal = photon.color;
+			this.potential -= this.agro * 0.5;
+			this.resistance -= this.fear * 0.5;
+			this.needsUpdate = 1;
+		}
+		this.action = ACT_IDLE;
+	};
+}();
+
+var rpos = new Float32Array(2);
+var rphotons = new Uint8ClampedArray(3);
+/**
+ * Generates mote with randomized position and photon values.
+ * @param {BufferPool} pool storage pool
+ * @return {Mote}
+ */
+Mote.random = function (pool) {
+	do {
+		rpos[0] = random() * (0, _photonomix2.posneg)();
+		rpos[1] = random() * (0, _photonomix2.posneg)();
+	} while (magnitude(rpos) > 0.8);
+	rphotons[0] = ~~(random() * 64);
+	rphotons[1] = ~~(random() * 64);
+	rphotons[2] = ~~(random() * 64);
+	return new Mote(rphotons, rpos, pool);
+};
+
+Mote.prototype.destroy = function () {
+	this.pool.free(this.offset);
+};
+
+/***/ }),
+/* 18 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.default = Void;
+
+var _vectrix = __webpack_require__(1);
+
+var vectrix = _interopRequireWildcard(_vectrix);
+
+var _photonomix = __webpack_require__(2);
+
+var _ = __webpack_require__(3);
+
+var _photonomix2 = __webpack_require__(0);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+var _vectrix$vectors = vectrix.vectors,
+    vec2 = _vectrix$vectors.vec2,
+    times = _vectrix$vectors.times,
+    mut_times = _vectrix$vectors.mut_times,
+    distance = _vectrix$vectors.distance;
+var mut_plus = vectrix.matrices.mut_plus;
+var random = Math.random,
+    sqrt = Math.sqrt,
+    PI = Math.PI,
+    ceil = Math.ceil,
+    min = Math.min;
+
+var POS_C = vec2(0, 0);
+
+function Void() {
+	var ipos = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : vec2();
+	var ivel = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : vec2();
+	var mass = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
+
+	this.pos = vec2(ipos);
+	this.vel = vec2(ivel);
+	this.size = 0;
+	this.birthMass = mass;
+	this.mass = 1;
+	this.lastMeal = -1;
+	this.eatTime = 0;
+	return this;
+}
+
+var scratchVec1 = vec2(),
+    entity = void 0,
+    i = 0 | 0,
+    len = 0 | 0,
+    a_dist = 0.0,
+    consume = 0 | 0;
+Void.prototype.tick = function (entities, delta) {
+	if (this.birthMass > 0) {
+		consume = min(this.birthMass, ceil(this.mass / 100));
+		this.birthMass -= consume;
+		this.mass += consume;
+	}
+	if (this.eatTime > 30) this.eatTime--;else this.lastMeal = -1;
+	if ((0, _photonomix.outOfBounds)(this.pos, 1.3)) {
+		this.mass = this.mass - 1;
+	}
+	this.size = sqrt(this.mass / PI) * _photonomix2.VOID_SIZE;
+	// last turn's move, has to happen first
+	mut_plus(this.pos, times(this.vel, delta, scratchVec1));
+
+	// apply basic forces
+	// don't go off the screen
+	mut_plus(this.vel, (0, _photonomix.avoid)(this.vel, this.pos, POS_C, 1.3, 0.01, scratchVec1));
+	// apply drag
+	mut_plus(this.vel, (0, _photonomix.drag)(this.vel, _photonomix2.GLOBAL_DRAG));
+	(0, _photonomix.limitVecMut)(this.vel, 0, 1);
+
+	for (i = 0, len = entities.length; i < len; ++i) {
+		entity = entities[i];
+		if (entity === this) continue;
+		a_dist = distance(this.pos, entity.pos);
+
+		if (entity instanceof _.Photon && a_dist < this.size) {
+			entity.lifetime = entity.lifetime - 1;
+			if (entity.lifetime === 0 || a_dist < this.size * 0.6) {
+				this.mass = this.mass + 1;
+				this.lastMeal = entity.color;
+				this.eatTime = 15;
+				entity.lifetime = 0;
+			}
+		}
+		if (entity instanceof _.Mote && a_dist < this.size * 0.6) {
+			// probablistic injury, so they don't get shredded instantly
+			if (random() * 30 * a_dist < 1) entity.injured = entity.injured + 1;
+		}
+		if (entity instanceof Void) {
+			if (a_dist < (entity.size + this.size) * 0.44) {
+				// bigger ones eat smaller ones
+				if (this.mass > entity.mass) {
+					consume = min(entity.mass, ceil(this.birthMass + this.mass / 100));
+					this.birthMass += consume;
+					entity.mass -= consume;
+				}
+			}
+		}
+		if (!entity.mass) continue; // zero mass means gravity bugs
+		// apply gravity
+		if (entity instanceof _.Emitter) {
+			// emitters have negative & repelling mass
+			mut_plus(entity.vel, mut_times((0, _photonomix.gravitate)(entity.pos, this.pos, this.mass / entity.mass, scratchVec1), 1 / entity.mass));
+		} else if (!(entity instanceof _.AntiGravitonCluster)) {
+			mut_plus(entity.vel, mut_times((0, _photonomix.gravitate)(entity.pos, this.pos, entity.mass * this.mass, scratchVec1), 1 / entity.mass));
+		}
+	}
+};
+
+/***/ }),
+/* 19 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_controls__ = __webpack_require__(16);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_graphics__ = __webpack_require__(28);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__src_pxene_display__ = __webpack_require__(17);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__src_pxene_events__ = __webpack_require__(18);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__src_pxene_util__ = __webpack_require__(9);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__src_pxene_assets__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__src_pxene_BooleanArray__ = __webpack_require__(29);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__src_pxene_ObjectPool__ = __webpack_require__(31);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__src_pxene_CollisionMap__ = __webpack_require__(30);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_controls__ = __webpack_require__(12);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_graphics__ = __webpack_require__(26);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__src_pxene_display__ = __webpack_require__(13);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__src_pxene_events__ = __webpack_require__(14);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__src_pxene_util__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__src_pxene_assets__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__src_pxene_BooleanArray__ = __webpack_require__(27);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__src_pxene_ObjectPool__ = __webpack_require__(29);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__src_pxene_CollisionMap__ = __webpack_require__(28);
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "display", function() { return __WEBPACK_IMPORTED_MODULE_2__src_pxene_display__; });
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "controls", function() { return __WEBPACK_IMPORTED_MODULE_0__src_controls__; });
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "events", function() { return __WEBPACK_IMPORTED_MODULE_3__src_pxene_events__; });
@@ -4716,243 +4685,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
 
 /***/ }),
-/* 21 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.antigravitons = exports.photons = exports.markers = exports.emitters = exports.voids = exports.motes = undefined;
-exports.Game = Game;
-
-var _photonomixGame = __webpack_require__(14);
-
-var motes = _interopRequireWildcard(_photonomixGame);
-
-var _photonomixGame2 = __webpack_require__(5);
-
-var voids = _interopRequireWildcard(_photonomixGame2);
-
-var _photonomixGame3 = __webpack_require__(13);
-
-var emitters = _interopRequireWildcard(_photonomixGame3);
-
-var _photonomixGame4 = __webpack_require__(42);
-
-var markers = _interopRequireWildcard(_photonomixGame4);
-
-var _photonomixGame5 = __webpack_require__(3);
-
-var photons = _interopRequireWildcard(_photonomixGame5);
-
-var _photonomixGame6 = __webpack_require__(12);
-
-var antigravitons = _interopRequireWildcard(_photonomixGame6);
-
-var _photonomix = __webpack_require__(2);
-
-var _photonomix2 = __webpack_require__(40);
-
-var _vectrix = __webpack_require__(1);
-
-var vectrix = _interopRequireWildcard(_vectrix);
-
-var _photonomix3 = __webpack_require__(0);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-exports.motes = motes;
-exports.voids = voids;
-exports.emitters = emitters;
-exports.markers = markers;
-exports.photons = photons;
-exports.antigravitons = antigravitons;
-var minus = vectrix.matrices.minus;
-var _vectrix$vectors = vectrix.vectors,
-    vec2 = _vectrix$vectors.vec2,
-    mut_copy = _vectrix$vectors.mut_copy;
-var random = Math.random;
-
-var Marker = markers.Marker;
-var Photon = photons.Photon;
-var Mote = motes.Mote;
-var Void = voids.Void;
-var Emitter = emitters.Emitter;
-var AntiGravitonCluster = antigravitons.AntiGravitonCluster;
-
-var marks = new Uint16Array(_photonomix3.MAX_MOTES + _photonomix3.MAX_PHOTONS + 100);
-var markpos = 0;
-var mark = 0;
-
-function Game() {
-	this.entities = [];
-	this.photonBuffer = null;
-	this.stats = {
-		pop: 0,
-		born: 0,
-		died: 0,
-		target: 0
-	};
-	this.actions = {};
-	this.registerActions();
-	this.started = false;
-	return this;
-}
-
-Game.prototype.start = function () {
-	this.motePool = new _photonomix2.BufferPool(motes.BUFFER_LENGTH, _photonomix3.MAX_MOTES);
-	this.photonPool = new _photonomix2.BufferPool(photons.BUFFER_LENGTH, _photonomix3.MAX_PHOTONS);
-	for (var i = 0; i < _photonomix3.START_POP; ++i) {
-		this.entities.push(new Mote.random(this.motePool));
-	}
-	this.started = true;
-};
-
-Game.prototype.tick = function () {
-	var entities = void 0,
-	    entity = void 0,
-	    i = 0 | 0,
-	    len = 0 | 0,
-	    tick_delta = 0.0;
-	return function tick(timing) {
-		var delta = timing.interval / timing.elapsed;
-		var frameCount = timing.frameCount;
-		entities = this.entities;
-		this.stats.target = 0;
-		this.stats.pop = 0;
-		tick_delta = delta / _photonomix3.TARGET_FPS;
-		for (i = 0, len = entities.length; i < len; ++i) {
-			entity = entities[i];
-			entity.tick(this.entities, tick_delta, frameCount);
-			// do mote-specific stuff
-			if (entity instanceof Mote) {
-				this.stats.pop++;
-				if (entity.target) this.stats.target++;
-				if (entity.injured) {
-					if (frameCount % ~~(_photonomix3.TARGET_FPS * 0.1) === 0) {
-						this.entities.push(entity.bleed(this.photonPool));
-					}
-				}
-				// mark dead for removal
-				if (entity.dying === _photonomix3.DEATH_THRESHOLD) {
-					this.killMote(entity);
-					marks[markpos] = i;
-					this.stats.died++;
-					markpos++;
-				} else if (entity.pregnant === _photonomix3.PREGNANT_TIME) {
-					this.entities.push(entity.split());
-					this.stats.born++;
-				}
-			} else if (entity instanceof Photon || entity instanceof Marker) {
-				if (entity.lifetime <= 0) {
-					marks[markpos] = i;
-					markpos++;
-				}
-			} else if (entity.mass <= 0) {
-				marks[markpos] = i;
-				markpos++;
-			}
-			// physics effects sometimes chuck things way out of bounds
-			// just delete them, they ain't comin' back
-			if ((0, _photonomix.outOfBounds)(entity.pos, 20)) {
-				marks[markpos] = i;
-				markpos++;
-			}
-		}
-
-		// sweep dead
-		while (markpos > 0) {
-			markpos--;
-			mark = marks[markpos];
-			entity = entities[mark];
-			if (entity && entity.pool !== undefined) {
-				entity.destroy();
-			}
-			entities.splice(mark, 1);
-			marks[markpos] = 0;
-		}
-
-		// shuffling helps action lock issues and reduces first in list advantage
-		//shuffle(entities);
-	};
-}();
-
-Game.prototype.emitPhoton = function () {
-	var pos = vec2(),
-	    vel = vec2(),
-	    center = vec2(),
-	    p_c = 0,
-	    base_vel = vec2(0.05, 0.05);
-	return function emitPhoton(ipos, ivel, color) {
-		var count = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : p_c;
-		var max = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 12;
-
-		ipos = ipos || [random() * 1.8 - 0.9, random() * 1.8 - 0.9];
-		if (ivel) {
-			mut_copy(vel, ivel);
-		} else {
-			mut_copy(vel, base_vel);
-			(0, _photonomix.rotate)(vel, center, p_c % max / (max / 2), vel);
-		}
-		color = color || ~~(random() * 3);
-		mut_copy(pos, ipos);
-		this.entities.push(new Photon(pos, vel, color, this.photonPool));
-		p_c++;
-		return color;
-	};
-}();
-
-Game.prototype.killMote = function () {
-	var sum = 0 | 0,
-	    c = 0 | 0,
-	    i = 0 | 0,
-	    pos = vec2(),
-	    r = 0 | 0,
-	    g = 0 | 0,
-	    b = 0 | 0;
-	return function killMote(mote) {
-		if (random() < _photonomix3.POSITIVE_ENERGY) {
-			this.entities.push(new Emitter(mote.pos, mote.vel, ~~(_photonomix3.DEATH_THRESHOLD * 10 * random()), this.photonPool));
-		}
-		if (random() < _photonomix3.NEGATIVE_ENERGY) {
-			this.entities.push(new Void(mote.pos, mote.vel, ~~(_photonomix3.DEATH_THRESHOLD * 10 * random())));
-		}
-		mut_copy(pos, mote.pos);
-		r = mote.photons[0];
-		g = mote.photons[1];
-		b = mote.photons[2];
-		sum = r + b + g;
-		c = 0;
-		for (i = 0; i < sum; ++i) {
-			if (r === i) c = 1;
-			if (r + g === i) c = 2;
-			this.emitPhoton(pos, undefined, c, i, sum);
-		}
-	};
-}();
-
-/**
- * Actions are callbacks accepting the following parameters:
- * @param {vec2} center center of the click region for the action (i.e. the UI element)
- * @param {float} dist the distance from region center to mouseUp position
- */
-Game.prototype.registerAction = function (name, callback) {
-	this.actions[name] = callback.bind(this);
-};
-
-var delta = vec2();
-Game.prototype.registerActions = function () {
-	this.registerAction("launchAntiGravitonCluster", function (center) {
-		minus(this.player.mouseUp, center, delta);
-		this.entities.push(new AntiGravitonCluster(center, delta, 148));
-	});
-};
-
-/***/ }),
-/* 22 */
+/* 20 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5022,7 +4755,7 @@ KeyMap.prototype.onceUp = function onceUp() {
 
 
 /***/ }),
-/* 23 */
+/* 21 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5048,13 +4781,13 @@ function KeyState(key) {
 
 
 /***/ }),
-/* 24 */
+/* 22 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (immutable) */ __webpack_exports__["a"] = Atlas;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_assets__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_assets__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__nphyx_vectrix__ = __webpack_require__(1);
 
 /**
  * @module pxene.graphics.Atlas
@@ -5335,7 +5068,7 @@ Atlas.fromAsepriteAtlas = function fromAsepriteAtlas(uri, dataCallback) {
 
 
 /***/ }),
-/* 25 */
+/* 23 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5379,7 +5112,7 @@ BitmapFont.prototype.write = function(text, target, sx, sy, lw, ls = 1) {
 
 
 /***/ }),
-/* 26 */
+/* 24 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5413,12 +5146,12 @@ CompositeSprite.prototype.init = function init(sprites) {
 
 
 /***/ }),
-/* 27 */
+/* 25 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (immutable) */ __webpack_exports__["a"] = Sprite;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_assets__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_assets__ = __webpack_require__(5);
 
 
 /**
@@ -5588,15 +5321,15 @@ Sprite.fromAsepriteAtlas = function fromAsepriteAtlas(uri) {
 
 
 /***/ }),
-/* 28 */
+/* 26 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__Sprite__ = __webpack_require__(27);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__CompositeSprite__ = __webpack_require__(26);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__Atlas__ = __webpack_require__(24);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__BitmapFont__ = __webpack_require__(25);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__Sprite__ = __webpack_require__(25);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__CompositeSprite__ = __webpack_require__(24);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__Atlas__ = __webpack_require__(22);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__BitmapFont__ = __webpack_require__(23);
 /* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "Sprite", function() { return __WEBPACK_IMPORTED_MODULE_0__Sprite__["a"]; });
 /* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "CompositeSprite", function() { return __WEBPACK_IMPORTED_MODULE_1__CompositeSprite__["a"]; });
 /* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "Atlas", function() { return __WEBPACK_IMPORTED_MODULE_2__Atlas__["a"]; });
@@ -5617,7 +5350,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
 
 /***/ }),
-/* 29 */
+/* 27 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5703,7 +5436,7 @@ BooleanArray.prototype.recycle = function() {
 
 
 /***/ }),
-/* 30 */
+/* 28 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5965,7 +5698,7 @@ CollisionMap.MASK_RIGHT = MASK_RIGHT;
 
 
 /***/ }),
-/* 31 */
+/* 29 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6068,7 +5801,7 @@ function ObjectPool(factory) {
 
 
 /***/ }),
-/* 32 */
+/* 30 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6152,7 +5885,7 @@ addHandler("application/json", mimeTypeHandlerJSON);
 
 
 /***/ }),
-/* 33 */
+/* 31 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6269,16 +6002,16 @@ const composite = (function() {
 
 
 /***/ }),
-/* 34 */
+/* 32 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["draw"] = draw;
 /* harmony export (immutable) */ __webpack_exports__["init"] = init;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_display__ = __webpack_require__(17);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__pxene_constants__ = __webpack_require__(8);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__controls__ = __webpack_require__(16);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__pxene_display__ = __webpack_require__(13);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__pxene_constants__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__controls__ = __webpack_require__(12);
 
 
 
@@ -6390,7 +6123,7 @@ function updateProps() {
 
 
 /***/ }),
-/* 35 */
+/* 33 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6418,7 +6151,7 @@ function drawCircle(ctx, x, y, size, fillStyle, lineWidth = 0, strokeStyle = und
 
 
 /***/ }),
-/* 36 */
+/* 34 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6427,8 +6160,8 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["normalize"] = normalize;
 /* harmony export (immutable) */ __webpack_exports__["create"] = create;
 /* harmony export (immutable) */ __webpack_exports__["wrap"] = wrap;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__vectrix_vectors__ = __webpack_require__(11);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__vectrix_matrices__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__vectrix_vectors__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__vectrix_matrices__ = __webpack_require__(8);
 
 /**
 The quaternions module focuses on quaternion operations that are useful for performing 3-dimensional rotations. Quaternions inherit from [[vectrix.vectors#vec4|4d-vectors]], which in turn inherit from [[vectrix.matrices|matrices]], so most of the operations supported by vec4 and generic matrices are supported by quats (TODO: remove the ones that don't make sense for quaternions)
@@ -6760,7 +6493,7 @@ create.fromAxisAngle = (function() {
 
 
 /***/ }),
-/* 37 */
+/* 35 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6899,7 +6632,7 @@ function updateProps() {
 }
 
 /***/ }),
-/* 38 */
+/* 36 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6913,11 +6646,11 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.draw = exports.init = undefined;
 
-var _vectrix = __webpack_require__(4);
+var _vectrix = __webpack_require__(1);
 
 var vectrix = _interopRequireWildcard(_vectrix);
 
-var _sprites = __webpack_require__(19);
+var _sprites = __webpack_require__(16);
 
 var sprites = _interopRequireWildcard(_sprites);
 
@@ -6927,17 +6660,13 @@ var constants = _interopRequireWildcard(_photonomix);
 
 var _photonomix2 = __webpack_require__(2);
 
-var _ = __webpack_require__(6);
+var _ = __webpack_require__(4);
 
-var _photonomixGame = __webpack_require__(3);
+var _game = __webpack_require__(3);
 
-var _photonomixGame2 = __webpack_require__(14);
+var _Photon = __webpack_require__(10);
 
-var _photonomixGame3 = __webpack_require__(5);
-
-var _photonomixGame4 = __webpack_require__(13);
-
-var _photonomixGame5 = __webpack_require__(12);
+var _Mote = __webpack_require__(17);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
@@ -7089,12 +6818,12 @@ var drawMote = function () {
 		}
 		sch = sc * 0.5;
 		swh = sw * 0.5;
-		colorIndex = sprites.colorIndex(entity.color[_photonomixGame.COLOR_R], entity.color[_photonomixGame.COLOR_G], entity.color[_photonomixGame.COLOR_B]);
+		colorIndex = sprites.colorIndex(entity.color[_Photon.COLOR_R], entity.color[_Photon.COLOR_G], entity.color[_Photon.COLOR_B]);
 		sprite = sprites.getMoteSprite(colorIndex);
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px - sch, py - sch, sc, sc);
 		sprite = moteCenterSprite;
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px - sch, py - sch, sc, sc);
-		if (entity.target && entity.action == _photonomixGame2.ACT_ATTACK) {
+		if (entity.target && entity.action == _Mote.ACT_ATTACK) {
 			// need vectors but in screen space, not absolute space
 			plasmaSource[0] = px;
 			plasmaSource[1] = py;
@@ -7156,11 +6885,11 @@ var drawVoid = function () {
 		switch (entity.lastMeal) {
 			case -1:
 				colorIndex = 0x888;break;
-			case _photonomixGame.COLOR_R:
+			case _Photon.COLOR_R:
 				colorIndex = 0xf44;break;
-			case _photonomixGame.COLOR_G:
+			case _Photon.COLOR_G:
 				colorIndex = 0x4f4;break;
-			case _photonomixGame.COLOR_B:
+			case _Photon.COLOR_B:
 				colorIndex = 0x44f;break;
 		}
 		// white patch
@@ -7299,9 +7028,9 @@ var init = exports.init = function init(display) {
 	displayProps.events.on("resize", updateProps);
 	voidSprite = sprites.createVoidSprite(1000, 1);
 	emitterSprite = sprites.createEmitterSprite(displayProps.minDimension, 1);
-	photonSprites[_photonomixGame.COLOR_R] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "red");
-	photonSprites[_photonomixGame.COLOR_G] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "green");
-	photonSprites[_photonomixGame.COLOR_B] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "blue");
+	photonSprites[_Photon.COLOR_R] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "red");
+	photonSprites[_Photon.COLOR_G] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "green");
+	photonSprites[_Photon.COLOR_B] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "blue");
 	sprites.initMoteSpriteSheet(1000, constants.MOTE_BASE_SIZE * 4);
 	mask = sprites.createGameSpaceMask();
 	moteCenterSprite = sprites.createMoteCenterSprite();
@@ -7334,7 +7063,7 @@ var draw = exports.draw = function () {
 			px = (0, _.screenSpace)(entity.pos[0]);
 			py = (0, _.screenSpace)(entity.pos[1]);
 			if ((0, _.offscreen)(px, py)) continue;
-			if (entity instanceof _photonomixGame2.Mote) drawMote(entity);else if (entity instanceof _photonomixGame.Photon) drawPhoton(entity);else if (entity instanceof _photonomixGame3.Void) drawVoid(entity);else if (entity instanceof _photonomixGame4.Emitter) drawEmitter(entity);else if (entity instanceof _photonomixGame5.AntiGravitonCluster) drawAntiGravitonCluster(entity);
+			if (entity instanceof _game.Mote) drawMote(entity);else if (entity instanceof _game.Photon) drawPhoton(entity);else if (entity instanceof _game.Void) drawVoid(entity);else if (entity instanceof _game.Emitter) drawEmitter(entity);else if (entity instanceof _game.AntiGravitonCluster) drawAntiGravitonCluster(entity);
 		}
 		(0, _.updateCompositeOperation)(lightCtx, "destination-out");
 		lightCtx.drawImage(mask.canvas, 0, 0, displayProps.minDimension, displayProps.minDimension);
@@ -7366,7 +7095,7 @@ function updateProps() {
 }
 
 /***/ }),
-/* 39 */
+/* 37 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7378,11 +7107,11 @@ Object.defineProperty(exports, "__esModule", {
 exports.draw = draw;
 exports.init = init;
 
-var _ = __webpack_require__(6);
+var _ = __webpack_require__(4);
 
 var _photonomix = __webpack_require__(0);
 
-var _photonomix2 = __webpack_require__(15);
+var _photonomix2 = __webpack_require__(11);
 
 var controls = _interopRequireWildcard(_photonomix2);
 
@@ -7503,7 +7232,304 @@ function updateProps() {
 }
 
 /***/ }),
+/* 38 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.default = AntiGravitonCluster;
+
+var _vectrix = __webpack_require__(1);
+
+var vectrix = _interopRequireWildcard(_vectrix);
+
+var _photonomix = __webpack_require__(2);
+
+var _ = __webpack_require__(3);
+
+var _photonomix2 = __webpack_require__(0);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+var _vectrix$vectors = vectrix.vectors,
+    vec2 = _vectrix$vectors.vec2,
+    times = _vectrix$vectors.times,
+    distance = _vectrix$vectors.distance,
+    mut_copy = _vectrix$vectors.mut_copy;
+var mut_plus = vectrix.matrices.mut_plus;
+var random = Math.random,
+    sqrt = Math.sqrt,
+    PI = Math.PI,
+    ceil = Math.ceil,
+    min = Math.min,
+    max = Math.max;
+
+var POS_C = vec2(0, 0);
+
+function AntiGravitonCluster() {
+	var ipos = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : vec2();
+	var ivel = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : vec2();
+	var mass = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
+	var photonPool = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
+
+	this.pos = vec2(ipos);
+	this.vel = vec2(ivel);
+	this.size = 0;
+	this.birthMass = this.initialMass = mass;
+	this.mass = 1;
+	this.photonPool = photonPool;
+	this.instability = 0;
+	this.size = 0;
+	return this;
+}
+
+var scratch = vec2(),
+    entity = void 0,
+    i = 0 | 0,
+    len = 0 | 0,
+    dist = 0.0,
+    consume = 0 | 0;
+AntiGravitonCluster.prototype.tick = function (entities, delta, frameCount) {
+	if (this.birthMass > 0) {
+		consume = min(this.birthMass, ceil(this.mass / 10));
+		this.birthMass -= consume;
+		this.mass += consume;
+	}
+	this.size = sqrt(this.mass * 0.05 / PI) * _photonomix2.MOTE_BASE_SIZE;
+	// last turn's move, has to happen first
+	mut_plus(this.pos, times(this.vel, delta, scratch));
+	this.initialMass = max(this.mass, this.initialMass);
+
+	// apply basic forces
+	// don't go off the screen
+	mut_plus(this.vel, (0, _photonomix.avoid)(this.vel, this.pos, POS_C, 1.3, 0.01, scratch));
+	// apply drag
+	mut_plus(this.vel, (0, _photonomix.drag)(this.vel, _photonomix2.GLOBAL_DRAG));
+
+	if (this.birthMass === 0) {
+		this.instability += this.mass * 0.003;
+	}
+	if (frameCount % ceil(_photonomix2.TARGET_FPS * 0.05) === 0) {
+		while (this.instability > 0 && this.mass > 0) {
+			entities.push(this.emitPhoton());
+			this.mass -= min(this.mass, 7);
+			this.instability -= 0.9;
+		}
+	}
+
+	for (i = 0, len = entities.length; i < len; ++i) {
+		entity = entities[i];
+		if (entity === this) continue;
+		dist = distance(this.pos, entity.pos);
+
+		if (entity instanceof _.Void) {
+			if (dist < (entity.size + this.size) * 0.5) {
+				consume = min(entity.mass, ceil((entity.mass + entity.birthMass) / 10));
+				this.mass += consume;
+				entity.mass -= consume;
+				this.instability += consume * 0.07;
+			}
+			if (dist < this.size * 10) mut_plus(this.vel, (0, _photonomix.accelerate)(this.pos, entity.pos, this.size * dist * 5, scratch));
+			return;
+		}
+	}
+};
+
+AntiGravitonCluster.prototype.emitPhoton = function () {
+	var pos = vec2(),
+	    vel = vec2(),
+	    rot = vec2(),
+	    radians = 0.0,
+	    mim = 0.0,
+	    color = 0 | 0;
+	return function emitPhoton() {
+		color = ~~(random() * 3);
+		pos[0] = this.size * 0.1;
+		pos[1] = this.size * 0.1;
+		mut_plus(pos, this.pos);
+		mut_copy(vel, this.vel);
+		mim = this.mass % this.initialMass;
+		radians = mim / (this.initialMass / 2);
+		radians = radians + mim % 100 * (2 / 100); // split across arms
+		mut_copy(rot, (0, _photonomix.rotate)(pos, this.pos, radians, pos));
+		mut_plus(rot, this.pos);
+		mut_plus(pos, rot);
+		// introduce some jitter
+		mut_plus(vel, (0, _photonomix.accelerate)(this.pos, pos, this.size * 2, scratch));
+		return new _.Photon(pos, vel, color, this.photonPool);
+	};
+}();
+
+/***/ }),
+/* 39 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.default = Emitter;
+
+var _vectrix = __webpack_require__(1);
+
+var vectrix = _interopRequireWildcard(_vectrix);
+
+var _photonomix = __webpack_require__(0);
+
+var _photonomix2 = __webpack_require__(2);
+
+var _ = __webpack_require__(3);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+var _vectrix$vectors = vectrix.vectors,
+    vec2 = _vectrix$vectors.vec2,
+    times = _vectrix$vectors.times,
+    mut_times = _vectrix$vectors.mut_times,
+    distance = _vectrix$vectors.distance;
+var mut_plus = vectrix.matrices.mut_plus;
+var random = Math.random,
+    sqrt = Math.sqrt,
+    ceil = Math.ceil,
+    min = Math.min,
+    PI = Math.PI;
+
+var POS_C = vec2(0, 0);
+
+/**
+ * Emitters are "white holes" that spit out photons on a fixed schedule until depleted.
+ */
+function Emitter() {
+	var ipos = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : vec2();
+	var ivel = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : vec2();
+	var mass = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
+	var photonPool = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
+	var arms = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
+
+	this.pos = vec2(ipos);
+	this.vel = vec2(ivel);
+	this.birthMass = mass;
+	this.mass = 1;
+	this.initialMass = mass;
+	this.photonPool = photonPool;
+	this.arms = arms || ceil(random() * random() * 50);
+	this.size = 0;
+	this.next = ~~(random() * 3);
+	return this;
+}
+
+var scratchVec1 = vec2(),
+    emissionsPerSecond = 0 | 0,
+    emissionsPerFrame = 0 | 0,
+    targetFrame = 0 | 0,
+    i = 0 | 0,
+    len = 0 | 0,
+    entity = void 0,
+    a_dist = 0.0,
+    consume = 0 | 0;
+Emitter.prototype.tick = function (entities, delta, frameCount) {
+	/* jshint unused:false */
+	if (this.birthMass > 0) {
+		consume = min(this.birthMass, ceil(this.mass / 100));
+		this.birthMass -= consume;
+		this.mass += consume;
+	}
+	this.size = sqrt(this.mass / PI) * _photonomix.EMITTER_SIZE;
+	if (this.birthMass === 0) {
+		// don't start producing until finished spawning
+		emissionsPerSecond = this.initialMass / 20;
+		targetFrame = ceil(_photonomix.TARGET_FPS / emissionsPerSecond);
+		emissionsPerFrame = emissionsPerSecond / _photonomix.TARGET_FPS;
+		if (frameCount % targetFrame === 0) {
+			while (emissionsPerFrame-- > 0 && this.mass > 0) {
+				this.mass--;
+				entities.push(this.emitPhoton());
+			}
+		}
+	}
+	// last turn's move, has to happen first
+	mut_plus(this.pos, times(this.vel, delta, scratchVec1));
+	// apply drag
+	mut_plus(this.vel, (0, _photonomix2.drag)(this.vel, _photonomix.GLOBAL_DRAG));
+	// avoid edge
+	mut_plus(this.vel, (0, _photonomix2.avoid)(this.vel, this.pos, POS_C, 1.3, 0.001, scratchVec1));
+
+	for (i = 0, len = entities.length; i < len; ++i) {
+		entity = entities[i];
+		if (entity === this) continue;
+		a_dist = distance(this.pos, entity.pos);
+		if (entity instanceof Emitter) {
+			mut_plus(entity.vel, mut_times((0, _photonomix2.gravitate)(entity.pos, this.pos, this.mass * entity.mass, scratchVec1), 1 / entity.mass));
+		} else {
+			mut_plus(entity.vel, mut_times((0, _photonomix2.gravitate)(entity.pos, this.pos, -this.mass * entity.mass, scratchVec1), 1 / entity.mass));
+		}
+	}
+};
+
+Emitter.prototype.emitPhoton = function () {
+	var pos = vec2(),
+	    radians = 0.0,
+	    mim = 0.0,
+	    color = 0 | 0;
+	return function emitPhoton() {
+		color = this.next;
+		pos[0] = this.size / 5;
+		pos[1] = this.size / 5;
+		mut_plus(pos, this.pos);
+		mim = this.mass % this.initialMass;
+		radians = mim / (this.initialMass / 2);
+		radians = radians + mim % this.arms * (2 / this.arms); // split across arms
+		mut_plus((0, _photonomix2.rotate)(pos, this.pos, radians, pos), this.pos);
+		this.next = ~~(random() * 3);
+		// introduce some jitter
+		return new _.Photon(pos, vec2(0, 0), color, this.photonPool);
+	};
+}();
+
+/***/ }),
 /* 40 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.MARKER_HIT = undefined;
+exports.default = Marker;
+
+var _photonomix = __webpack_require__(0);
+
+var _vectrix = __webpack_require__(1);
+
+var vectrix = _interopRequireWildcard(_vectrix);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+var MARKER_HIT = exports.MARKER_HIT = 0;
+
+function Marker(type, pos) {
+	var lifetime = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : _photonomix.TARGET_FPS;
+
+	this.type = type;
+	this.pos = vectrix.vectors.vec2(pos);
+	this.start = lifetime;
+	this.lifetime = lifetime;
+}
+
+Marker.prototype.tick = function () {
+	this.lifetime--;
+};
+
+/***/ }),
+/* 41 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7574,7 +7600,7 @@ BufferPool.prototype.free = function (offset) {
 };
 
 /***/ }),
-/* 41 */
+/* 42 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7606,41 +7632,6 @@ Events.prototype.fire = function () {
 }();
 
 /***/ }),
-/* 42 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.MARKER_HIT = undefined;
-exports.Marker = Marker;
-
-var _photonomix = __webpack_require__(0);
-
-var _vectrix = __webpack_require__(1);
-
-var vectrix = _interopRequireWildcard(_vectrix);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-var MARKER_HIT = exports.MARKER_HIT = 0;
-function Marker(type, pos) {
-	var lifetime = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : _photonomix.TARGET_FPS;
-
-	this.type = type;
-	this.pos = vectrix.vectors.vec2(pos);
-	this.start = lifetime;
-	this.lifetime = lifetime;
-}
-
-Marker.prototype.tick = function () {
-	this.lifetime--;
-};
-
-/***/ }),
 /* 43 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -7652,27 +7643,27 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.startGame = startGame;
 
-var _pxene = __webpack_require__(20);
+var _pxene = __webpack_require__(19);
 
-var _draw = __webpack_require__(6);
+var _draw = __webpack_require__(4);
 
 var draw = _interopRequireWildcard(_draw);
+
+var _game = __webpack_require__(3);
+
+var game = _interopRequireWildcard(_game);
 
 var _photonomix = __webpack_require__(0);
 
 var constants = _interopRequireWildcard(_photonomix);
 
-var _photonomix2 = __webpack_require__(21);
+var _photonomix2 = __webpack_require__(2);
 
-var game = _interopRequireWildcard(_photonomix2);
+var util = _interopRequireWildcard(_photonomix2);
 
-var _photonomix3 = __webpack_require__(2);
+var _photonomix3 = __webpack_require__(11);
 
-var util = _interopRequireWildcard(_photonomix3);
-
-var _photonomix4 = __webpack_require__(15);
-
-var controls = _interopRequireWildcard(_photonomix4);
+var controls = _interopRequireWildcard(_photonomix3);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
