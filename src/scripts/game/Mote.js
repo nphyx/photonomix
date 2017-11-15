@@ -1,13 +1,13 @@
 "use strict";
 let {random, max, min, floor, ceil, sin} = Math;
 import {TARGET_FPS, MOTE_BASE_SPEED, MOTE_BASE_SIZE, MOTE_BASE_SIGHT, PREGNANT_THRESHOLD, 
-				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG} from "./photonomix.constants";
-import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
-import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, outOfBounds, rotate} from "./photonomix.util";
+				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG} from "../photonomix.constants";
+import * as vectrix from "@nphyx/vectrix";
+import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, outOfBounds, rotate} from "../photonomix.util";
 const {vec2, times, mut_clamp, magnitude, distance, mut_copy, mut_times} = vectrix.vectors;
 const {plus, mut_plus} = vectrix.matrices;
-import {Photon, COLOR_R, COLOR_G, COLOR_B} from "./photonomix.game.photons";
-import {Void} from "./photonomix.game.voids";
+import Photon, {COLOR_R, COLOR_G, COLOR_B} from "./Photon";
+import Void from "./Void";
 const clamp = mut_clamp;
 // Center of the playfield is at 0,0 (ranging from -1 to 1 on X and Y axis)
 const POS_C  = vec2(0.0, 0.0);
@@ -116,7 +116,7 @@ const scratch1 = vec2(), scratch2 = vec2();
  * @property {Float32Array} floatVals direct access to float value array (for debug)
  * @return {Mote}
  */
-export function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), pool = undefined, bSpeed = MOTE_BASE_SPEED, bSight = MOTE_BASE_SIGHT, bAgro = 1.0, bFear = 1.0) {
+export default function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), pool = undefined, bSpeed = MOTE_BASE_SPEED, bSight = MOTE_BASE_SIGHT, bAgro = 1.0, bFear = 1.0) {
 	let buffer, offset = 0|0;
 	if(pool) {
 		buffer = pool.buffer;

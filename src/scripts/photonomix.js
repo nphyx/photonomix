@@ -1,8 +1,8 @@
 "use strict";
 import {display} from "@nphyx/pxene";
 import * as draw from "./draw";
+import * as game from "./game";
 import * as constants from "./photonomix.constants";
-import * as game from "./photonomix.game";
 import * as util from "./photonomix.util";
 import * as controls from "./photonomix.controls";
 

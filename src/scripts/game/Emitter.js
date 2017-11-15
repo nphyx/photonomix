@@ -1,8 +1,8 @@
 "use strict";
-import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
-import {TARGET_FPS, GLOBAL_DRAG, EMITTER_SIZE} from "./photonomix.constants";
-import {rotate, drag, gravitate, avoid} from "./photonomix.util";
-import {Photon} from "./photonomix.game.photons";
+import * as vectrix from  "@nphyx/vectrix";
+import {TARGET_FPS, GLOBAL_DRAG, EMITTER_SIZE} from "../photonomix.constants";
+import {rotate, drag, gravitate, avoid} from "../photonomix.util";
+import {Photon} from "./";
 let {vec2, times, mut_times, distance} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
 let {random, sqrt, ceil, min, PI} = Math;
@@ -11,7 +11,7 @@ const POS_C = vec2(0,0);
 /**
  * Emitters are "white holes" that spit out photons on a fixed schedule until depleted.
  */
-export function Emitter(ipos = vec2(), ivel = vec2(), mass = 1, photonPool = undefined, arms = undefined) {
+export default function Emitter(ipos = vec2(), ivel = vec2(), mass = 1, photonPool = undefined, arms = undefined) {
 	this.pos = vec2(ipos);
 	this.vel = vec2(ivel);
 	this.birthMass = mass;

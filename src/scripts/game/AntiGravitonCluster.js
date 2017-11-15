@@ -1,15 +1,14 @@
 "use strict";
-import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
-import {rotate, drag, avoid, accelerate} from  "./photonomix.util";
-import {Void} from "./photonomix.game.voids";
-import {Photon} from "./photonomix.game.photons";
+import * as vectrix from  "@nphyx/vectrix";
+import {rotate, drag, avoid, accelerate} from  "../photonomix.util";
+import {Void, Photon} from "./";
 const {vec2, times, distance, mut_copy} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
-import {TARGET_FPS, MOTE_BASE_SIZE, GLOBAL_DRAG} from "./photonomix.constants";
+import {TARGET_FPS, MOTE_BASE_SIZE, GLOBAL_DRAG} from "../photonomix.constants";
 const {random, sqrt, PI, ceil, min, max} = Math;
 const POS_C = vec2(0,0);
 
-export function AntiGravitonCluster(ipos = vec2(), ivel = vec2(), mass = 1, photonPool = undefined) {
+export default function AntiGravitonCluster(ipos = vec2(), ivel = vec2(), mass = 1, photonPool = undefined) {
 	this.pos = vec2(ipos);
 	this.vel = vec2(ivel);
 	this.size = 0;

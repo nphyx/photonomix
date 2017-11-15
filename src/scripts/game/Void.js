@@ -1,17 +1,14 @@
 "use strict";
-import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
-import {gravitate, drag, outOfBounds, limitVecMut, avoid} from  "./photonomix.util";
-import {Mote} from "./photonomix.game.motes";
-import {Photon} from "./photonomix.game.photons";
-import {Emitter} from "./photonomix.game.emitters";
-import {AntiGravitonCluster} from "./photonomix.game.antigravitons";
+import * as vectrix from  "@nphyx/vectrix";
+import {gravitate, drag, outOfBounds, limitVecMut, avoid} from  "../photonomix.util";
+import {Mote, Photon, Emitter, AntiGravitonCluster} from "./";
 const {vec2, times, mut_times, distance} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
-import {VOID_SIZE, GLOBAL_DRAG} from "./photonomix.constants";
+import {VOID_SIZE, GLOBAL_DRAG} from "../photonomix.constants";
 const {random, sqrt, PI, ceil, min} = Math;
 const POS_C = vec2(0,0);
 
-export function Void(ipos = vec2(), ivel = vec2(), mass = 1) {
+export default function Void(ipos = vec2(), ivel = vec2(), mass = 1) {
 	this.pos = vec2(ipos);
 	this.vel = vec2(ivel);
 	this.size = 0;

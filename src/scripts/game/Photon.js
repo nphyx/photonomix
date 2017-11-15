@@ -1,7 +1,7 @@
 "use strict";
-import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
-import {drag} from "./photonomix.util";
-import {TARGET_FPS, GLOBAL_DRAG, PHOTON_LIFETIME, PHOTON_BASE_SIZE} from "./photonomix.constants";
+import * as vectrix from "@nphyx/vectrix";
+import {drag} from "../photonomix.util";
+import {TARGET_FPS, GLOBAL_DRAG, PHOTON_LIFETIME, PHOTON_BASE_SIZE} from "../photonomix.constants";
 let {vec2, times} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
 const {random} = Math;
@@ -18,7 +18,7 @@ const U8_LENGTH = O_MASS + I8;
 export const BUFFER_LENGTH = (FLOAT_LENGTH + U8_LENGTH) + (F32 - (FLOAT_LENGTH + U8_LENGTH)%F32);
 
 export const COLOR_R = 0, COLOR_G = 1, COLOR_B = 2;
-export function Photon(ipos, ivel, color, pool = undefined) {
+export default function Photon(ipos, ivel, color, pool = undefined) {
 	let buffer;
 	this.pool = pool;
 	if(pool) {

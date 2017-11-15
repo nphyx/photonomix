@@ -1,28 +1,21 @@
 "use strict";
-import * as motes from "./photonomix.game.motes";
-import * as voids from "./photonomix.game.voids";
-import * as emitters from "./photonomix.game.emitters";
-import * as markers from "./photonomix.game.markers";
-import * as photons from "./photonomix.game.photons";
-import * as antigravitons from "./photonomix.game.antigravitons";
-export {motes, voids, emitters, markers, photons, antigravitons};
+import Mote, {BUFFER_LENGTH as MOTE_BUFFER_LENGTH} from "./Mote";
+import Void from "./Void";
+import Emitter from "./Emitter";
+import Marker from "./Marker";
+import Photon, {BUFFER_LENGTH as PHOTON_BUFFER_LENGTH} from "./Photon";
+import AntiGravitonCluster from "./AntiGravitonCluster";
+export {Mote, Void, Emitter, Marker, Photon, AntiGravitonCluster};
 
-import {rotate, outOfBounds} from "./photonomix.util";
-import {BufferPool} from "./photonomix.bufferPools";
-import * as vectrix from  "../../node_modules/@nphyx/vectrix/src/vectrix";
+import {rotate, outOfBounds} from "../photonomix.util";
+import {BufferPool} from "../photonomix.bufferPools";
+import * as vectrix from  "@nphyx/vectrix";
+import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS, PREGNANT_TIME, DEATH_THRESHOLD,
+	POSITIVE_ENERGY, NEGATIVE_ENERGY} from "../photonomix.constants";
 const {minus} = vectrix.matrices;
 const {vec2, mut_copy} = vectrix.vectors;
-import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS, PREGNANT_TIME, DEATH_THRESHOLD,
-	POSITIVE_ENERGY, NEGATIVE_ENERGY} from "./photonomix.constants";
-let {random} = Math;
-const Marker = markers.Marker;
-const Photon = photons.Photon;
-const Mote = motes.Mote;
-const Void = voids.Void;
-const Emitter = emitters.Emitter;
-const AntiGravitonCluster = antigravitons.AntiGravitonCluster;
-
 const marks = new Uint16Array(MAX_MOTES+MAX_PHOTONS+100);
+let {random} = Math;
 let markpos = 0;
 let mark = 0;
 
@@ -42,8 +35,8 @@ export function Game() {
 }
 
 Game.prototype.start = function() {
-	this.motePool = new BufferPool(motes.BUFFER_LENGTH, MAX_MOTES);
-	this.photonPool = new BufferPool(photons.BUFFER_LENGTH, MAX_PHOTONS);
+	this.motePool = new BufferPool(MOTE_BUFFER_LENGTH, MAX_MOTES);
+	this.photonPool = new BufferPool(PHOTON_BUFFER_LENGTH, MAX_PHOTONS);
 	for(let i = 0; i < START_POP; ++i) {
 		this.entities.push(new Mote.random(this.motePool))
 	}
@@ -145,8 +138,7 @@ Game.prototype.killMote = (function() {
 			this.entities.push(new Emitter(mote.pos, mote.vel, ~~(DEATH_THRESHOLD*10*random()), this.photonPool));
 		}
 		if(random() < NEGATIVE_ENERGY) {
-			this.entities.push(new Void(mote.pos, mote.vel, ~~(DEATH_THRESHOLD*10*random())));
-		}
+			this.entities.push(new Void(mote.pos, mote.vel, ~~(DEATH_THRESHOLD*10*random()))); }
 		mut_copy(pos, mote.pos);
 		r = mote.photons[0];
 		g = mote.photons[1];

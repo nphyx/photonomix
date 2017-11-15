@@ -9,11 +9,9 @@ import {rotate} from "../photonomix.util";
 import {offscreen, screenSpace, updateCompositeOperation} from "./";
 const {vec2, lerp} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
-import {Photon, COLOR_R, COLOR_G, COLOR_B} from "../photonomix.game.photons";
-import {Mote, ACT_ATTACK} from "../photonomix.game.motes";
-import {Void} from "../photonomix.game.voids";
-import {Emitter} from "../photonomix.game.emitters";
-import {AntiGravitonCluster} from "../photonomix.game.antigravitons";
+import {Photon, Mote, Void, Emitter, AntiGravitonCluster} from "../game";
+import {COLOR_R, COLOR_G, COLOR_B} from "../game/Photon";
+import {ACT_ATTACK} from "../game/Mote";
 
 let {min, cos, sin, sqrt, tan, round, PI} = Math;
 const tf = constants.TARGET_FPS;
