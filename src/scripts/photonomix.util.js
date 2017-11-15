@@ -1,5 +1,5 @@
 "use strict";
-import * as vectrix from "../../node_modules/@nphyx/vectrix/src/vectrix";
+import * as vectrix from "@nphyx/vectrix";
 import {VALIDATE_VECTORS, GRAVITY} from "./photonomix.constants";
 const {vec2, magnitude, mut_normalize, distance, mut_times, mut_copy, mut_clamp} = vectrix.vectors;
 const {minus} = vectrix.matrices;

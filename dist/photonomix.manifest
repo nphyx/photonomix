@@ -1,0 +1,20 @@
+CACHE MANIFEST
+
+
+CACHE:
+./index.html
+./scripts/photonomix.js
+./scripts/photonomix.js.map
+./styles/photonomix.css
+
+
+NETWORK:
+http://*
+https://*
+*
+
+
+SETTINGS:
+prefer-online
+
+# hash: c3d5b4916d4a247a3a278d8e92edcae9eb2b05435412b812885230f6c4183f22

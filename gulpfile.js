@@ -6,13 +6,8 @@ var sass = require("gulp-sass");
 var webpack = require("webpack");
 var del = require("del");
 var path = require("path");
+var appcache = require("gulp-appcache");
 var {exec, spawn} = require("child_process");
-/*
-var babelRegister = require("babel-core/register");
-var exec = require("child_process").exec;
-var mocha = require("gulp-mocha");
-var istanbul = require("gulp-babel-istanbul");
-*/
 
 const webpackConfig = {
 	entry:path.resolve(__dirname, "target/scripts/photonomix.js"),
@@ -26,6 +21,20 @@ const webpackConfig = {
 		new webpack.optimize.UglifyJsPlugin()
   ]
 }
+gulp.task("manifest", ["webpack"], function() {
+	var config = {
+		relativePath:"./",
+		hash:true,
+		preferOnline:true,
+		network:["http://*", "https://*", "*"],
+		filename:"photonomix.manifest",
+		exclude:"photonomix.manifest"
+	}
+	return gulp.src(["dist/**/*"])
+		.pipe(appcache(config))
+		.pipe(gulp.dest("dist"));
+});
+
 
 gulp.task("clean:scripts", function() {
 	return del(["target/scripts/*", "dist/scripts/*"]);
@@ -82,4 +91,4 @@ gulp.task("local-server", function(cb) {
 	cb();
 });
 
-gulp.task("default", ["webpack"]);
+gulp.task("default", ["manifest"]);
