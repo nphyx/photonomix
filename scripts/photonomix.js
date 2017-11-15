@@ -6517,6 +6517,10 @@ var bgBuffer = void 0,
     tau = Math.PI * 2,
     parts = [],
     displayProps = void 0;
+var colors1 = ["rgba(255,64,64,1.0)", "rgba(64,255,64,1.0)", "rgba(64,64,255,1.0)"];
+(0, _photonomixUtil.shuffle)(colors1);
+var colors2 = ["rgba(255,64,64,0.8)", "rgba(64,255,64,0.8)", "rgba(64,64,255,0.8)"];
+(0, _photonomixUtil.shuffle)(colors2);
 
 function rand(min, max) {
 	return Math.random() * (max - min) + min;
@@ -6561,26 +6565,21 @@ function generateBackground() {
 	bgCtx.fillStyle = "black";
 	bgCtx.fillRect(0, 0, w, h);
 	var g = bgCtx.createLinearGradient(0, 0, w, h);
-	var colors = ["rgba(255,64,64,1.0)", "rgba(64,255,64,1.0)", "rgba(64,64,255,1.0)"];
-	(0, _photonomixUtil.shuffle)(colors);
-	g.addColorStop(0.0, colors[0]);
-	g.addColorStop(0.5, colors[1]);
-	g.addColorStop(1.0, colors[2]);
+	g.addColorStop(0.0, colors1[0]);
+	g.addColorStop(0.5, colors1[1]);
+	g.addColorStop(1.0, colors1[2]);
 	bgCtx.fillStyle = g;
 	bgCtx.fillRect(0, 0, w, h);
 	g = bgCtx.createLinearGradient(0, h, w, 0);
-	colors = ["rgba(255,64,64,0.8)", "rgba(64,255,64,0.8)", "rgba(64,64,255,0.8)"];
-	(0, _photonomixUtil.shuffle)(colors);
-	g.addColorStop(0.0, colors[0]);
-	g.addColorStop(0.5, colors[1]);
-	g.addColorStop(1.0, colors[2]);
+	g.addColorStop(0.0, colors2[0]);
+	g.addColorStop(0.5, colors2[1]);
+	g.addColorStop(1.0, colors2[2]);
 	bgCtx.fillStyle = g;
 	bgCtx.fillRect(0, 0, w, h);
 
 	g = bgCtx.createRadialGradient(w / 2, h / 2, maxd / 2, w / 2, h / 2, 0);
 	var rad = (maxd - mind) / maxd;
-	console.log(rad);
-	g.addColorStop(1, "rgba(64,64,64,0.6)");
+	g.addColorStop(1, "rgba(32,32,32,0.5)");
 	g.addColorStop(rad + 0.06, "rgba(0,0,0,0.8)");
 	g.addColorStop(rad + 0.05, "rgba(128,128,128,1.0)");
 	g.addColorStop(rad + 0.04, "rgba(255,255,255,0.6)");
