@@ -4,6 +4,20 @@
 "use strict";
 import {shuffle} from "../photonomix.util.js";
 let bgBuffer, bokehBuffer, bgCtx, bokehCtx, tau = Math.PI * 2, parts = [], displayProps;
+let colors1 = [
+	"rgba(255,64,64,1.0)",
+	"rgba(64,255,64,1.0)",
+	"rgba(64,64,255,1.0)"
+];
+shuffle(colors1);
+let colors2 = [
+	"rgba(255,64,64,0.8)",
+	"rgba(64,255,64,0.8)",
+	"rgba(64,64,255,0.8)"
+];
+shuffle(colors2);
+
+
 
 function rand( min, max ) {
 	return Math.random() * (max - min) + min;
@@ -49,48 +63,27 @@ export function generateBackground() {
 	bgCtx.fillStyle = "black";
 	bgCtx.fillRect(0, 0, w, h);
 	let g = bgCtx.createLinearGradient(0, 0, w, h);
-	let colors = [
-		"rgba(255,64,64,1.0)",
-		"rgba(64,255,64,1.0)",
-		"rgba(64,64,255,1.0)"
-	];
-	shuffle(colors);
-	g.addColorStop(0.0, colors[0]);
-	g.addColorStop(0.5, colors[1]);
-	g.addColorStop(1.0, colors[2]);
+	g.addColorStop(0.0, colors1[0]);
+	g.addColorStop(0.5, colors1[1]);
+	g.addColorStop(1.0, colors1[2]);
 	bgCtx.fillStyle = g;
 	bgCtx.fillRect(0, 0, w, h);
 	g = bgCtx.createLinearGradient(0, h, w, 0);
-	colors = [
-		"rgba(255,64,64,0.8)",
-		"rgba(64,255,64,0.8)",
-		"rgba(64,64,255,0.8)"
-	];
-	shuffle(colors);
-	g.addColorStop(0.0, colors[0]);
-	g.addColorStop(0.5, colors[1]);
-	g.addColorStop(1.0, colors[2]);
+	g.addColorStop(0.0, colors2[0]);
+	g.addColorStop(0.5, colors2[1]);
+	g.addColorStop(1.0, colors2[2]);
 	bgCtx.fillStyle = g;
 	bgCtx.fillRect(0, 0, w, h);
 
 	g = bgCtx.createRadialGradient(w/2, h/2, maxd/2, w/2, h/2, 0);
 	let rad = ((maxd - mind) / maxd);
-	console.log(rad);
-	g.addColorStop(1, "rgba(64,64,64,0.6)");
+	g.addColorStop(1, "rgba(32,32,32,0.5)");
 	g.addColorStop(rad + 0.06, "rgba(0,0,0,0.8)");
 	g.addColorStop(rad + 0.05, "rgba(128,128,128,1.0)");
 	g.addColorStop(rad + 0.04, "rgba(255,255,255,0.6)");
 	g.addColorStop(rad + 0.03, "rgba(255,255,255,0.8)");
 	g.addColorStop(rad + 0.025, "rgba(255,255,255,0.8)");
 	g.addColorStop(rad + 0.005, "rgba(255,255,255,0.5)");
-	/*
-	g.addColorStop(rad + 0.07, "rgba(0,0,0,0.8)");
-	g.addColorStop(rad + 0.085, "rgba(128,128,128,1.0)");
-	g.addColorStop(rad + 0.10, "rgba(255,255,255,0.6)");
-	g.addColorStop(rad + 0.11, "rgba(255,255,255,0.8)");
-	g.addColorStop(rad + 0.13, "rgba(255,255,255,0.8)");
-	g.addColorStop(rad + 0.16, "rgba(255,255,255,0.5)");
-	*/
 	g.addColorStop(0, "rgba(255,255,255,0.01)");
 	bgCtx.fillStyle = g;
 	bgCtx.globalCompositeOperation = "luminosity";
