@@ -2,18 +2,19 @@
  * Derived from bokeh generator by Jack Rugile at [CodePen](http://codepen.io/jackrugile/pen/gaFub)
  */
 "use strict";
-import {shuffle} from "../photonomix.util.js";
+import {shuffle, clamp} from "../photonomix.util.js";
+import {canvasRGBA as stackBlur} from "stackblur-canvas";
 let bgBuffer, bokehBuffer, bgCtx, bokehCtx, tau = Math.PI * 2, parts = [], displayProps;
 let colors1 = [
 	"rgba(255,64,64,1.0)",
 	"rgba(64,255,64,1.0)",
-	"rgba(64,64,255,1.0)"
+	"rgba(64,64,225,1.0)"
 ];
 shuffle(colors1);
 let colors2 = [
 	"rgba(255,64,64,0.8)",
 	"rgba(64,255,64,0.8)",
-	"rgba(64,64,255,0.8)"
+	"rgba(64,64,225,0.8)"
 ];
 shuffle(colors2);
 
@@ -60,6 +61,7 @@ export function generateBackground() {
 	let h = bokehBuffer.height;
 	let mind = Math.min(w, h);
 	let maxd = Math.max(w, h);
+	let noise = 6;
 	bgCtx.fillStyle = "black";
 	bgCtx.fillRect(0, 0, w, h);
 	let g = bgCtx.createLinearGradient(0, 0, w, h);
@@ -68,12 +70,14 @@ export function generateBackground() {
 	g.addColorStop(1.0, colors1[2]);
 	bgCtx.fillStyle = g;
 	bgCtx.fillRect(0, 0, w, h);
+
 	g = bgCtx.createLinearGradient(0, h, w, 0);
 	g.addColorStop(0.0, colors2[0]);
 	g.addColorStop(0.5, colors2[1]);
 	g.addColorStop(1.0, colors2[2]);
 	bgCtx.fillStyle = g;
 	bgCtx.fillRect(0, 0, w, h);
+	noisify(bgCtx, 0, 0, w, h, noise);
 
 	g = bgCtx.createRadialGradient(w/2, h/2, maxd/2, w/2, h/2, 0);
 	let rad = ((maxd - mind) / maxd);
@@ -89,6 +93,24 @@ export function generateBackground() {
 	bgCtx.globalCompositeOperation = "luminosity";
 	bgCtx.fillRect(0, 0, w, h);
 	bgCtx.globalCompositeOperation = "source-in";
+	noisify(bgCtx, 0, 0, w, h, noise);
+	stackBlur(bgCtx.canvas, 0, 0, w, h, 4);
+}
+
+
+function noisify(ctx, sx, sy, sw, sh, strength = 1) {
+	let data = ctx.getImageData(sx, sy, sw, sh);
+	let pixels = data.data;
+	let tweak;
+	for(let i = 0, len = pixels.length; i < len; i += 4) {
+		tweak = ~~((Math.random() * strength * 2) - strength);
+		pixels[i] = clamp(pixels[i] + tweak, 0, 255); 
+		tweak = ~~((Math.random() * strength * 2) - strength);
+		pixels[i+1] = clamp(pixels[i+1] + tweak, 0, 255); 
+		tweak = ~~((Math.random() * strength * 2) - strength);
+		pixels[i+2] = clamp(pixels[i+2] + tweak, 0, 255); 
+	}
+	bgCtx.putImageData(data, sx, sy);
 }
 
 export function draw() {

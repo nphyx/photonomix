@@ -3,7 +3,7 @@ import * as vectrix from "@nphyx/vectrix";
 import {VALIDATE_VECTORS, GRAVITY} from "./photonomix.constants";
 const {vec2, magnitude, mut_normalize, distance, mut_times, mut_copy, mut_clamp} = vectrix.vectors;
 const {minus} = vectrix.matrices;
-const {sqrt, abs, E, pow, cos, sin, random, PI} = Math;
+const {sqrt, abs, E, pow, cos, sin, random, PI, max, min} = Math;
 const X = 0, Y = 1;
 const MIN_F = 1e-11;
 const MAX_F = 1e+11;
@@ -277,11 +277,10 @@ export const rotate = (function() {
 export function posneg() {
 	return random() > 0.5?1:-1;
 }
-/*
+
 export function clamp(v, minv, maxv) {
 	return max(min(v, maxv), minv);
 }
-*/
 
 export function ratio(a, b) { return a/(abs(a)+abs(b)) }
 export function rat_vec2(v) { return ratio(v[X], v[Y]) }
