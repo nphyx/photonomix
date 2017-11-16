@@ -60,6 +60,10 @@ gulp.task("clean:markup", function() {
 	return del(["dist/*.html"]);
 });
 
+gulp.task("clean:assets", function() {
+	return del(["target/assets/*", "dist/assets/*"]);
+});
+
 gulp.task("scripts", ["clean:scripts"], function() {
 	return gulp.src(["src/scripts/*js", "src/scripts/*/*js"])
 	.pipe(babel())
@@ -80,8 +84,13 @@ gulp.task("styles", ["clean:styles"], function() {
 	*/
 });
 
+gulp.task("assets", ["clean:assets"], function() {
+	return gulp.src("src/assets/*.*")
+	.pipe(gulp.dest("dist/assets/"));
+});
+
 /* jshint unused:false */
-gulp.task("webpack", ["clean:scripts", "markup", "manifest"], function(callback) {
+gulp.task("webpack", ["clean:scripts", "markup", "manifest", "assets"], function(callback) {
 	webpack(webpackConfig, function(err, stats) {
 		if(err) console.log(err);
 		callback();

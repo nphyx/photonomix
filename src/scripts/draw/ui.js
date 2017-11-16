@@ -89,6 +89,14 @@ export function draw() {
 	}
 	//drawAntiGravitonCluster(agClusterIcon, ctx);
 	if(DEBUG) debugMarkers();
+	ctx.font = "90px RightBankFLF";
+	ctx.fillStyle = "white";
+	writeCentered(ctx, "PHOTONOMIX", w/2, h/2 + 45);
+}
+
+export function writeCentered(ctx, text, x, y) {
+	let metrics = ctx.measureText(text);
+	ctx.fillText(text, x - metrics.width/2, y);
 }
 
 /**

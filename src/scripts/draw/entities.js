@@ -291,11 +291,11 @@ export const init = function(display) {
 export const draw = (function() {
 	// these variables are shared by draw calls below
 	let i, l, entity, px, py;
-	let lightClearStyle = "rgba(0,0,0,0.3)";
+	let lightClearStyle = "rgba(0,0,0,0.2)";
 	let darkClearStyle  = "rgba(0,0,0,0.1)";
 
 	return function draw(state) {
-		updateCompositeOperation(lightCtx, "source-over");
+		updateCompositeOperation(lightCtx, "destination-out"); //"source-over");
 		lightCtx.fillStyle = lightClearStyle;
 		lightCtx.fillRect(0, 0, lightBuffer.width, lightBuffer.height);
 		updateCompositeOperation(darkCtx, "destination-out");
