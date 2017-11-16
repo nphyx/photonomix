@@ -169,7 +169,7 @@ const drawVoid = (function() {
 		swh = sw*0.5;
 		ox = sin(frameCount*0.0127)*sc*0.1;
 		oy = cos(frameCount*0.0127)*sc*0.1;
-		sprite = sprites.getMoteSprite(0xfff);
+		sprite = sprites.motes.get(0xfff);
 		updateCompositeOperation(darkCtx, "soft-light");
 		darkCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
 		// color patch
@@ -177,10 +177,10 @@ const drawVoid = (function() {
 		swh = sw*0.5;
 		ox = cos(frameCount*0.023)*sc*0.13;
 		oy = sin(frameCount*0.023)*sc*0.13;
-		sprite = sprites.getMoteSprite(colorIndex);
+		sprite = sprites.motes.get(colorIndex);
 		darkCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
 		// dark patch
-		sprite = sprites.getMoteSprite(0x000);
+		sprite = sprites.motes.get(0x000);
 		sw = sc*1.65;
 		swh = sw*0.5;
 		ox = sin(frameCount*0.0122)*sc*0.15;
@@ -211,24 +211,24 @@ const drawEmitter = (function() {
 		sw = cos((frameCount)*0.2)*sc*1.7;
 		swh = sw*0.5;
 
-		sprite = sprites.getMoteSprite(0x333);
+		sprite = sprites.motes.get(0x333);
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-swh, py-swh, sw, sw);
 
 		sw = sc*1.3;
 		swh = sw*0.5;
 		ox = sin(frameCount*0.08)*sc*0.1;
 		oy = cos(frameCount*0.08)*sc*0.1;
-		sprite = sprites.getMoteSprite(0x500);
+		sprite = sprites.motes.get(0x500);
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
 
 		ox = sin(frameCount*0.08+2.094394)*sc*0.1;
 		oy = cos(frameCount*0.08+2.094394)*sc*0.1;
-		sprite = sprites.getMoteSprite(0x050);
+		sprite = sprites.motes.get(0x050);
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
 
 		ox = sin(frameCount*0.08+4.188789)*sc*0.1;
 		oy = cos(frameCount*0.08+4.188789)*sc*0.1;
-		sprite = sprites.getMoteSprite(0x005);
+		sprite = sprites.motes.get(0x005);
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
 	}
 })();
@@ -267,7 +267,7 @@ const drawAntiGravitonCluster = (function() {
 		drawAntiPlasma(pi3rd*3, 0.25);
 		drawAntiPlasma(pi3rd*5, 0.25);
 
-		sprite = sprites.getMoteSprite(0x000);
+		sprite = sprites.motes.get(0x000);
 		darkCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-sch, py-sch, sc, sc);
 	}
 })();
