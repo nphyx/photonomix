@@ -1,1 +1,14 @@
-<html prefix="og: http://ogp.me/ns#" manifest="photonomix.manifest" lang="en"><head><title>Photonomix</title><meta name="description" title="An artificial photonic life simulation."/><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta property="og:title" content="Photonomix"/><meta property="og:image" content=""/><meta property="og:url" content="http://justen.us/photonomix"/><link href="" rel="icon" type="image/x-icon"/><link href="styles/photonomix.css" rel="stylesheet" type="text/css"/><script src="scripts/photonomix.js" type="text/javascript"></script></head><body class="start"></body></html>
+<html prefix="og: http://ogp.me/ns#" lang="en"><head><title>Photonomix</title><meta name="description" title="An artificial photonic life simulation."/><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta property="og:title" content="Photonomix"/><meta property="og:image" content=""/><meta property="og:url" content="http://justen.us/photonomix"/><link href="" rel="icon" type="image/x-icon"/><link href="photonomix.manifest" rel="manifest"/><style type="text/css">body, canvas {border:0; padding:0; margin:0;vertical-align:baseline; overflow:hidden; width:100%; height:100%;}
+canvas {display:block;position:absolute;border:0; padding:0; margin:0; cursor:none;}
+</style><script src="scripts/photonomix.js" type="text/javascript" defer="defer"></script><script type="text/javascript">/* this gets inlined into the header of the index */
+"use strict";
+if("serviceWorker" in navigator) {
+	window.addEventListener("load", () => {
+		navigator.serviceWorker.register("/sw.js")
+		.then(
+			(registration) => console.log("worker registered", registration.scope),
+			(err) => console.log("worker registration failed", err)
+		);
+	});
+}
+</script></head><body class="start"><noscript><h1>Javascript Required</h1><p>Photonomix is a game. Games run on code. Browser code is javascript.</p>You must enable javascript.</noscript></body></html>

@@ -1,4 +1,4 @@
-html(prefix="og: http://ogp.me/ns#" manifest="photonomix.manifest" lang="en")
+html(prefix="og: http://ogp.me/ns#" lang="en")
   head
     title Photonomix
     meta(name="description" title="An artificial photonic life simulation.")
@@ -8,6 +8,14 @@ html(prefix="og: http://ogp.me/ns#" manifest="photonomix.manifest" lang="en")
     meta(property="og:image" content="")
     meta(property="og:url" content="http://justen.us/photonomix")
     link(href="" rel="icon" type="image/x-icon")
-    link(href="styles/photonomix.css" rel="stylesheet" type="text/css")
-    script(src="scripts/photonomix.js" type="text/javascript")
+    link(href="photonomix.manifest" rel="manifest")
+    style(type="text/css")
+      include ../styles/photonomix.css
+    script(src="scripts/photonomix.js" type="text/javascript" defer)
+    script(type="text/javascript")
+      include ../scripts/register.js
   body.start
+    noscript
+      h1 Javascript Required
+      p Photonomix is a game. Games run on code. Browser code is javascript.
+      | You must enable javascript.
