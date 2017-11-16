@@ -1,20 +1,7 @@
-CACHE MANIFEST
-
-
-CACHE:
-./index.html
-./scripts/photonomix.js
-./scripts/photonomix.js.map
-./styles/photonomix.css
-
-
-NETWORK:
-http://*
-https://*
-*
-
-
-SETTINGS:
-prefer-online
-
-# hash: e3e6c1a1afaeb6226138c725e3da2d666635ea117771d0be189169bae4ed09ed
+{
+	"name":"Photonomix",
+	"short_name":"Photonomix",
+	"start_url":".",
+	"background_color":"#000",
+	"description":"An artificial photonic life simulation."
+}
