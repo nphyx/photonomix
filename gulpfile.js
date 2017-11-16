@@ -7,10 +7,11 @@ var webpack = require("webpack");
 var del = require("del");
 var path = require("path");
 var appcache = require("gulp-appcache");
+var UglifyJsPlugin = require("uglifyjs-webpack-plugin");
 var {exec, spawn} = require("child_process");
 
 const webpackConfig = {
-	entry:path.resolve(__dirname, "target/scripts/photonomix.js"),
+	entry:path.resolve(__dirname, "src/scripts/photonomix.js"),
 	devtool:"source-map",
 	output:{
 		filename:"photonomix.js",
@@ -18,9 +19,17 @@ const webpackConfig = {
 	},
 	plugins:[
 		new webpack.optimize.DedupePlugin(),
-		new webpack.optimize.UglifyJsPlugin()
+		new UglifyJsPlugin({
+			sourceMap:true,
+			parallel:true,
+			uglifyOptions:{
+				ecma:8,
+				warnings:true
+			}
+		})
   ]
 }
+
 gulp.task("manifest", ["webpack"], function() {
 	var config = {
 		relativePath:"./",
@@ -67,7 +76,7 @@ gulp.task("styles", ["clean:styles"], function() {
 });
 
 /* jshint unused:false */
-gulp.task("webpack", ["scripts", "markup", "styles"], function(callback) {
+gulp.task("webpack", ["clean:scripts", "markup", "styles"], function(callback) {
 	webpack(webpackConfig, function(err, stats) {
 		if(err) console.log(err);
 		callback();
