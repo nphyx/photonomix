@@ -36,7 +36,7 @@ const webpackConfig = {
 			filename: "sw.js",
 			minify: true,
 			navigateFallback: "index.html",
-			staticFileGlobs: ["dist/**/*.{js,html,css,png,jpg,gif,svg,eot,ttf,woff}"],
+			staticFileGlobs: ["dist/**/*.{js,html,css,png,jpg,gif,svg,eot,ttf,woff,manifest}"],
 			stripPrefix:"dist/",
 			staticFileGlobsIgnorePatterns: [/\.map$/, /asset-manifest\.json$/],
 		})
