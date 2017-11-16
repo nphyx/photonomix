@@ -18,8 +18,6 @@ const tf = constants.TARGET_FPS;
 
 let lightBuffer, darkBuffer, lightCtx, darkCtx, frameCount, timing, displayProps;
 
-let voidSprite, emitterSprite, moteCenterSprite, photonSprites = Array(3), mask;
-
 /**
  * Draws plasma lines between a mote and its target.
  */
@@ -109,10 +107,10 @@ const drawMote = (function() {
 		}
 		sch = sc*0.5;
 		swh = sw*0.5;
-		colorIndex = sprites.colorIndex(entity.color[COLOR_R], entity.color[COLOR_G], entity.color[COLOR_B]);
-		sprite = sprites.getMoteSprite(colorIndex);
+		colorIndex = sprites.util.colorIndex(entity.color[COLOR_R], entity.color[COLOR_G], entity.color[COLOR_B]);
+		sprite = sprites.motes.get(colorIndex);
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-sch, py-sch, sc, sc);
-		sprite = moteCenterSprite; 
+		sprite = sprites.motes.getCenter();
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-sch, py-sch, sc, sc);
 		if(entity.target && entity.action == ACT_ATTACK) {
 			// need vectors but in screen space, not absolute space
@@ -120,7 +118,7 @@ const drawMote = (function() {
 			plasmaSource[1] = py;
 			plasmaTarget[0] = screenSpace(entity.target.pos[0]);
 			plasmaTarget[1] = screenSpace(entity.target.pos[1]);
-	drawPlasmaLine(lightCtx, plasmaSource, plasmaTarget, sprites.getColorString(colorIndex), "white", 5, pulse);
+	drawPlasmaLine(lightCtx, plasmaSource, plasmaTarget, sprites.motes.getColorString(colorIndex), "white", 5, pulse);
 		}
 	}
 })();
@@ -134,7 +132,7 @@ const drawPhoton = (function() {
 		updateCompositeOperation(lightCtx, "lighter");
 		px = screenSpace(entity.pos[0]);
 		py = screenSpace(entity.pos[1]);
-		sprite = photonSprites[entity.color];
+		sprite = sprites.photons.get(entity.color);
 		ps = constants.PHOTON_BASE_SIZE * displayProps.minDimension; //sprite.pixelSize;
 		pulse = entity.pulse;
 		sw = (ps * 0.75 * (cos((frameCount+pulse)*0.3) * sin((frameCount+pulse)*0.1))) + 
@@ -157,7 +155,7 @@ const drawVoid = (function() {
 		sc = entity.size * displayProps.minDimension * 1+(sin(frameCount*0.2));
 		sch = sc*0.5;
 
-		sprite = voidSprite;
+		sprite = sprites.voids.get();
 		updateCompositeOperation(darkCtx, "source-over");
 		darkCtx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
 		switch(entity.lastMeal) {
@@ -207,7 +205,7 @@ const drawEmitter = (function() {
 		//sc = sc + (sc*(sin(frameCount*0.05))/100);
 		sch = sc*0.5;
 
-		sprite = emitterSprite;
+		sprite = sprites.emitters.get();
 		lightCtx.drawImage(sprite.canvas, px-sch, py-sch, sc, sc);
 
 		sw = cos((frameCount)*0.2)*sc*1.7;
@@ -283,14 +281,7 @@ export const init = function(display) {
 	darkCtx = darkBuffer.context;
 	updateProps();
 	displayProps.events.on("resize", updateProps);
-	voidSprite = sprites.createVoidSprite(1000, 1);
-	emitterSprite = sprites.createEmitterSprite(displayProps.minDimension, 1);
-	photonSprites[COLOR_R] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "red");
-	photonSprites[COLOR_G] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "green");
-	photonSprites[COLOR_B] = sprites.createPhotonSprite(displayProps.minDimension, constants.PHOTON_BASE_SIZE, "blue");
-	sprites.initMoteSpriteSheet(1000, constants.MOTE_BASE_SIZE*4);
-	mask = sprites.createGameSpaceMask();
-	moteCenterSprite = sprites.createMoteCenterSprite();
+	sprites.init(displayProps);
 }
 
 /**
@@ -311,6 +302,7 @@ export const draw = (function() {
 		darkCtx.fillStyle = darkClearStyle;
 		darkCtx.clearRect(0, 0, darkBuffer.width, darkBuffer.height);
 		frameCount = timing.frameCount;
+		let mask = sprites.ui.get("mask");
 		for(i = 0, l = state.entities.length; i < l; ++i) {
 			entity = state.entities[i];
 			px = screenSpace(entity.pos[0]);
