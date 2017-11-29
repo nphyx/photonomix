@@ -37,11 +37,10 @@ window.addEventListener("load", function() {
 	draw.init(photonomix.state, display);
 	controls.init(photonomix.state);
 	photonomix.state.controls = controls.state;
-	startGame();
+	document.querySelector(displayConfig.container).addEventListener("click", startGame);
 });
 
 function main() {
-	//let tickSpeed = display.timing.interval/display.timing.elapsed;
 	if(photonomix.state.game.started) photonomix.state.game.tick(display.timing);
 	photonomix.draw.tick();
 }
@@ -50,11 +49,9 @@ function main() {
  * Starts up the game.
  */
 export function startGame() {
+	let container = document.querySelector(displayConfig.container);
 	photonomix.state.game.start();
-	/*
-	body.removeEventListener("click", startGame);
-	body.classList.remove("start");
-	if(AUTO_FULLSCREEN) toggleFullScreen();
-	*/
+	container.removeEventListener("click", startGame);
+	container.classList.remove("start");
 	console.log("game started");
 }

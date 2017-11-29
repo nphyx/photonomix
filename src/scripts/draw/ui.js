@@ -11,9 +11,9 @@ let displayProps;
  * Creates debug markers on screen to show the center, top, left, bottom, right, topleft
  * and topright extremes of the main game area.
  */
-const debugMarkers = (function() {
+const drawDebugMarkers = (function() {
 	let w, h, wh, hh;
-	return function debugMarkers() {
+	return function drawDebugMarkers() {
 		w = displayProps.width;
 		h = displayProps.height;
 		wh = w/2; 
@@ -65,18 +65,39 @@ function drawEdgeButton(ctx, x, y, w, h) {
 }
 
 /**
- * Draws UI elements.
+ * Draws necessary text based on game state.
  */
-export function draw() {
+export function drawUIText(game) {
+	let alpha, delta, color;
 	let w = displayProps.width;
 	let h = displayProps.height;
-	let bw = max(100, w*0.1);
-	let bh = max(47,  w*0.047);
+	let err = true;
+	let size = 90;
+	let curTime = Date.now();
+	if(game.started < 0 || game.started > curTime - 1000) {
+		delta = game.started > 0?curTime - game.started:0;
+		alpha = (1000 - delta)/1000;
+		color = "rgba(255,255,255,"+alpha+")";
+		while(err) {
+			try {
+				ctx.font = size + "px RightBankFLF";
+				ctx.fillStyle = color;
+				writeCentered(ctx, "PHOTONOMIX", w/2, h/2 + size/2);
+				err = false;
+			}
+			catch(e) {
+				err = true;
+				size -= 10;
+			}
+		}
+		ctx.font = (size / 3) + "px RightBankFLF";
+		ctx.fillStyle = color;
+		writeCentered(ctx, "click to start", w/2, h/2 + size);
+	}
+}
+
+function drawPointer() {
 	let {move, down} = controls.pointer;
-	ctx.clearRect(0, 0, w, h);
-	drawEdgeButton(ctx, w*0.5, h, bw, bh);
-	drawEdgeButton(ctx, w*0.333, h, bw, bh); 
-	drawEdgeButton(ctx, w*0.666, h, bw, bh);  
 	drawCircle(ctx, move[0], move[1], 5, "white");
 	if(controls.buttons[0]) {
 		ctx.beginPath();
@@ -87,15 +108,23 @@ export function draw() {
 		ctx.stroke();
 		ctx.closePath();
 	}
-	//drawAntiGravitonCluster(agClusterIcon, ctx);
-	if(DEBUG) debugMarkers();
-	ctx.font = "90px RightBankFLF";
-	ctx.fillStyle = "white";
-	writeCentered(ctx, "PHOTONOMIX", w/2, h/2 + 45);
+}
+
+/**
+ * Draws UI elements.
+ */
+export function draw(game) {
+	let w = displayProps.width;
+	let h = displayProps.height;
+	ctx.clearRect(0, 0, w, h);
+	if(DEBUG) drawDebugMarkers();
+	drawUIText(game);
+	drawPointer();
 }
 
 export function writeCentered(ctx, text, x, y) {
 	let metrics = ctx.measureText(text);
+	if(metrics.width > displayProps.width) throw new Error("text is wider than body");
 	ctx.fillText(text, x - metrics.width/2, y);
 }
 
@@ -106,12 +135,5 @@ export function writeCentered(ctx, text, x, y) {
 export function init(display) {
 	displayProps = display.props;
 	uiBuffer = display.buffersByLabel.ui;
-	updateProps();
-	displayProps.events.on("resize", updateProps);
 	ctx = uiBuffer.context;
-}
-
-function updateProps() {
-	uiBuffer.width = displayProps.width;
-	uiBuffer.height = displayProps.height;
 }

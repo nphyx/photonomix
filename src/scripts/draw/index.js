@@ -85,7 +85,7 @@ export function tick() {
 	if(!animating) animating = true;
 	bokeh.draw();
 	entities.draw(game);
-	ui.draw();
+	ui.draw(game);
 }
 
 /**
