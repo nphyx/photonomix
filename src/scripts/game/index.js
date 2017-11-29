@@ -30,7 +30,7 @@ export function Game() {
 	}
 	this.actions = {};
 	this.registerActions();
-	this.started = false;
+	this.started = -1;
 	return this;
 }
 
@@ -40,7 +40,7 @@ Game.prototype.start = function() {
 	for(let i = 0; i < START_POP; ++i) {
 		this.entities.push(new Mote.random(this.motePool))
 	}
-	this.started = true;
+	this.started = Date.now();
 }
 
 Game.prototype.tick = (function() {
