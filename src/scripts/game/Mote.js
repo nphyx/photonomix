@@ -3,7 +3,7 @@ let {random, max, min, floor, ceil, sin} = Math;
 import {TARGET_FPS, MOTE_BASE_SPEED, MOTE_BASE_SIZE, MOTE_BASE_SIGHT, PREGNANT_THRESHOLD, 
 				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG} from "../photonomix.constants";
 import * as vectrix from "@nphyx/vectrix";
-import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, outOfBounds, rotate} from "../photonomix.util";
+import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, outOfBounds, rotate, norm_ratio} from "../photonomix.util";
 const {vec2, times, mut_clamp, magnitude, distance, mut_copy, mut_times} = vectrix.vectors;
 const {plus, mut_plus} = vectrix.matrices;
 import Photon, {COLOR_R, COLOR_G, COLOR_B} from "./Photon";
@@ -224,9 +224,12 @@ Mote.prototype.updateProperties = (function() {
 		this.mass = r + g + b;
 		if(this.mass > 0) { // otherwise skip this stuff since the mote is dead anyway
 		this.size = clamp(this.mass/(PREGNANT_THRESHOLD/3)*MOTE_BASE_SIZE, this.sizeMin, this.sizeMax);
+			norm_ratio(photons, ratios);
+			/*
 			ratios[COLOR_R] = ratio(r, g+b);
 			ratios[COLOR_G] = ratio(g, r+b);
 			ratios[COLOR_B] = ratio(b, g+r);
+			*/
 			this.speed = this.base_speed*(1-this.size)*(1+ratios[COLOR_B]);
 			this.sight = this.base_sight+(this.size*0.5); // see from edge onward
 			this.agro = this.base_agro*(1+ratios[COLOR_R]);
@@ -243,9 +246,9 @@ Mote.prototype.updateProperties = (function() {
 		if((this.mass > PREGNANT_THRESHOLD) && this.pregnant === 0) this.pregnant = PREGNANT_TIME;
 		if((this.mass < DEATH_THRESHOLD) && this.dying === 0) this.dying = 1;
 
-		color[COLOR_R] = ~~(r/this.mass*255);
-		color[COLOR_G] = ~~(g/this.mass*255);
-		color[COLOR_B] = ~~(b/this.mass*255);
+		color[COLOR_R] = ~~(ratios[COLOR_R]*255);
+		color[COLOR_G] = ~~(ratios[COLOR_G]*255);
+		color[COLOR_B] = ~~(ratios[COLOR_B]*255);
 		this.needsUpdate = 0;
 	}
 })();

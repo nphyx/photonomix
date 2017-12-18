@@ -218,17 +218,21 @@ const drawEmitter = (function() {
 		swh = sw*0.5;
 		ox = sin(frameCount*0.08)*sc*0.1;
 		oy = cos(frameCount*0.08)*sc*0.1;
-		sprite = sprites.motes.get(0x500);
+		sprite = sprites.motes.get(~~(entity.ratios[0]*(3/2)*255) << 16);
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
 
+		sw = sc*1.3;
+		swh = sw*0.5;
 		ox = sin(frameCount*0.08+2.094394)*sc*0.1;
 		oy = cos(frameCount*0.08+2.094394)*sc*0.1;
-		sprite = sprites.motes.get(0x050);
+		sprite = sprites.motes.get(~~(entity.ratios[0]*(3/2)*255) << 8);
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
 
+		sw = sc*1.3;
+		swh = sw*0.5;
 		ox = sin(frameCount*0.08+4.188789)*sc*0.1;
 		oy = cos(frameCount*0.08+4.188789)*sc*0.1;
-		sprite = sprites.motes.get(0x005);
+		sprite = sprites.motes.get(~~(entity.ratios[0]*(3/2)*255));
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
 	}
 })();

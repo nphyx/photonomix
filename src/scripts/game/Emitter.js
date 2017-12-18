@@ -1,7 +1,7 @@
 "use strict";
 import * as vectrix from  "@nphyx/vectrix";
 import {TARGET_FPS, GLOBAL_DRAG, EMITTER_SIZE} from "../photonomix.constants";
-import {rotate, drag, gravitate, avoid} from "../photonomix.util";
+import {rotate, drag, gravitate, avoid, norm_ratio} from "../photonomix.util";
 import {Photon} from "./";
 let {vec2, vec3, times, mut_times, distance} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
@@ -14,8 +14,7 @@ const POS_C = vec2(0,0);
 export default function Emitter(ipos = vec2(), ivel = vec2(), mass = 1, photonPool = undefined, arms = undefined, ratios = vec3(1, 1, 1)) {
 	this.pos = vec2(ipos);
 	this.vel = vec2(ivel);
-	let sumRatio = ratios.reduce((p, c) => p + c, 0);
-	this.ratios = vec3(1/ratios[0]/sumRatio, 1/ratios[1]/sumRatio, 1/ratios[2]/sumRatio);
+	this.ratios = norm_ratio(ratios);
 	this.birthMass = mass;
 	this.mass = 1;
 	this.initialMass = mass;

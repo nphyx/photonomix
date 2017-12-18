@@ -285,6 +285,14 @@ export function clamp(v, minv, maxv) {
 export function ratio(a, b) { return a/(abs(a)+abs(b)) }
 export function rat_vec2(v) { return ratio(v[X], v[Y]) }
 
+export function norm_ratio(v, out) { 
+	let i = 0, len = v.length;
+	out = out || new Float32Array(len);
+	let sum = v.reduce((p, c) => p + c, 0);	
+	for(; i < len; ++i) out[i] = (v[i] !== 0?v[i]/sum:0);
+	return out;
+}
+
 /**
 * Shuffles array in place. ES6 version
 * @param {Array} a items The array containing the items.
