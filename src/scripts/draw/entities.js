@@ -214,26 +214,28 @@ const drawEmitter = (function() {
 		sprite = sprites.motes.get(0x333);
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-swh, py-swh, sw, sw);
 
+		try {
 		sw = sc*1.3;
 		swh = sw*0.5;
-		ox = sin(frameCount*0.08)*sc*0.1;
-		oy = cos(frameCount*0.08)*sc*0.1;
-		sprite = sprites.motes.get(~~(entity.ratios[0]*(3/2)*255) << 16);
+		ox = sin(frameCount*0.08)*sc*(0.1 - (entity.ratios[0]*0.1));
+		oy = cos(frameCount*0.08)*sc*(0.1 - (entity.ratios[0]*0.1));
+		sprite = sprites.motes.get(entity.ratios[0]*15.9 << 8);
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
 
 		sw = sc*1.3;
 		swh = sw*0.5;
-		ox = sin(frameCount*0.08+2.094394)*sc*0.1;
-		oy = cos(frameCount*0.08+2.094394)*sc*0.1;
-		sprite = sprites.motes.get(~~(entity.ratios[0]*(3/2)*255) << 8);
+		ox = sin(frameCount*0.08+2.094394)*sc*(0.1 - (entity.ratios[1]*0.1));
+		oy = cos(frameCount*0.08+2.094394)*sc*(0.1 - (entity.ratios[1]*0.1));
+		sprite = sprites.motes.get(entity.ratios[1]*15.9 << 4);
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
 
 		sw = sc*1.3;
 		swh = sw*0.5;
-		ox = sin(frameCount*0.08+4.188789)*sc*0.1;
-		oy = cos(frameCount*0.08+4.188789)*sc*0.1;
-		sprite = sprites.motes.get(~~(entity.ratios[0]*(3/2)*255));
+		ox = sin(frameCount*0.08+4.188789)*sc*(0.1 - (entity.ratios[2]*0.1));
+		oy = cos(frameCount*0.08+4.188789)*sc*(0.1 - (entity.ratios[2]*0.1));
+		sprite = sprites.motes.get(~~(entity.ratios[2]*15.9));
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px+ox-swh, py+oy-swh, sw, sw);
+		} catch (e) {console.log(e.message)}
 	}
 })();
 
