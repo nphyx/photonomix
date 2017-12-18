@@ -135,20 +135,23 @@ Game.prototype.killMote = (function() {
 	let sum = 0|0, c = 0|0, i = 0|0, pos = vec2(), r = 0|0, g = 0|0, b = 0|0;
 	return function killMote(mote) {
 		if(random() < POSITIVE_ENERGY) {
-			this.entities.push(new Emitter(mote.pos, mote.vel, ~~(DEATH_THRESHOLD*10*random()), this.photonPool));
+			this.entities.push(new Emitter(mote.pos, mote.vel, ~~(DEATH_THRESHOLD*10*random()), this.photonPool, undefined, mote.ratios));
 		}
-		if(random() < NEGATIVE_ENERGY) {
-			this.entities.push(new Void(mote.pos, mote.vel, ~~(DEATH_THRESHOLD*10*random()))); }
-		mut_copy(pos, mote.pos);
-		r = mote.photons[0];
-		g = mote.photons[1];
-		b = mote.photons[2];
-		sum = r+b+g;
-		c = 0;
-		for(i = 0; i < sum; ++i) {
-			if(r === i) c = 1;
-			if(r+g === i) c = 2;
-			this.emitPhoton(pos, undefined, c, i, sum);
+		else if(random() < NEGATIVE_ENERGY) {
+			this.entities.push(new Void(mote.pos, mote.vel, ~~(DEATH_THRESHOLD*10*random()))); 
+		}
+		else {
+			mut_copy(pos, mote.pos);
+			r = mote.photons[0];
+			g = mote.photons[1];
+			b = mote.photons[2];
+			sum = r+b+g;
+			c = 0;
+			for(i = 0; i < sum; ++i) {
+				if(r === i) c = 1;
+				if(r+g === i) c = 2;
+				this.emitPhoton(pos, undefined, c, i, sum);
+			}
 		}
 	}
 })();
