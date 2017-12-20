@@ -7,7 +7,7 @@ import Photon from "./Photon";
 import Ripple from "./Ripple";
 import {gameSpaceVec} from "../draw";
 import AntiGravitonCluster from "./AntiGravitonCluster";
-export {Mote, Void, Emitter, Marker, Photon, AntiGravitonCluster};
+export {Mote, Void, Emitter, Marker, Photon, AntiGravitonCluster, Ripple};
 
 import {rotate, outOfBounds} from "../photonomix.util";
 import * as vectrix from  "@nphyx/vectrix";
@@ -15,13 +15,14 @@ import {controls} from "@nphyx/pxene";
 import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS, PREGNANT_TIME, DEATH_THRESHOLD,
 	POSITIVE_ENERGY, NEGATIVE_ENERGY} from "../photonomix.constants";
 const {minus} = vectrix.matrices;
-const {vec2, mut_copy} = vectrix.vectors;
+const {vec2, vec3, mut_copy} = vectrix.vectors;
 const marks = new Uint16Array(MAX_MOTES+MAX_PHOTONS+100);
 let {random} = Math;
 let markpos = 0;
 let mark = 0;
 
 const ENTITY_TYPES = {};
+const STORED_PHOTONS = vec3();
 
 /**
  * TODO: change these functions out with proper factories.
@@ -54,6 +55,7 @@ export function Game() {
 	this.actions = {};
 	this.registerActions();
 	this.started = -1;
+	this.clickCooldown = 0;
 	return this;
 }
 
@@ -67,10 +69,14 @@ Game.prototype.start = function() {
 Game.prototype.tick = (function() {
 	let entities, entity, i = 0|0, len = 0|0, tick_delta = 0.0, cursorPos = vec2();
 	return function tick(timing) {
-		if(controls.lookupMap("ripple").isDown()) {
-			gameSpaceVec(controls.getCursorPosition(), cursorPos);
-			this.spawn("ripple", cursorPos);
+		if(this.clickCooldown === 0) {
+		 	if(controls.lookupMap("ripple").isDown()) {
+				gameSpaceVec(controls.getCursorPosition(), cursorPos);
+				this.spawn("ripple", cursorPos);
+				this.clickCooldown = 3;
+			}
 		}
+		else this.clickCooldown--;
 		let delta = timing.interval/timing.elapsed;
 		let frameCount = timing.frameCount;
 		entities = this.entities;
@@ -101,8 +107,19 @@ Game.prototype.tick = (function() {
 					this.stats.born++;
 				}
 			}
-			else if(entity instanceof Photon || entity instanceof Marker) {
+			else if(entity instanceof Photon) {
 				if(entity.lifetime <= 0) {
+					marks[markpos] = i;
+					STORED_PHOTONS[entity.color]++;
+					markpos++;
+				}
+			}
+			else if(entity instanceof Ripple) {
+				if(entity.mass > 250) {
+					this.spawn("void", entity.pos, [0,0], 100);
+					entity.mass = 0;
+				}
+				if(entity.mass <= 0) {
 					marks[markpos] = i;
 					markpos++;
 				}

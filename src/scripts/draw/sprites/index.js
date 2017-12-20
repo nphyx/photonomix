@@ -15,4 +15,5 @@ export function init(props) {
 	emitters.init(props);
 	voids.init(props);
 	ui.init(props);
+	markers.init(props);
 }

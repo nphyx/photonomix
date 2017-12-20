@@ -9,7 +9,7 @@ import {rotate} from "../photonomix.util";
 import {offscreen, screenSpace, updateCompositeOperation} from "./";
 const {vec2, lerp} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
-import {Photon, Mote, Void, Emitter, AntiGravitonCluster} from "../game";
+import {Photon, Mote, Void, Emitter, AntiGravitonCluster, Ripple} from "../game";
 import {COLOR_R, COLOR_G, COLOR_B} from "../game/Photon";
 import {ACT_ATTACK} from "../game/Mote";
 
@@ -143,6 +143,29 @@ const drawPhoton = (function() {
 })();
 
 /**
+ * Draws a marker.
+ */
+const drawMarker = (function() {
+	let sw = 0.0, swh = 0.0, px = 0.0, py = 0.0, ps = 0.0, sprite;
+	return function drawMarker(entity) {
+		updateCompositeOperation(lightCtx, "lighter");
+		px = screenSpace(entity.pos[0]);
+		py = screenSpace(entity.pos[1]);
+		sprite = sprites.markers.get();
+		ps = Math.pow(100 - entity.mass, 1.5)*0.5;
+
+		sw = ps;// * 0.55 * sin((frameCount)*0.3) + (ps * 0.45);
+		swh = sw*0.5;
+		lightCtx.drawImage(sprite.canvas, 0, 0, sprite.pixelSize, sprite.pixelSize, px-swh, py-swh, sw, sw);
+
+		sw = ps * cos(frameCount*10);
+		swh = sw*0.5;
+		lightCtx.drawImage(sprite.canvas, 0, 0, sprite.pixelSize, sprite.pixelSize, px-swh, py-swh, sw, sw);
+	}
+})();
+
+
+/**
  * Draws a void.
  */
 const drawVoid = (function() {
@@ -239,6 +262,7 @@ const drawEmitter = (function() {
 	}
 })();
 
+
 /**
  * Draws an antigraviton cluster.
  */
@@ -318,8 +342,8 @@ export const draw = (function() {
 			else if(entity instanceof Photon) drawPhoton(entity);
 			else if(entity instanceof Void) drawVoid(entity);
 			else if(entity instanceof Emitter) drawEmitter(entity);
-			else if(entity instanceof AntiGravitonCluster) 
-				drawAntiGravitonCluster(entity);
+			else if(entity instanceof AntiGravitonCluster) drawAntiGravitonCluster(entity);
+			else if(entity instanceof Ripple) drawMarker(entity);
 		}
 		updateCompositeOperation(lightCtx, "destination-out");
 		lightCtx.drawImage(mask.canvas, 0, 0, displayProps.minDimension, displayProps.minDimension);
