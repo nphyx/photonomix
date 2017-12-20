@@ -35,6 +35,7 @@ registerType("emitter", Emitter);
 registerType("marker", Marker);
 registerType("photon", Photon);
 registerType("antiGravitonCluster", AntiGravitonCluster);
+ENTITY_TYPES.randomMote = Mote.random;
 
 export function Game() {
 	this.entities = [];
@@ -53,7 +54,7 @@ export function Game() {
 
 Game.prototype.start = function() {
 	for(let i = 0; i < START_POP; ++i) {
-		this.entities.push(new Mote.random())
+		this.spawn("randomMote");
 	}
 	this.started = Date.now();
 }

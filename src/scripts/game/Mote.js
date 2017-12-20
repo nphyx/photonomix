@@ -77,7 +77,7 @@ export const BUFFER_LENGTH = F32_BYTE_OFFSET + (FLOAT_VAL_LENGTH*F32);
 // scratch vectors used in various functions
 const scratch1 = vec2(), scratch2 = vec2();
 
-const MOTE_POOL = new BufferPool(BUFFER_LENGTH, MAX_MOTES);
+const BUFFER_POOL = new BufferPool(BUFFER_LENGTH, MAX_MOTES);
 
 
 /**
@@ -119,8 +119,8 @@ const MOTE_POOL = new BufferPool(BUFFER_LENGTH, MAX_MOTES);
  * @return {Mote}
  */
 export default function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), bSpeed = MOTE_BASE_SPEED, bSight = MOTE_BASE_SIGHT, bAgro = 1.0, bFear = 1.0) {
-	let buffer = MOTE_POOL.buffer,
-			offset = MOTE_POOL.allocate();
+	let buffer = BUFFER_POOL.buffer,
+			offset = BUFFER_POOL.allocate();
 
 	// "private" properties
 	// use a single buffer for properties so that they're guaranteed to be contiguous
@@ -526,5 +526,5 @@ Mote.random = function() {
 }
 
 Mote.prototype.destroy = function() {
-	MOTE_POOL.free(this.offset);
+	BUFFER_POOL.free(this.offset);
 }
