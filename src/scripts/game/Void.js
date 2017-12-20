@@ -1,7 +1,8 @@
 "use strict";
 import * as vectrix from  "@nphyx/vectrix";
 import {gravitate, drag, outOfBounds, limitVecMut, avoid} from  "../photonomix.util";
-import {Mote, Photon, Emitter, AntiGravitonCluster} from "./";
+import {Mote, Emitter, AntiGravitonCluster} from "./";
+import * as photons from "./photons";
 const {vec2, times, mut_times, distance} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
 import {VOID_SIZE, GLOBAL_DRAG} from "../photonomix.constants";
@@ -47,7 +48,7 @@ Void.prototype.tick = function(entities, delta) {
 		if(entity === this) continue;
 		a_dist = distance(this.pos, entity.pos);
 
-		if(entity instanceof Photon && a_dist < this.size) {
+		if(entity instanceof photons.Photon && a_dist < this.size) {
 			entity.lifetime = entity.lifetime - 1;
 			if(entity.lifetime === 0 || a_dist < this.size*0.6) {
 				this.mass = this.mass + 1;

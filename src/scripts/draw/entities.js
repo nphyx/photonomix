@@ -10,7 +10,7 @@ import {offscreen, screenSpace, updateCompositeOperation} from "./";
 const {vec2, lerp} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
 import {Photon, Mote, Void, Emitter, AntiGravitonCluster, Ripple} from "../game";
-import {COLOR_R, COLOR_G, COLOR_B} from "../game/Photon";
+import {COLOR_R, COLOR_G, COLOR_B} from "../game/photons";
 import {ACT_ATTACK} from "../game/Mote";
 
 let {min, cos, sin, sqrt, tan, round, PI} = Math;

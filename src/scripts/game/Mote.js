@@ -7,7 +7,8 @@ import {avoid, accelerate, drag, twiddleVec, adjRand, posneg, outOfBounds, rotat
 const {vec2, times, mut_clamp, magnitude, distance, mut_copy, mut_times} = vectrix.vectors;
 const {plus, mut_plus} = vectrix.matrices;
 import {BufferPool} from "../photonomix.bufferPools";
-import Photon, {COLOR_R, COLOR_G, COLOR_B} from "./Photon";
+import * as Photons from "./photons";
+import {COLOR_R, COLOR_G, COLOR_B} from "./photons";
 import Void from "./Void";
 const clamp = mut_clamp;
 // Center of the playfield is at 0,0 (ranging from -1 to 1 on X and Y axis)
@@ -333,7 +334,7 @@ Mote.prototype.search = (function() {
 				this.action = ACT_AVOID;
 				highest = Infinity;
 			}
-			else if(entity instanceof Photon && entity.lifetime > 3) {
+			else if(entity instanceof Photons.Photon && entity.lifetime > 3) {
 				deltar = (this.prefs[COLOR_R] - this.ratios[COLOR_R]);	
 				deltag = (this.prefs[COLOR_G] - this.ratios[COLOR_G]);	
 				deltab = (this.prefs[COLOR_B] - this.ratios[COLOR_B]);	
@@ -408,7 +409,7 @@ Mote.prototype.tick = (function() {
 			break;
 			case ACT_ATTACK: // attacking a target
 				if(target instanceof Mote) this.discharge(target);
-				else if(target instanceof Photon) this.eatPhoton(target);
+				else if(target instanceof Photons.Photon) this.eatPhoton(target);
 			break;
 			case ACT_LINK: // linking with a target
 			break;
@@ -461,7 +462,7 @@ Mote.prototype.bleed = (function() {
 		mut_copy(pvel, this.vel);
 		mut_times(pvel, -1);
 		this.needsUpdate = 1;
-		return new Photon(this.pos, pvel, choice);
+		return Photons.create(this.pos, pvel, choice);
 		//return choice;
 	}
 })();

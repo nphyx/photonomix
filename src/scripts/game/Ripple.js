@@ -3,7 +3,7 @@ import * as vectrix from  "@nphyx/vectrix";
 import {gravitate} from "../photonomix.util";
 let {vec2, mut_times, distance} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
-import Photon from "./Photon";
+import * as photons from "./photons";
 import Void from "./Void";
 
 /**
@@ -28,7 +28,7 @@ Ripple.prototype.tick = function(entities) {
 		entity = entities[i];
 		if(entity === this) continue;
 		a_dist = distance(this.pos, entity.pos);
-		if(entity instanceof Photon) {
+		if(entity instanceof photons.Photon) {
 			if(a_dist < 0.01) entity.lifetime = 0;
 			else mut_plus(entity.vel, mut_times(
 				gravitate(entity.pos, this.pos, this.mass*20, scratchVec1),

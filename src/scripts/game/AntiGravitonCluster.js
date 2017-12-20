@@ -1,7 +1,8 @@
 "use strict";
 import * as vectrix from  "@nphyx/vectrix";
 import {rotate, drag, avoid, accelerate} from  "../photonomix.util";
-import {Void, Photon} from "./";
+import {Void} from "./";
+import * as photons from "./photons";
 const {vec2, times, distance, mut_copy} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
 import {TARGET_FPS, MOTE_BASE_SIZE, GLOBAL_DRAG} from "../photonomix.constants";
@@ -82,6 +83,6 @@ AntiGravitonCluster.prototype.emitPhoton = (function() {
 		mut_plus(pos, rot);
 		// introduce some jitter
 		mut_plus(vel, accelerate(this.pos, pos, this.size*2, scratch));
-		return(new Photon(pos, vel, color));
+		return(photons.create(pos, vel, color));
 	}
 })();

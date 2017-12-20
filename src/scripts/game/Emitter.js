@@ -2,7 +2,7 @@
 import * as vectrix from  "@nphyx/vectrix";
 import {TARGET_FPS, GLOBAL_DRAG, EMITTER_SIZE} from "../photonomix.constants";
 import {rotate, drag, gravitate, avoid, norm_ratio} from "../photonomix.util";
-import {Photon} from "./";
+import * as photons from "./photons";
 let {vec2, vec3, times, mut_times, distance} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
 let {random, sqrt, ceil, min, PI} = Math;
@@ -84,7 +84,7 @@ Emitter.prototype.emitPhoton = (function() {
 		mut_plus(rotate(pos, this.pos, radians, pos), this.pos);
 		this.next = getColor(this.ratios);
 		// introduce some jitter
-		return(new Photon(pos, vec2(0,0), color));
+		return(photons.create(pos, vec2(0,0), color));
 	}
 })();
 

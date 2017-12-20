@@ -3,11 +3,11 @@ import Mote from "./Mote";
 import Void from "./Void";
 import Emitter from "./Emitter";
 import Marker from "./Marker";
-import Photon from "./Photon";
+import * as Photons from "./photons";
 import Ripple from "./Ripple";
 import {gameSpaceVec} from "../draw";
 import AntiGravitonCluster from "./AntiGravitonCluster";
-export {Mote, Void, Emitter, Marker, Photon, AntiGravitonCluster, Ripple};
+const Photon = Photons.Photon;
 
 import {rotate, outOfBounds} from "../photonomix.util";
 import * as vectrix from  "@nphyx/vectrix";
@@ -24,6 +24,8 @@ let mark = 0;
 const ENTITY_TYPES = {};
 const STORED_PHOTONS = vec3();
 
+export {Mote, Void, Emitter, Marker, Photon, AntiGravitonCluster, Ripple};
+
 /**
  * TODO: change these functions out with proper factories.
  */
@@ -37,15 +39,15 @@ registerType("mote", Mote);
 registerType("void", Void);
 registerType("emitter", Emitter);
 registerType("marker", Marker);
-registerType("photon", Photon);
 registerType("ripple", Ripple);
 registerType("antiGravitonCluster", AntiGravitonCluster);
 ENTITY_TYPES.randomMote = Mote.random;
+ENTITY_TYPES.photon = Photons.create;
 
 export function Game() {
 	controls.map("ripple", "mouse0");
+	Photons.init();
 	this.entities = [];
-	this.photonBuffer = null;
 	this.stats = {
 		pop:0,
 		born:0,
@@ -107,7 +109,7 @@ Game.prototype.tick = (function() {
 					this.stats.born++;
 				}
 			}
-			else if(entity instanceof Photon) {
+			else if(entity instanceof Photons.Photon) {
 				if(entity.lifetime <= 0) {
 					marks[markpos] = i;
 					STORED_PHOTONS[entity.color]++;
@@ -167,7 +169,7 @@ Game.prototype.emitPhoton = (function() {
 		}
 		color = color||~~(random()*3);
 		mut_copy(pos, ipos);
-		this.entities.push(new Photon(pos, vel, color));
+		this.spawn("photon", pos, vel, color);
 		p_c++;
 		return color;
 	}
