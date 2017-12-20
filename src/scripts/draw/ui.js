@@ -1,8 +1,7 @@
 "use strict";
 import {drawCircle} from "./";
 import {DEBUG} from "../photonomix.constants";
-import * as controls from "../photonomix.controls";
-const {max} = Math;
+import {controls} from "@nphyx/pxene";
 
 let ctx, uiBuffer;
 let displayProps;
@@ -97,17 +96,8 @@ export function drawUIText(game) {
 }
 
 function drawPointer() {
-	let {move, down} = controls.pointer;
+	let move = controls.getCursorPosition();
 	drawCircle(ctx, move[0], move[1], 5, "white");
-	if(controls.buttons[0]) {
-		ctx.beginPath();
-		ctx.moveTo(down[0], down[1]);
-		ctx.lineTo(move[0], move[1]);
-		ctx.strokeStyle = "white";
-		ctx.lineWidth = 2;
-		ctx.stroke();
-		ctx.closePath();
-	}
 }
 
 /**

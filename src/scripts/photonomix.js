@@ -1,10 +1,9 @@
 "use strict";
-import {display} from "@nphyx/pxene";
+import {controls, display} from "@nphyx/pxene";
 import * as draw from "./draw";
 import * as game from "./game";
 import * as constants from "./photonomix.constants";
 import * as util from "./photonomix.util";
-import * as controls from "./photonomix.controls";
 
 const displayConfig = {
 	container:"body",
@@ -23,6 +22,7 @@ const displayConfig = {
 var photonomix = {
 	util:util,
 	constants:constants,
+	controls:controls,
 	display:display,
 	game:game,
 	draw:draw,
@@ -35,8 +35,7 @@ window.addEventListener("load", function() {
 	photonomix.state.game = new game.Game();
 	display.init(displayConfig);
 	draw.init(photonomix.state, display);
-	controls.init(photonomix.state);
-	photonomix.state.controls = controls.state;
+	controls.init();
 	document.querySelector(displayConfig.container).addEventListener("click", startGame);
 });
 

@@ -4,11 +4,14 @@ import Void from "./Void";
 import Emitter from "./Emitter";
 import Marker from "./Marker";
 import Photon from "./Photon";
+import Ripple from "./Ripple";
+import {gameSpaceVec} from "../draw";
 import AntiGravitonCluster from "./AntiGravitonCluster";
 export {Mote, Void, Emitter, Marker, Photon, AntiGravitonCluster};
 
 import {rotate, outOfBounds} from "../photonomix.util";
 import * as vectrix from  "@nphyx/vectrix";
+import {controls} from "@nphyx/pxene";
 import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS, PREGNANT_TIME, DEATH_THRESHOLD,
 	POSITIVE_ENERGY, NEGATIVE_ENERGY} from "../photonomix.constants";
 const {minus} = vectrix.matrices;
@@ -34,10 +37,12 @@ registerType("void", Void);
 registerType("emitter", Emitter);
 registerType("marker", Marker);
 registerType("photon", Photon);
+registerType("ripple", Ripple);
 registerType("antiGravitonCluster", AntiGravitonCluster);
 ENTITY_TYPES.randomMote = Mote.random;
 
 export function Game() {
+	controls.map("ripple", "mouse0");
 	this.entities = [];
 	this.photonBuffer = null;
 	this.stats = {
@@ -60,8 +65,12 @@ Game.prototype.start = function() {
 }
 
 Game.prototype.tick = (function() {
-	let entities, entity, i = 0|0, len = 0|0, tick_delta = 0.0;
+	let entities, entity, i = 0|0, len = 0|0, tick_delta = 0.0, cursorPos = vec2();
 	return function tick(timing) {
+		if(controls.lookupMap("ripple").isDown()) {
+			gameSpaceVec(controls.getCursorPosition(), cursorPos);
+			this.spawn("ripple", cursorPos);
+		}
 		let delta = timing.interval/timing.elapsed;
 		let frameCount = timing.frameCount;
 		entities = this.entities;

@@ -7,7 +7,6 @@ export {bokeh, entities, sprites, ui};
 
 let animating = false; // whether the game is currently running animation loop
 let game; // game environment object
-let controls; // control state object
 let props; // display properties
 
 /**
@@ -94,7 +93,6 @@ export function tick() {
 export function init(state, display) {
 	game = state.game;
 	props = display.props;
-	controls = state.controls;
 	bokeh.init(display);
 	entities.init(display);
 	ui.init(display);
