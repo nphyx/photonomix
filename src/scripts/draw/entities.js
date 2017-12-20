@@ -5,6 +5,7 @@
 import * as vectrix from  "@nphyx/vectrix";
 import * as sprites from "./sprites";
 import * as constants from "../photonomix.constants";
+import * as Photons from "../game/photons";
 import {rotate} from "../photonomix.util";
 import {offscreen, screenSpace, updateCompositeOperation} from "./";
 const {vec2, lerp} = vectrix.vectors;
@@ -333,6 +334,7 @@ export const draw = (function() {
 		darkCtx.clearRect(0, 0, darkBuffer.width, darkBuffer.height);
 		frameCount = timing.frameCount;
 		let mask = sprites.ui.get("mask");
+		Photons.forEach(drawPhoton);
 		for(i = 0, l = state.entities.length; i < l; ++i) {
 			entity = state.entities[i];
 			px = screenSpace(entity.pos[0]);

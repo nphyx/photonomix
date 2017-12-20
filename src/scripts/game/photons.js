@@ -25,6 +25,8 @@ const BUFFER_POOL = new BufferPool(BUFFER_LENGTH, MAX_PHOTONS);
 const ACTIVE_LIST = new BooleanArray(MAX_PHOTONS);
 const objectPool = Array(MAX_PHOTONS);
 
+export const STORED_PHOTONS = new Uint32Array(3);
+
 function nextInactive() {
 	let i = 0, len = ACTIVE_LIST.length;
 	for(; i < len; ++i) if(!ACTIVE_LIST.get(i)) return i;
@@ -40,25 +42,23 @@ export function create(ipos, ivel, color) {
 
 export function destroy(o) {
 	ACTIVE_LIST.set(o, false);
-	objectPool[o].clean();
+	clean(o);
 }
 
-export function tick() {
+export function tick(surrounding, delta) {
 	let i = 0, len = ACTIVE_LIST.length;
 	for(; i < len; ++i) if(ACTIVE_LIST.get(i)) {
-		objectPool[i].tick();
+		objectPool[i].tick(surrounding, delta);
+		if(objectPool[i].lifetime <= 0) destroy(i);
 	}
 }
 
-Photon.prototype.tick = (() => {
-	let tmpvec = vec2(), pos, vel;
-	return function(surrounding, delta) {
-		if(this.lifetime > 0) this.lifetime--;
-		pos = this.pos; vel = this.vel;	
-		mut_plus(pos, times(vel, delta, tmpvec));
-		mut_plus(vel, drag(vel, GLOBAL_DRAG));
+export function forEach(cb) {
+	let i = 0, len = ACTIVE_LIST.length;
+	for(; i < len; ++i) if(ACTIVE_LIST.get(i)) {
+		cb(objectPool[i]);
 	}
-})();
+}
 
 export function init() {
 	for(let i = 0; i < MAX_PHOTONS; ++i) {
@@ -95,10 +95,20 @@ Photon.prototype.init = function(ipos, ivel, color) {
 	this.pulse = ~~(TARGET_FPS*random());
 }
 
-Photon.prototype.clean = function() {
-	this.pos.fill(0.0);
-	this.vel.fill(0.0);
-	this.intVals.fill(0);
+Photon.prototype.tick = (() => {
+	let tmpvec = vec2(), pos, vel;
+	return function(surrounding, delta) {
+		if(this.lifetime > 0) this.lifetime--;
+		pos = this.pos; vel = this.vel;	
+		mut_plus(pos, times(vel, delta, tmpvec));
+		mut_plus(vel, drag(vel, GLOBAL_DRAG));
+	}
+})();
+
+function clean(o) {
+	objectPool[o].pos.fill(0.0);
+	objectPool[o].vel.fill(0.0);
+	objectPool[o].intVals.fill(0);
 }
 
 Photon.prototype.destroy = function() {

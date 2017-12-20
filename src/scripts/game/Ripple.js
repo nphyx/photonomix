@@ -3,7 +3,7 @@ import * as vectrix from  "@nphyx/vectrix";
 import {gravitate} from "../photonomix.util";
 let {vec2, mut_times, distance} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
-import * as photons from "./photons";
+import * as Photons from "./photons";
 import Void from "./Void";
 
 /**
@@ -24,18 +24,19 @@ Ripple.prototype.tick = function(entities) {
 		this.storedMass = 0;
 	}
 	else this.mass--;
+	Photons.forEach((photon) => {
+		a_dist = distance(this.pos, photon.pos);
+		if(a_dist < 0.01) photon.lifetime = 0;
+		else mut_plus(photon.vel, mut_times(
+			gravitate(photon.pos, this.pos, this.mass*20, scratchVec1),
+			1/photon.mass));
+	});
 	for(i = 0, len = entities.length; i < len; ++i) {
 		entity = entities[i];
 		if(entity === this) continue;
 		a_dist = distance(this.pos, entity.pos);
-		if(entity instanceof photons.Photon) {
-			if(a_dist < 0.01) entity.lifetime = 0;
-			else mut_plus(entity.vel, mut_times(
-				gravitate(entity.pos, this.pos, this.mass*20, scratchVec1),
-				1/entity.mass));
-		}
 		// check for stored mass so they don't just swap back and forth forever
-		else if(entity instanceof Ripple && !entity.storedMass) {
+		if(entity instanceof Ripple && !entity.storedMass) {
 			if(a_dist < 0.005 && a_dist > 0.001) {
 				this.storedMass++;
 				entity.mass--;

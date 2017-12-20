@@ -15,14 +15,13 @@ import {controls} from "@nphyx/pxene";
 import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS, PREGNANT_TIME, DEATH_THRESHOLD,
 	POSITIVE_ENERGY, NEGATIVE_ENERGY} from "../photonomix.constants";
 const {minus} = vectrix.matrices;
-const {vec2, vec3, mut_copy} = vectrix.vectors;
+const {vec2, mut_copy} = vectrix.vectors;
 const marks = new Uint16Array(MAX_MOTES+MAX_PHOTONS+100);
 let {random} = Math;
 let markpos = 0;
 let mark = 0;
 
 const ENTITY_TYPES = {};
-const STORED_PHOTONS = vec3();
 
 export {Mote, Void, Emitter, Marker, Photon, AntiGravitonCluster, Ripple};
 
@@ -42,11 +41,11 @@ registerType("marker", Marker);
 registerType("ripple", Ripple);
 registerType("antiGravitonCluster", AntiGravitonCluster);
 ENTITY_TYPES.randomMote = Mote.random;
-ENTITY_TYPES.photon = Photons.create;
 
 export function Game() {
+	this.photons = Photons;
+	this.photons.init();
 	controls.map("ripple", "mouse0");
-	Photons.init();
 	this.entities = [];
 	this.stats = {
 		pop:0,
@@ -85,6 +84,7 @@ Game.prototype.tick = (function() {
 		this.stats.target = 0;
 		this.stats.pop = 0;
 		tick_delta = delta/TARGET_FPS;
+		this.photons.tick(this.entities, tick_delta, frameCount);
 		for(i = 0, len = entities.length; i < len; ++i) {
 			entity = entities[i];
 			entity.tick(this.entities, tick_delta, frameCount);
@@ -94,7 +94,8 @@ Game.prototype.tick = (function() {
 				if(entity.target) this.stats.target++;
 				if(entity.injured) {
 					if(frameCount % ~~(TARGET_FPS*0.1) === 0) {
-						this.entities.push(entity.bleed());
+						//this.entities.push(entity.bleed());
+						entity.bleed();
 					}
 				}
 				// mark dead for removal
@@ -109,6 +110,7 @@ Game.prototype.tick = (function() {
 					this.stats.born++;
 				}
 			}
+			/*
 			else if(entity instanceof Photons.Photon) {
 				if(entity.lifetime <= 0) {
 					marks[markpos] = i;
@@ -116,6 +118,7 @@ Game.prototype.tick = (function() {
 					markpos++;
 				}
 			}
+			*/
 			else if(entity instanceof Ripple) {
 				if(entity.mass > 250) {
 					this.spawn("void", entity.pos, [0,0], 100);
@@ -169,7 +172,7 @@ Game.prototype.emitPhoton = (function() {
 		}
 		color = color||~~(random()*3);
 		mut_copy(pos, ipos);
-		this.spawn("photon", pos, vel, color);
+		this.photons.create(pos, vel, color);
 		p_c++;
 		return color;
 	}

@@ -2,7 +2,8 @@
 import * as vectrix from  "@nphyx/vectrix";
 import {TARGET_FPS, GLOBAL_DRAG, EMITTER_SIZE} from "../photonomix.constants";
 import {rotate, drag, gravitate, avoid, norm_ratio} from "../photonomix.util";
-import * as photons from "./photons";
+import * as Photons from "./photons";
+import Ripple from "./Ripple";
 let {vec2, vec3, times, mut_times, distance} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
 let {random, sqrt, ceil, min, PI} = Math;
@@ -41,7 +42,7 @@ Emitter.prototype.tick = function(entities, delta, frameCount) {
 		if(frameCount % targetFrame === 0) {
 			while((emissionsPerFrame-- > 0) && this.mass > 0) {
 				this.mass--;
-				entities.push(this.emitPhoton());
+				this.emitPhoton();
 			}
 		}
 	}
@@ -52,6 +53,12 @@ Emitter.prototype.tick = function(entities, delta, frameCount) {
 	// avoid edge
 	mut_plus(this.vel, avoid(this.vel, this.pos, POS_C, 1.3, 0.001, scratchVec1));
 
+	Photons.forEach((photon) => {
+		mut_plus(photon.vel, mut_times(
+			gravitate(photon.pos, this.pos, -this.mass*photon.mass, scratchVec1),
+			1/photon.mass)
+		);
+	});
 	for(i = 0, len = entities.length; i < len; ++i) {
 		entity = entities[i];
 		if(entity === this) continue;
@@ -62,7 +69,7 @@ Emitter.prototype.tick = function(entities, delta, frameCount) {
 				1/entity.mass)
 			);
 		}
-		else {
+		else if(!(entity instanceof Ripple))  {
 			mut_plus(entity.vel, mut_times(
 				gravitate(entity.pos, this.pos, -this.mass*entity.mass, scratchVec1),
 				1/entity.mass)
@@ -72,7 +79,7 @@ Emitter.prototype.tick = function(entities, delta, frameCount) {
 }
 
 Emitter.prototype.emitPhoton = (function() {
-	let pos = vec2(), radians = 0.0, mim = 0.0, color = 0|0;
+	let pos = vec2(), vel = vec2(), radians = 0.0, mim = 0.0, color = 0|0;
 	return function emitPhoton() {
 		color = this.next;
 		pos[0] = this.size/5;
@@ -83,8 +90,7 @@ Emitter.prototype.emitPhoton = (function() {
 		radians = radians + (mim%this.arms)*(2/this.arms); // split across arms
 		mut_plus(rotate(pos, this.pos, radians, pos), this.pos);
 		this.next = getColor(this.ratios);
-		// introduce some jitter
-		return(photons.create(pos, vec2(0,0), color));
+		Photons.create(pos, vel, color);
 	}
 })();
 

@@ -2,7 +2,7 @@
 import * as vectrix from  "@nphyx/vectrix";
 import {gravitate, drag, outOfBounds, limitVecMut, avoid} from  "../photonomix.util";
 import {Mote, Emitter, AntiGravitonCluster} from "./";
-import * as photons from "./photons";
+import * as Photons from "./photons";
 const {vec2, times, mut_times, distance} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
 import {VOID_SIZE, GLOBAL_DRAG} from "../photonomix.constants";
@@ -43,20 +43,27 @@ Void.prototype.tick = function(entities, delta) {
 	mut_plus(this.vel, drag(this.vel, GLOBAL_DRAG));
 	limitVecMut(this.vel, 0, 1);
 
+	Photons.forEach((photon) => {
+		a_dist = distance(this.pos, photon.pos);
+		if(a_dist < this.size) {
+			photon.lifetime = photon.lifetime - 1;
+			if(photon.lifetime === 0 || a_dist < this.size*0.6) {
+				this.mass = this.mass + 1;
+				this.lastMeal = photon.color;
+				this.eatTime = 15;
+				photon.lifetime = 0;
+			}
+		}
+		if(photon.lifetime > 0) mut_plus(photon.vel, mut_times(
+			gravitate(photon.pos, this.pos, photon.mass*this.mass, scratchVec1), 
+			(1/photon.mass))
+		);
+	});
 	for(i = 0, len = entities.length; i < len; ++i) {
 		entity = entities[i];
 		if(entity === this) continue;
 		a_dist = distance(this.pos, entity.pos);
 
-		if(entity instanceof photons.Photon && a_dist < this.size) {
-			entity.lifetime = entity.lifetime - 1;
-			if(entity.lifetime === 0 || a_dist < this.size*0.6) {
-				this.mass = this.mass + 1;
-				this.lastMeal = entity.color;
-				this.eatTime = 15;
-				entity.lifetime = 0;
-			}
-		}
 		if(entity instanceof Mote && a_dist < this.size*0.6) {
 			// probablistic injury, so they don't get shredded instantly
 			if((random()*30*a_dist) < 1) entity.injured = entity.injured + 1;

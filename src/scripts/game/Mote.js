@@ -313,6 +313,29 @@ Mote.prototype.search = (function() {
 			highest = Infinity;
 		}
 
+		// check out photons
+		Photons.forEach((photon) => {
+			if(photon.lifetime < 4) return;
+			deltar = (this.prefs[COLOR_R] - this.ratios[COLOR_R]);	
+			deltag = (this.prefs[COLOR_G] - this.ratios[COLOR_G]);	
+			deltab = (this.prefs[COLOR_B] - this.ratios[COLOR_B]);	
+			maxd = max(deltar, deltag, deltab);
+			mind = min(deltar, deltag, deltab);
+			if((maxd == deltar && photon.color == COLOR_R) ||
+					(maxd == deltag && photon.color == COLOR_G) ||
+					(maxd == deltab && photon.color == COLOR_B)) weight = 30;
+			if((mind == deltar && photon.color == COLOR_R) ||
+					(mind == deltag && photon.color == COLOR_G) ||
+					(mind == deltab && photon.color == COLOR_B)) weight = 10;
+			else weight = 20;
+			cur = weight*(1/dist);
+			if(cur > highest) {
+				this.target = photon;
+				this.action = ACT_CHASE;
+				highest = cur;
+			}
+		});
+
 		for(i = 0, len = entities.length; (i < len) && (highest < Infinity); ++i) {
 			entity = entities[i];
 			let dist = this.validateTarget(entity);
@@ -333,26 +356,6 @@ Mote.prototype.search = (function() {
 				this.target = entity;
 				this.action = ACT_AVOID;
 				highest = Infinity;
-			}
-			else if(entity instanceof Photons.Photon && entity.lifetime > 3) {
-				deltar = (this.prefs[COLOR_R] - this.ratios[COLOR_R]);	
-				deltag = (this.prefs[COLOR_G] - this.ratios[COLOR_G]);	
-				deltab = (this.prefs[COLOR_B] - this.ratios[COLOR_B]);	
-				maxd = max(deltar, deltag, deltab);
-				mind = min(deltar, deltag, deltab);
-				if((maxd == deltar && entity.color == COLOR_R) ||
-						(maxd == deltag && entity.color == COLOR_G) ||
-						(maxd == deltab && entity.color == COLOR_B)) weight = 30;
-				if((mind == deltar && entity.color == COLOR_R) ||
-						(mind == deltag && entity.color == COLOR_G) ||
-						(mind == deltab && entity.color == COLOR_B)) weight = 10;
-				else weight = 20;
-				cur = weight*(1/dist);
-				if(cur > highest) {
-					this.target = entity;
-					this.action = ACT_CHASE;
-					highest = cur;
-				}
 			}
 		}
 		if(highest < 0) return false;
@@ -462,7 +465,7 @@ Mote.prototype.bleed = (function() {
 		mut_copy(pvel, this.vel);
 		mut_times(pvel, -1);
 		this.needsUpdate = 1;
-		return Photons.create(this.pos, pvel, choice);
+		Photons.create(this.pos, pvel, choice);
 		//return choice;
 	}
 })();
