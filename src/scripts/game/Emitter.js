@@ -11,14 +11,13 @@ const POS_C = vec2(0,0);
 /**
  * Emitters are "white holes" that spit out photons on a fixed schedule until depleted.
  */
-export default function Emitter(ipos = vec2(), ivel = vec2(), mass = 1, photonPool = undefined, arms = undefined, ratios = vec3(1, 1, 1)) {
+export default function Emitter(ipos = vec2(), ivel = vec2(), mass = 1, arms = undefined, ratios = vec3(1, 1, 1)) {
 	this.pos = vec2(ipos);
 	this.vel = vec2(ivel);
 	this.ratios = norm_ratio(ratios);
 	this.birthMass = mass;
 	this.mass = 1;
 	this.initialMass = mass;
-	this.photonPool = photonPool;
 	this.arms = arms||(ceil(random()*random()*50));
 	this.size = 0;
 	this.next = ~~(random()*3);
@@ -85,7 +84,7 @@ Emitter.prototype.emitPhoton = (function() {
 		mut_plus(rotate(pos, this.pos, radians, pos), this.pos);
 		this.next = getColor(this.ratios);
 		// introduce some jitter
-		return(new Photon(pos, vec2(0,0), color, this.photonPool));
+		return(new Photon(pos, vec2(0,0), color));
 	}
 })();
 

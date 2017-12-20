@@ -1,14 +1,13 @@
 "use strict";
-import Mote, {BUFFER_LENGTH as MOTE_BUFFER_LENGTH} from "./Mote";
+import Mote from "./Mote";
 import Void from "./Void";
 import Emitter from "./Emitter";
 import Marker from "./Marker";
-import Photon, {BUFFER_LENGTH as PHOTON_BUFFER_LENGTH} from "./Photon";
+import Photon from "./Photon";
 import AntiGravitonCluster from "./AntiGravitonCluster";
 export {Mote, Void, Emitter, Marker, Photon, AntiGravitonCluster};
 
 import {rotate, outOfBounds} from "../photonomix.util";
-import {BufferPool} from "../photonomix.bufferPools";
 import * as vectrix from  "@nphyx/vectrix";
 import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS, PREGNANT_TIME, DEATH_THRESHOLD,
 	POSITIVE_ENERGY, NEGATIVE_ENERGY} from "../photonomix.constants";
@@ -18,6 +17,24 @@ const marks = new Uint16Array(MAX_MOTES+MAX_PHOTONS+100);
 let {random} = Math;
 let markpos = 0;
 let mark = 0;
+
+const ENTITY_TYPES = {};
+
+/**
+ * TODO: change these functions out with proper factories.
+ */
+export function registerType(name, constructor) {
+	ENTITY_TYPES[name] = function() {
+		return new (Function.prototype.bind.apply(constructor, arguments))();
+	}
+}
+
+registerType("mote", Mote);
+registerType("void", Void);
+registerType("emitter", Emitter);
+registerType("marker", Marker);
+registerType("photon", Photon);
+registerType("antiGravitonCluster", AntiGravitonCluster);
 
 export function Game() {
 	this.entities = [];
@@ -35,10 +52,8 @@ export function Game() {
 }
 
 Game.prototype.start = function() {
-	this.motePool = new BufferPool(MOTE_BUFFER_LENGTH, MAX_MOTES);
-	this.photonPool = new BufferPool(PHOTON_BUFFER_LENGTH, MAX_PHOTONS);
 	for(let i = 0; i < START_POP; ++i) {
-		this.entities.push(new Mote.random(this.motePool))
+		this.entities.push(new Mote.random())
 	}
 	this.started = Date.now();
 }
@@ -61,7 +76,7 @@ Game.prototype.tick = (function() {
 				if(entity.target) this.stats.target++;
 				if(entity.injured) {
 					if(frameCount % ~~(TARGET_FPS*0.1) === 0) {
-						this.entities.push(entity.bleed(this.photonPool));
+						this.entities.push(entity.bleed());
 					}
 				}
 				// mark dead for removal
@@ -125,17 +140,25 @@ Game.prototype.emitPhoton = (function() {
 		}
 		color = color||~~(random()*3);
 		mut_copy(pos, ipos);
-		this.entities.push(new Photon(pos, vel, color, this.photonPool));
+		this.entities.push(new Photon(pos, vel, color));
 		p_c++;
 		return color;
 	}
 })();
 
+Game.prototype.spawn = function() {
+	let args = Array.prototype.slice.apply(arguments);
+	let type = args.shift();
+	if(ENTITY_TYPES[type]) {
+		this.entities.push(ENTITY_TYPES[type].apply(null, arguments));
+	}
+}
+
 Game.prototype.killMote = (function() {
 	let sum = 0|0, c = 0|0, i = 0|0, pos = vec2(), r = 0|0, g = 0|0, b = 0|0;
 	return function killMote(mote) {
 		if(random() < POSITIVE_ENERGY) {
-			this.entities.push(new Emitter(mote.pos, mote.vel, ~~(DEATH_THRESHOLD*10*random()), this.photonPool, undefined, mote.ratios));
+			this.entities.push(new Emitter(mote.pos, mote.vel, ~~(DEATH_THRESHOLD*10*random()), undefined, mote.ratios));
 		}
 		else if(random() < NEGATIVE_ENERGY) {
 			this.entities.push(new Void(mote.pos, mote.vel, ~~(DEATH_THRESHOLD*10*random()))); 

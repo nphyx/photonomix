@@ -1,11 +1,12 @@
 "use strict";
 let {random, max, min, floor, ceil, sin} = Math;
 import {TARGET_FPS, MOTE_BASE_SPEED, MOTE_BASE_SIZE, MOTE_BASE_SIGHT, PREGNANT_THRESHOLD, 
-				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG} from "../photonomix.constants";
+				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG, MAX_MOTES} from "../photonomix.constants";
 import * as vectrix from "@nphyx/vectrix";
-import {avoid, accelerate, drag, twiddleVec, ratio, adjRand, posneg, outOfBounds, rotate, norm_ratio} from "../photonomix.util";
+import {avoid, accelerate, drag, twiddleVec, adjRand, posneg, outOfBounds, rotate, norm_ratio} from "../photonomix.util";
 const {vec2, times, mut_clamp, magnitude, distance, mut_copy, mut_times} = vectrix.vectors;
 const {plus, mut_plus} = vectrix.matrices;
+import {BufferPool} from "../photonomix.bufferPools";
 import Photon, {COLOR_R, COLOR_G, COLOR_B} from "./Photon";
 import Void from "./Void";
 const clamp = mut_clamp;
@@ -76,6 +77,8 @@ export const BUFFER_LENGTH = F32_BYTE_OFFSET + (FLOAT_VAL_LENGTH*F32);
 // scratch vectors used in various functions
 const scratch1 = vec2(), scratch2 = vec2();
 
+const MOTE_POOL = new BufferPool(BUFFER_LENGTH, MAX_MOTES);
+
 
 /**
  * Constructor for Motes.
@@ -85,7 +88,6 @@ const scratch1 = vec2(), scratch2 = vec2();
  * @param {Float} bSight (optional) base vision radius: inheritance and predesigned motes 
  * @param {Float} bAgro (optional) base aggressiveness: inheritance and predesigned motes 
  * @param {Float} bFear (optional) base fearfulness: inheritance and predesigned motes 
- * @param {BufferPool} pool (optional) buffer pool to build the mote on
  * @property {vec2} pos position vector
  * @property {vec2} vel velocity vector
  * @property {Uint8} r red photon value (setter updates values and derived props)
@@ -116,16 +118,9 @@ const scratch1 = vec2(), scratch2 = vec2();
  * @property {Float32Array} floatVals direct access to float value array (for debug)
  * @return {Mote}
  */
-export default function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), pool = undefined, bSpeed = MOTE_BASE_SPEED, bSight = MOTE_BASE_SIGHT, bAgro = 1.0, bFear = 1.0) {
-	let buffer, offset = 0|0;
-	if(pool) {
-		buffer = pool.buffer;
-		offset = pool.allocate();
-	}
- 	else {
-		buffer = new ArrayBuffer(BUFFER_LENGTH);
-		offset = 0;
-	}
+export default function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), bSpeed = MOTE_BASE_SPEED, bSight = MOTE_BASE_SIGHT, bAgro = 1.0, bFear = 1.0) {
+	let buffer = MOTE_POOL.buffer,
+			offset = MOTE_POOL.allocate();
 
 	// "private" properties
 	// use a single buffer for properties so that they're guaranteed to be contiguous
@@ -173,7 +168,6 @@ export default function Mote(_photons = new Uint8Array(3), pos = new Float32Arra
 		"base_sight":{get: () => bSight},
 		"base_agro":{get: () => bAgro},
 		"base_fear":{get: () => bFear},
-		"pool":{get: () => pool},
 		"offset":{get: () => offset},
 		"ratios":{get: () => ratios},
 		"prefs":{get: () => prefs}
@@ -447,7 +441,7 @@ Mote.prototype.injure = function(by, strength) {
 
 Mote.prototype.bleed = (function() {
 	let choice = 0|0, choiceVal = 0|0, pvel = vec2(), photons;
-	return function bleed(photonPool) {
+	return function bleed() {
 		photons = this.photons;
 		do {
 			choice = ~~(random()*3);
@@ -467,7 +461,7 @@ Mote.prototype.bleed = (function() {
 		mut_copy(pvel, this.vel);
 		mut_times(pvel, -1);
 		this.needsUpdate = 1;
-		return new Photon(this.pos, pvel, choice, photonPool);
+		return new Photon(this.pos, pvel, choice);
 		//return choice;
 	}
 })();
@@ -478,7 +472,7 @@ Mote.prototype.split = (function() {
 		photons = this.photons;
 		baby = new Mote(
 			[floor(photons[COLOR_R]/2), floor(photons[COLOR_G]/2), floor(photons[COLOR_B]/2)],
-			this.pos, this.pool, this.base_speed, this.base_sight, this.base_agro, 
+			this.pos, this.base_speed, this.base_sight, this.base_agro, 
 			this.base_fear);
 		photons[COLOR_R] = ceil(photons[COLOR_R]/2);
 		photons[COLOR_G] = ceil(photons[COLOR_G]/2);
@@ -517,10 +511,9 @@ const rpos = new Float32Array(2);
 const rphotons = new Uint8ClampedArray(3);
 /**
  * Generates mote with randomized position and photon values.
- * @param {BufferPool} pool storage pool
  * @return {Mote}
  */
-Mote.random = function(pool) {
+Mote.random = function() {
 	do {
 		rpos[0] = random()*posneg();
 		rpos[1] = random()*posneg();
@@ -529,9 +522,9 @@ Mote.random = function(pool) {
 	rphotons[0] = ~~(random()*64);
 	rphotons[1] = ~~(random()*64);
 	rphotons[2] = ~~(random()*64);
-	return new Mote(rphotons, rpos, pool);
+	return new Mote(rphotons, rpos);
 }
 
 Mote.prototype.destroy = function() {
-	this.pool.free(this.offset);
+	MOTE_POOL.free(this.offset);
 }

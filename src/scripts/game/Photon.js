@@ -1,7 +1,8 @@
 "use strict";
 import * as vectrix from "@nphyx/vectrix";
+import {BufferPool} from "../photonomix.bufferPools";
 import {drag} from "../photonomix.util";
-import {TARGET_FPS, GLOBAL_DRAG, PHOTON_LIFETIME, PHOTON_BASE_SIZE} from "../photonomix.constants";
+import {TARGET_FPS, GLOBAL_DRAG, PHOTON_LIFETIME, PHOTON_BASE_SIZE, MAX_PHOTONS} from "../photonomix.constants";
 let {vec2, times} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
 const {random} = Math;
@@ -16,19 +17,13 @@ const O_LIFE = O_COLOR + I8;
 const O_MASS = O_LIFE + I8;
 const U8_LENGTH = O_MASS + I8;
 export const BUFFER_LENGTH = (FLOAT_LENGTH + U8_LENGTH) + (F32 - (FLOAT_LENGTH + U8_LENGTH)%F32);
-
 export const COLOR_R = 0, COLOR_G = 1, COLOR_B = 2;
-export default function Photon(ipos, ivel, color, pool = undefined) {
-	let buffer;
-	this.pool = pool;
-	if(pool) {
-		buffer = pool.buffer;
-		this.offset = pool.allocate();
-	}
- 	else {
-		buffer = new ArrayBuffer(BUFFER_LENGTH);
-		this.offset = 0;
-	}
+
+const BUFFER_POOL = new BufferPool(BUFFER_LENGTH, MAX_PHOTONS);
+
+export default function Photon(ipos, ivel, color) {
+	let buffer = BUFFER_POOL.buffer;
+	this.offset = BUFFER_POOL.allocate();
 	this.pos = vec2(ipos[0], ipos[1], buffer, O_POS+this.offset);
 	this.vel = vec2(ivel[0], ivel[1], buffer, O_VEL+this.offset);
 	this.intVals = new Uint8ClampedArray(buffer, FLOAT_LENGTH+this.offset, U8_LENGTH);
@@ -45,15 +40,16 @@ export default function Photon(ipos, ivel, color, pool = undefined) {
 	this.pulse = ~~(TARGET_FPS*random());
 }
 
-let tmpvec = vec2(), pos, vel;
-Photon.prototype.tick = function(surrounding, delta) {
-	if(this.lifetime > 0) this.lifetime--;
-	pos = this.pos; vel = this.vel;	
-	mut_plus(pos, times(vel, delta, tmpvec));
-	mut_plus(vel, drag(vel, GLOBAL_DRAG));
-}
+Photon.prototype.tick = (() => {
+	let tmpvec = vec2(), pos, vel;
+	return function(surrounding, delta) {
+		if(this.lifetime > 0) this.lifetime--;
+		pos = this.pos; vel = this.vel;	
+		mut_plus(pos, times(vel, delta, tmpvec));
+		mut_plus(vel, drag(vel, GLOBAL_DRAG));
+	}
+})();
 
 Photon.prototype.destroy = function() {
-	if(this.pool) this.pool.free(this.offset);
-	else throw new Error("called photon.destroy, but photon has no pool");
+	BUFFER_POOL.free(this.offset);
 }

@@ -8,13 +8,12 @@ import {TARGET_FPS, MOTE_BASE_SIZE, GLOBAL_DRAG} from "../photonomix.constants";
 const {random, sqrt, PI, ceil, min, max} = Math;
 const POS_C = vec2(0,0);
 
-export default function AntiGravitonCluster(ipos = vec2(), ivel = vec2(), mass = 1, photonPool = undefined) {
+export default function AntiGravitonCluster(ipos = vec2(), ivel = vec2(), mass = 1) {
 	this.pos = vec2(ipos);
 	this.vel = vec2(ivel);
 	this.size = 0;
 	this.birthMass = this.initialMass = mass;
 	this.mass = 1;
-	this.photonPool = photonPool;
 	this.instability = 0;
 	this.size = 0;
 	return this;
@@ -83,6 +82,6 @@ AntiGravitonCluster.prototype.emitPhoton = (function() {
 		mut_plus(pos, rot);
 		// introduce some jitter
 		mut_plus(vel, accelerate(this.pos, pos, this.size*2, scratch));
-		return(new Photon(pos, vel, color, this.photonPool));
+		return(new Photon(pos, vel, color));
 	}
 })();
