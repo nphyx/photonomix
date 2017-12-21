@@ -1,19 +1,19 @@
 "use strict";
-import Mote from "./Mote";
 import Void from "./Void";
 import Emitter from "./Emitter";
 import Marker from "./Marker";
+import * as Motes from "./motes";
 import * as Photons from "./photons";
 import Ripple from "./Ripple";
 import {gameSpaceVec} from "../draw";
 import AntiGravitonCluster from "./AntiGravitonCluster";
 const Photon = Photons.Photon;
+const Mote = Motes.Mote;
 
 import {rotate, outOfBounds} from "../photonomix.util";
 import * as vectrix from  "@nphyx/vectrix";
 import {controls} from "@nphyx/pxene";
-import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS, PREGNANT_TIME, DEATH_THRESHOLD,
-	POSITIVE_ENERGY, NEGATIVE_ENERGY} from "../photonomix.constants";
+import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS} from "../photonomix.constants";
 const {minus} = vectrix.matrices;
 const {vec2, mut_copy} = vectrix.vectors;
 const marks = new Uint16Array(MAX_MOTES+MAX_PHOTONS+100);
@@ -34,17 +34,17 @@ export function registerType(name, constructor) {
 	}
 }
 
-registerType("mote", Mote);
 registerType("void", Void);
 registerType("emitter", Emitter);
 registerType("marker", Marker);
 registerType("ripple", Ripple);
 registerType("antiGravitonCluster", AntiGravitonCluster);
-ENTITY_TYPES.randomMote = Mote.random;
 
 export function Game() {
 	this.photons = Photons;
 	this.photons.init();
+	this.motes = Motes;
+	this.motes.init();
 	controls.map("ripple", "mouse0");
 	this.entities = [];
 	this.stats = {
@@ -62,7 +62,7 @@ export function Game() {
 
 Game.prototype.start = function() {
 	for(let i = 0; i < START_POP; ++i) {
-		this.spawn("randomMote");
+		Motes.createRandom();
 	}
 	this.started = Date.now();
 }
@@ -85,11 +85,13 @@ Game.prototype.tick = (function() {
 		this.stats.pop = 0;
 		tick_delta = delta/TARGET_FPS;
 		this.photons.tick(this.entities, tick_delta, frameCount);
+		this.motes.tick(this.entities, tick_delta, frameCount);
 		for(i = 0, len = entities.length; i < len; ++i) {
 			entity = entities[i];
 			entity.tick(this.entities, tick_delta, frameCount);
 			// do mote-specific stuff
-			if(entity instanceof Mote) {
+			if(entity instanceof Motes.Mote) {
+				/*
 				this.stats.pop++;
 				if(entity.target) this.stats.target++;
 				if(entity.injured) {
@@ -109,16 +111,19 @@ Game.prototype.tick = (function() {
 					this.entities.push(entity.split());
 					this.stats.born++;
 				}
+				*/
+				throw new Error("Motes should no longer end up in the general entity pool");
 			}
-			/*
 			else if(entity instanceof Photons.Photon) {
+				/*
 				if(entity.lifetime <= 0) {
 					marks[markpos] = i;
 					STORED_PHOTONS[entity.color]++;
 					markpos++;
 				}
+				 */
+				throw new Error("Photon should no longer end up in the general entity pool");
 			}
-			*/
 			else if(entity instanceof Ripple) {
 				if(entity.mass > 250) {
 					this.spawn("void", entity.pos, [0,0], 100);
@@ -158,7 +163,7 @@ Game.prototype.tick = (function() {
 	}
 })();
 
-Game.prototype.emitPhoton = (function() {
+export const emitPhoton = (function() {
 	let pos = vec2(), vel = vec2(), center = vec2(), p_c = 0, 
 		base_vel = vec2(0.05, 0.05);
 	return function emitPhoton(ipos, ivel, color, count = p_c, max = 12) {
@@ -172,7 +177,7 @@ Game.prototype.emitPhoton = (function() {
 		}
 		color = color||~~(random()*3);
 		mut_copy(pos, ipos);
-		this.photons.create(pos, vel, color);
+		Photons.create(pos, vel, color);
 		p_c++;
 		return color;
 	}
@@ -185,31 +190,6 @@ Game.prototype.spawn = function() {
 		this.entities.push(ENTITY_TYPES[type].apply(null, arguments));
 	}
 }
-
-Game.prototype.killMote = (function() {
-	let sum = 0|0, c = 0|0, i = 0|0, pos = vec2(), r = 0|0, g = 0|0, b = 0|0;
-	return function killMote(mote) {
-		if(random() < POSITIVE_ENERGY) {
-			this.entities.push(new Emitter(mote.pos, mote.vel, ~~(DEATH_THRESHOLD*10*random()), undefined, mote.ratios));
-		}
-		else if(random() < NEGATIVE_ENERGY) {
-			this.entities.push(new Void(mote.pos, mote.vel, ~~(DEATH_THRESHOLD*10*random()))); 
-		}
-		else {
-			mut_copy(pos, mote.pos);
-			r = mote.photons[0];
-			g = mote.photons[1];
-			b = mote.photons[2];
-			sum = r+b+g;
-			c = 0;
-			for(i = 0; i < sum; ++i) {
-				if(r === i) c = 1;
-				if(r+g === i) c = 2;
-				this.emitPhoton(pos, undefined, c, i, sum);
-			}
-		}
-	}
-})();
 
 /**
  * Actions are callbacks accepting the following parameters:

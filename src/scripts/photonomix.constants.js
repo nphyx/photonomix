@@ -32,6 +32,7 @@ export const DEBUG = false;
 // infinite or NaN results; when enabled, vectors are checked and if invalid
 // the function is rerun step by step and logged to identify trouble spots
 export const VALIDATE_VECTORS = DEBUG || true;
+export const VALIDATE_VECTORS_DEBUG = DEBUG;// || true;
 
 let type;
 if(typeof(SharedArrayBuffer) !== "undefined") {

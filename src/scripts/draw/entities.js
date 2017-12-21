@@ -6,13 +6,13 @@ import * as vectrix from  "@nphyx/vectrix";
 import * as sprites from "./sprites";
 import * as constants from "../photonomix.constants";
 import * as Photons from "../game/photons";
+import * as Motes from "../game/motes";
 import {rotate} from "../photonomix.util";
 import {offscreen, screenSpace, updateCompositeOperation} from "./";
 const {vec2, lerp} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
-import {Photon, Mote, Void, Emitter, AntiGravitonCluster, Ripple} from "../game";
+import {Void, Emitter, AntiGravitonCluster, Ripple} from "../game";
 import {COLOR_R, COLOR_G, COLOR_B} from "../game/photons";
-import {ACT_ATTACK} from "../game/Mote";
 
 let {min, cos, sin, sqrt, tan, round, PI} = Math;
 const tf = constants.TARGET_FPS;
@@ -113,7 +113,7 @@ const drawMote = (function() {
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-sch, py-sch, sc, sc);
 		sprite = sprites.motes.getCenter();
 		lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px-sch, py-sch, sc, sc);
-		if(entity.target && entity.action == ACT_ATTACK) {
+		if(entity.target && entity.action == Motes.ACT_ATTACK) {
 			// need vectors but in screen space, not absolute space
 			plasmaSource[0] = px;
 			plasmaSource[1] = py;
@@ -335,13 +335,12 @@ export const draw = (function() {
 		frameCount = timing.frameCount;
 		let mask = sprites.ui.get("mask");
 		Photons.forEach(drawPhoton);
+		Motes.forEach(drawMote);
 		for(i = 0, l = state.entities.length; i < l; ++i) {
 			entity = state.entities[i];
 			px = screenSpace(entity.pos[0]);
 			py = screenSpace(entity.pos[1]);
 			if(offscreen(px, py)) continue;
-			if(entity instanceof Mote) drawMote(entity);
-			else if(entity instanceof Photon) drawPhoton(entity);
 			else if(entity instanceof Void) drawVoid(entity);
 			else if(entity instanceof Emitter) drawEmitter(entity);
 			else if(entity instanceof AntiGravitonCluster) drawAntiGravitonCluster(entity);

@@ -1,8 +1,9 @@
 "use strict";
 import * as vectrix from  "@nphyx/vectrix";
 import {gravitate, drag, outOfBounds, limitVecMut, avoid} from  "../photonomix.util";
-import {Mote, Emitter, AntiGravitonCluster} from "./";
+import {Emitter, AntiGravitonCluster} from "./";
 import * as Photons from "./photons";
+import * as Motes from "./motes";
 const {vec2, times, mut_times, distance} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
 import {VOID_SIZE, GLOBAL_DRAG} from "../photonomix.constants";
@@ -59,15 +60,23 @@ Void.prototype.tick = function(entities, delta) {
 			(1/photon.mass))
 		);
 	});
+
+	Motes.forEach((mote) => {
+		a_dist = distance(this.pos, mote.pos);
+		if(a_dist < this.size*0.6) {
+			// probablistic injury, so they don't get shredded instantly
+			if((random()*30*a_dist) < 1) mote.injured = mote.injured + 1;
+		}
+		mut_plus(mote.vel, mut_times(
+			gravitate(mote.pos, this.pos, mote.mass*this.mass, scratchVec1), 
+			(1/mote.mass))
+		);
+	});
+
 	for(i = 0, len = entities.length; i < len; ++i) {
 		entity = entities[i];
 		if(entity === this) continue;
 		a_dist = distance(this.pos, entity.pos);
-
-		if(entity instanceof Mote && a_dist < this.size*0.6) {
-			// probablistic injury, so they don't get shredded instantly
-			if((random()*30*a_dist) < 1) entity.injured = entity.injured + 1;
-		}
 		if(entity instanceof Void) {
 			if(a_dist < (entity.size+this.size)*0.44) { // bigger ones eat smaller ones
 				if(this.mass > entity.mass) {

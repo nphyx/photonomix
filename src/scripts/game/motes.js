@@ -1,15 +1,16 @@
 "use strict";
 let {random, max, min, floor, ceil, sin} = Math;
 import {TARGET_FPS, MOTE_BASE_SPEED, MOTE_BASE_SIZE, MOTE_BASE_SIGHT, PREGNANT_THRESHOLD, 
-				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG, MAX_MOTES} from "../photonomix.constants";
+				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG, MAX_MOTES/*, POSITIVE_ENERGY, NEGATIVE_ENERGY*/} from "../photonomix.constants";
 import * as vectrix from "@nphyx/vectrix";
+import {BooleanArray} from "@nphyx/pxene";
 import {avoid, accelerate, drag, twiddleVec, adjRand, posneg, outOfBounds, rotate, norm_ratio} from "../photonomix.util";
 const {vec2, times, mut_clamp, magnitude, distance, mut_copy, mut_times} = vectrix.vectors;
 const {plus, mut_plus} = vectrix.matrices;
 import {BufferPool} from "../photonomix.bufferPools";
 import * as Photons from "./photons";
 import {COLOR_R, COLOR_G, COLOR_B} from "./photons";
-import Void from "./Void";
+import {emitPhoton, Void} from "./";
 const clamp = mut_clamp;
 // Center of the playfield is at 0,0 (ranging from -1 to 1 on X and Y axis)
 const POS_C  = vec2(0.0, 0.0);
@@ -68,7 +69,11 @@ const F32_BYTE_OFFSET = VEC_BYTE_OFFSET + (VEC_VAL_LENGTH*F32),
 			F32_SIGHT        = F32_SPEED      + 1,
 			F32_AGRO         = F32_SIGHT      + 1,
 			F32_FEAR         = F32_AGRO       + 1,
-			F32_POTENTIAL    = F32_FEAR       + 1,
+			F32_BASE_SPEED   = F32_FEAR       + 1,
+			F32_BASE_SIGHT   = F32_BASE_SPEED + 1,
+			F32_BASE_AGRO    = F32_BASE_SIGHT + 1,
+			F32_BASE_FEAR    = F32_BASE_AGRO  + 1,
+			F32_POTENTIAL    = F32_BASE_FEAR  + 1,
 			F32_RESISTANCE   = F32_POTENTIAL  + 1,
 			F32_MASS         = F32_RESISTANCE + 1,
 			FLOAT_VAL_LENGTH = F32_MASS       + 1;
@@ -80,21 +85,18 @@ const scratch1 = vec2(), scratch2 = vec2();
 
 const BUFFER_POOL = new BufferPool(BUFFER_LENGTH, MAX_MOTES);
 
+const ACTIVE_LIST = new BooleanArray(MAX_MOTES);
+export const POOL = Array(MAX_MOTES);
+export var death_count = 0;
+export var birth_count = 0;
+export var current_population = 0;
 
 /**
- * Constructor for Motes.
- * @param {Float32Array(3)} photons initial photons (0-255, R, G, B)
- * @param {vec2} pos initial position
- * @param {Float} bSpeed (optional) base acceleration: inheritance and predesigned motes 
- * @param {Float} bSight (optional) base vision radius: inheritance and predesigned motes 
- * @param {Float} bAgro (optional) base aggressiveness: inheritance and predesigned motes 
- * @param {Float} bFear (optional) base fearfulness: inheritance and predesigned motes 
  * @property {vec2} pos position vector
  * @property {vec2} vel velocity vector
  * @property {Uint8} r red photon value (setter updates values and derived props)
  * @property {Uint8} g green photon value (setter updates value and derived props)
  * @property {Uint8} b blue photon value (setter updates value and derived props)
- * @property {string} color_string rgba color string, used for drawing in 2d
  * @property {Int8} dying counter from 1 to DEATH_THRESHOLD when a mote is dying
  * @property {Int8} pregnant coundown from PREGNANT_DURATION when a mote is pregnant
  * @property {Int8} injured injury counter, counts down in mote.bleed
@@ -113,13 +115,13 @@ const BUFFER_POOL = new BufferPool(BUFFER_LENGTH, MAX_MOTES);
  * @property {Float32} sizeMax maximum size the mote can reach as it grows
  * @property {UintClamped8Array} photons current photon values (R, G, B)
  * @property {UintClamped8Array} color current mote color (R, G, B)
- * @property {Int8Array} intVals direct access to integer value array (for debug)
+ * @property {Int8Array} intVals direct access to integer value array
  * @property {Float32Array} ratios current photon ratios (R, G, B)
  * @property {Float32Array} prefs preferred photon ratios
- * @property {Float32Array} floatVals direct access to float value array (for debug)
+ * @property {Float32Array} floatVals direct access to float value array
  * @return {Mote}
  */
-export default function Mote(_photons = new Uint8Array(3), pos = new Float32Array(2), bSpeed = MOTE_BASE_SPEED, bSight = MOTE_BASE_SIGHT, bAgro = 1.0, bFear = 1.0) {
+export function Mote() {
 	let buffer = BUFFER_POOL.buffer,
 			offset = BUFFER_POOL.allocate();
 
@@ -128,21 +130,13 @@ export default function Mote(_photons = new Uint8Array(3), pos = new Float32Arra
 	// in memory and typed
 	let photons = new Uint8ClampedArray(buffer, U8_PHO+offset, 3);
 	let color = new Uint8ClampedArray(buffer, U8_COL+offset, 3);
-	photons[COLOR_R] = _photons[COLOR_R];
-	photons[COLOR_G] = _photons[COLOR_G];
-	photons[COLOR_B] = _photons[COLOR_B];
-	let intVals = new Int8Array(buffer, I8_BYTE_OFFSET+offset, I8_VAL_LENGTH - U8_PHO);
-	let floatVals = new Float32Array(buffer, F32_BYTE_OFFSET+offset, FLOAT_VAL_LENGTH);
-	this.pos = vec2(pos, buffer, F32_POS*F32+VEC_BYTE_OFFSET+offset);
+	let intVals = this.intVals = new Int8Array(buffer, I8_BYTE_OFFSET+offset, I8_VAL_LENGTH - U8_PHO);
+	let floatVals = this.floatVals = new Float32Array(buffer, F32_BYTE_OFFSET+offset, FLOAT_VAL_LENGTH);
+	this.pos = vec2(0.0, 0.0, buffer, F32_POS*F32+VEC_BYTE_OFFSET+offset);
 	this.vel = vec2(0.0, 0.0, buffer, F32_VEL*F32+VEC_BYTE_OFFSET+offset);
 	let ratios  = new Float32Array(buffer, F32_RAT*F32+VEC_BYTE_OFFSET+offset, 3);
 	let prefs   = new Float32Array(buffer, F32_PREF*F32+VEC_BYTE_OFFSET+offset, 3);
 	this.target = undefined;
-	this.color_string = "";
-	bSpeed = bSpeed+adjRand(0.0005);
-	bSight = bSight+adjRand(0.001); // vision distance
-	bAgro = bAgro+adjRand(0.001);
-	bFear = bFear+adjRand(0.001);
 
 	Object.defineProperties(this, {
 		"photons":{get: () => photons},
@@ -158,6 +152,10 @@ export default function Mote(_photons = new Uint8Array(3), pos = new Float32Arra
 		"size":{get: () => floatVals[F32_SIZE], set: (v) => floatVals[F32_SIZE] = v},
 		"sizeMin":{get: () => floatVals[F32_SIZE_MIN], set: (v) => floatVals[F32_SIZE_MIN] = v},
 		"sizeMax":{get: () => floatVals[F32_SIZE_MAX], set: (v) => floatVals[F32_SIZE_MAX] = v},
+		"base_speed":{get: () => floatVals[F32_BASE_SPEED], set: (v) => floatVals[F32_BASE_SPEED] = v},
+		"base_sight":{get: () => floatVals[F32_BASE_SIGHT], set: (v) => floatVals[F32_BASE_SIGHT] = v},
+		"base_agro":{get: () => floatVals[F32_BASE_AGRO], set: (v) => floatVals[F32_BASE_AGRO] = v},
+		"base_fear":{get: () => floatVals[F32_BASE_FEAR], set: (v) => floatVals[F32_BASE_FEAR] = v},
 		"speed":{get: () => floatVals[F32_SPEED], set: (v) => floatVals[F32_SPEED] = v},
 		"sight":{get: () => floatVals[F32_SIGHT], set: (v) => floatVals[F32_SIGHT] = v},
 		"agro":{get: () => floatVals[F32_AGRO], set: (v) => floatVals[F32_AGRO] = v},
@@ -165,10 +163,6 @@ export default function Mote(_photons = new Uint8Array(3), pos = new Float32Arra
 		"potential":{get: () => floatVals[F32_POTENTIAL], set: (v) => floatVals[F32_POTENTIAL] = v},
 		"resistance":{get: () => floatVals[F32_RESISTANCE], set: (v) => floatVals[F32_RESISTANCE] = v},
 		"mass":{get: () => floatVals[F32_MASS], set: (v) => floatVals[F32_MASS] = v},
-		"base_speed":{get: () => bSpeed},
-		"base_sight":{get: () => bSight},
-		"base_agro":{get: () => bAgro},
-		"base_fear":{get: () => bFear},
 		"offset":{get: () => offset},
 		"ratios":{get: () => ratios},
 		"prefs":{get: () => prefs}
@@ -181,16 +175,27 @@ export default function Mote(_photons = new Uint8Array(3), pos = new Float32Arra
 		"intVals":{get: () => intVals},
 		"floatVals":{get: () => floatVals},
 	});
+}
 
-	// initialize values, important to do since buffer may be reused
-	this.dying = 0;
-	this.pregnant = 0;
-	this.injured = 0;
-	this.lastInjury = 0;
-	this.speed = bSpeed;
-	this.sight = bSight;
-	this.agro = bAgro;
-	this.fear = bFear;
+/**
+ * Factory for initializing a new Mote from the buffer pool.
+ * @param {Float32Array(3)} photons initial photons (0-255, R, G, B)
+ * @param {vec2} pos initial position
+ * @param {Float} bSpeed (optional) base acceleration: inheritance and predesigned motes 
+ * @param {Float} bSight (optional) base vision radius: inheritance and predesigned motes 
+ * @param {Float} bAgro (optional) base aggressiveness: inheritance and predesigned motes 
+ * @param {Float} bFear (optional) base fearfulness: inheritance and predesigned motes 
+ * @return {Mote}
+ */
+Mote.prototype.init = function(_photons = new Uint8Array(3), pos = new Float32Array(2), bSpeed = MOTE_BASE_SPEED, bSight = MOTE_BASE_SIGHT, bAgro = 1.0, bFear = 1.0) {
+	mut_copy(this.pos, pos);
+	mut_copy(this.photons, _photons);
+
+	// set up initial and derived values
+	this.base_speed = bSpeed+adjRand(0.0005);
+	this.base_sight = bSight+adjRand(0.001);
+	this.base_agro = bAgro+adjRand(0.001);
+	this.base_fear = bFear+adjRand(0.001);
 	this.potential = this.agro*2;
 	this.resistance = this.fear*2;
 	this.lastMeal = ~~(random()*3);
@@ -200,9 +205,9 @@ export default function Mote(_photons = new Uint8Array(3), pos = new Float32Arra
 	this.sizeMax = MOTE_BASE_SIZE*3;
 
 	this.updateProperties();
-	this.prefs[COLOR_R] = this.ratios[COLOR_R];
-	this.prefs[COLOR_G] = this.ratios[COLOR_G];
-	this.prefs[COLOR_B] = this.ratios[COLOR_B];
+
+	// only set the preferred color ratios once, since we want them to persist from birth
+	mut_copy(this.prefs, this.ratios);
 	return this;
 }
 
@@ -210,36 +215,27 @@ export default function Mote(_photons = new Uint8Array(3), pos = new Float32Arra
  * Updates derived properties for mote.
  */
 Mote.prototype.updateProperties = (function() {
-	let  r = 0|0, g = 0|0, b = 0|0, photons, color, ratios;
+	let  photons, color, ratios;
 	return function updateProperties() {
 		({photons, ratios, color} = this);
-		r = photons[COLOR_R];
-		g = photons[COLOR_G];
-		b = photons[COLOR_B];
-		this.mass = r + g + b;
-		if(this.mass > 0) { // otherwise skip this stuff since the mote is dead anyway
+		this.mass = photons[COLOR_R] + photons[COLOR_G] + photons[COLOR_B];
 		this.size = clamp(this.mass/(PREGNANT_THRESHOLD/3)*MOTE_BASE_SIZE, this.sizeMin, this.sizeMax);
-			norm_ratio(photons, ratios);
-			/*
-			ratios[COLOR_R] = ratio(r, g+b);
-			ratios[COLOR_G] = ratio(g, r+b);
-			ratios[COLOR_B] = ratio(b, g+r);
-			*/
-			this.speed = this.base_speed*(1-this.size)*(1+ratios[COLOR_B]);
-			this.sight = this.base_sight+(this.size*0.5); // see from edge onward
-			this.agro = this.base_agro*(1+ratios[COLOR_R]);
-			this.fear = this.base_fear*(1+ratios[COLOR_G]);
-			if(DEBUG) {
-				if(isNaN(this.speed)) throw new Error("Mote.updateProperties: NaN speed");
-				if(isNaN(this.sight)) throw new Error("Mote.updateProperties: NaN sight");
-				if(isNaN(this.size)) throw new Error("Mote.updateProperties: NaN size");
-				if(isNaN(this.agro)) throw new Error("Mote.updateProperties: NaN agro");
-				if(isNaN(this.fear)) throw new Error("Mote.updateProperties: NaN fear");
-			}
-		} // end of stuff to do only if sum > 0
+		norm_ratio(photons, ratios);
+		this.speed = this.base_speed*(1-this.size)*(1+ratios[COLOR_B]);
+		this.sight = this.base_sight+(this.size*0.5); // see from edge onward
+		this.agro = this.base_agro*(1+ratios[COLOR_R]);
+		this.fear = this.base_fear*(1+ratios[COLOR_G]);
+		if(DEBUG) {
+			if(isNaN(this.speed)) throw new Error("Mote.updateProperties: NaN speed");
+			if(isNaN(this.sight)) throw new Error("Mote.updateProperties: NaN sight");
+			if(isNaN(this.size)) throw new Error("Mote.updateProperties: NaN size");
+			if(isNaN(this.agro)) throw new Error("Mote.updateProperties: NaN agro");
+			if(isNaN(this.fear)) throw new Error("Mote.updateProperties: NaN fear");
+		}
 
 		if((this.mass > PREGNANT_THRESHOLD) && this.pregnant === 0) this.pregnant = PREGNANT_TIME;
 		if((this.mass < DEATH_THRESHOLD) && this.dying === 0) this.dying = 1;
+		if(current_population >= MAX_MOTES) this.pregnant = 0; // can't have a baby, dang population controls!
 
 		color[COLOR_R] = ~~(ratios[COLOR_R]*255);
 		color[COLOR_G] = ~~(ratios[COLOR_G]*255);
@@ -315,6 +311,8 @@ Mote.prototype.search = (function() {
 
 		// check out photons
 		Photons.forEach((photon) => {
+			let dist = this.validateTarget(photon);
+			if(dist === -1) return;
 			if(photon.lifetime < 4) return;
 			deltar = (this.prefs[COLOR_R] - this.ratios[COLOR_R]);	
 			deltag = (this.prefs[COLOR_G] - this.ratios[COLOR_G]);	
@@ -336,22 +334,25 @@ Mote.prototype.search = (function() {
 			}
 		});
 
+		forEach((mote) => {
+			let dist = this.validateTarget(mote);
+			if(dist === -1) return;
+			cur = 3*(1/dist);
+			if(cur > highest) {
+				this.target = mote;
+				if(mote.target === this || dist < (this.size+mote.size)*0.5) {
+					this.action = ACT_AVOID;
+				}
+				else this.action = ACT_CHASE;
+				highest = cur;
+			}
+		});
+
 		for(i = 0, len = entities.length; (i < len) && (highest < Infinity); ++i) {
 			entity = entities[i];
 			let dist = this.validateTarget(entity);
 			if(dist === -1) continue;
 			// ignore things outside sight range
-			if(entity instanceof Mote) {
-				cur = 3*(1/dist);
-				if(cur > highest) {
-					this.target = entity;
-					if(entity.target === this || dist < (this.size+entity.size)*0.5) {
-						this.action = ACT_AVOID;
-					}
-					else this.action = ACT_CHASE;
-					highest = cur;
-				}
-			}
 			else if(entity instanceof Void) {
 				this.target = entity;
 				this.action = ACT_AVOID;
@@ -425,16 +426,22 @@ Mote.prototype.tick = (function() {
 	}
 })();
 
-
-let delta = 0.0;
+/**
+ * Discharges a bolt of plasma at a target.
+ */
 Mote.prototype.discharge = function(target) {
-	delta = this.potential - target.resistance;
+	let delta = this.potential - target.resistance;
 	target.resistance -= max(this.agro, delta*this.agro);
 	this.potential -= max(this.fear, delta*this.fear);
 	target.injure(this, max(0, ~~(delta)));
 	if(this.potential < 0) this.action = ACT_IDLE;
 }
 
+/**
+ * Causes a mote to take damage, increasing its injury counter by the strength parameter.
+ * @param {Entity} by the entity causing the injury
+ * @param {Int} strength the strength of the injury
+ */
 Mote.prototype.injure = function(by, strength) {
 	this.injured += strength;
 	this.lastInjury = this.injured;
@@ -443,6 +450,9 @@ Mote.prototype.injure = function(by, strength) {
 	) this.target = by;
 }
 
+/**
+ * When motes are damaged they bleed out photons until the damage equalizes.
+ */
 Mote.prototype.bleed = (function() {
 	let choice = 0|0, choiceVal = 0|0, pvel = vec2(), photons;
 	return function bleed() {
@@ -470,11 +480,14 @@ Mote.prototype.bleed = (function() {
 	}
 })();
 
+/**
+ * A mote that reaches the pregnancy threshold will split into two semi-identical motes.
+ */
 Mote.prototype.split = (function() {
 	let baby, photons;
 	return function() {
 		photons = this.photons;
-		baby = new Mote(
+		baby = create(
 			[floor(photons[COLOR_R]/2), floor(photons[COLOR_G]/2), floor(photons[COLOR_B]/2)],
 			this.pos, this.base_speed, this.base_sight, this.base_agro, 
 			this.base_fear);
@@ -487,10 +500,14 @@ Mote.prototype.split = (function() {
 		baby.target = this;
 		baby.needsUpdate = 1;
 		this.needsUpdate = 1;
-		return baby;
+		birth_count++;
 	}
 })();
 
+/**
+ * Consumes a photon, adding its value to the internal photon list.
+ * @param {Photon} photon the photon to be consumed
+ */
 Mote.prototype.eatPhoton = (function() {
 	let photons;
 	return function eatPhotons(photon) {
@@ -511,24 +528,142 @@ Mote.prototype.eatPhoton = (function() {
 	}
 })();
 
-const rpos = new Float32Array(2);
-const rphotons = new Uint8ClampedArray(3);
 /**
- * Generates mote with randomized position and photon values.
- * @return {Mote}
+ * When a mote is ready to die, it sets loose its remaining photons in a ring.
  */
-Mote.random = function() {
-	do {
-		rpos[0] = random()*posneg();
-		rpos[1] = random()*posneg();
+Mote.prototype.die = function() {
+	let r, g, b, c, i, sum;
+	/*
+	if(random() < POSITIVE_ENERGY) {
+		Emitters.create(this.pos, this.vel, ~~(DEATH_THRESHOLD*10*random()), undefined, this.ratios));
 	}
-	while(magnitude(rpos) > 0.8); 
-	rphotons[0] = ~~(random()*64);
-	rphotons[1] = ~~(random()*64);
-	rphotons[2] = ~~(random()*64);
-	return new Mote(rphotons, rpos);
+ /*
+	else if(random() < NEGATIVE_ENERGY) {
+		Voids.create(this.pos, this.vel, ~~(DEATH_THRESHOLD*10*random()))); 
+	}
+	*/
+	r = this.photons[0];
+	g = this.photons[1];
+	b = this.photons[2];
+	sum = r+b+g;
+	c = 0;
+	for(i = 0; i < sum; ++i) {
+		if(r === i) c = 1;
+		if(r+g === i) c = 2;
+		emitPhoton(this.pos, undefined, c, i, sum);
+	}
+	this.clean();
+	this.destroy();
+	death_count++;
 }
 
+/**
+ * Removes a mote from the active list.
+ * @param {int} o pool index
+ */
 Mote.prototype.destroy = function() {
-	BUFFER_POOL.free(this.offset);
+	ACTIVE_LIST.set(this.offset, false);
+	current_population--;
 }
+
+/**
+ * Cleans up a mote's values, readying it to reuse.
+ */
+Mote.prototype.clean = function() {
+	this.pos.fill(0.0);
+	this.vel.fill(0.0);
+	this.intVals.fill(0);
+	this.floatVals.fill(0);
+}
+
+/**
+ * Looks up the next inactive mote object in the list.
+ */
+function nextInactive() {
+	let i = 0, len = MAX_MOTES;
+	for(; i < len; ++i) if(!ACTIVE_LIST.get(i)) return i;
+	throw new Error("out of motes");
+}
+
+/**
+ * Factory for initializing a new Mote from the buffer pool.
+ * @param {Float32Array(3)} photons initial photons (0-255, R, G, B)
+ * @param {vec2} pos initial position
+ * @param {Float} bSpeed (optional) base acceleration: inheritance and predesigned motes 
+ * @param {Float} bSight (optional) base vision radius: inheritance and predesigned motes 
+ * @param {Float} bAgro (optional) base aggressiveness: inheritance and predesigned motes 
+ * @param {Float} bFear (optional) base fearfulness: inheritance and predesigned motes 
+ * @return {Mote}
+ */
+export function create(photons = new Uint8Array(3), pos = new Float32Array(2), bSpeed = MOTE_BASE_SPEED, bSight = MOTE_BASE_SIGHT, bAgro = 1.0, bFear = 1.0) {
+	let o = nextInactive();
+	ACTIVE_LIST.set(o, true);
+	POOL[o].init(photons, pos, bSpeed, bSight, bAgro, bFear);
+	current_population++;
+	return POOL[o];
+}
+
+/**
+ * Initialize the mote module, creating and filling the buffer pool in preparation for use.
+ */
+export function init() {
+	for(let i = 0; i < MAX_MOTES; ++i) {
+		POOL[i] = new Mote();
+	}
+}
+
+/**
+ * Module tick function.
+ * @param {Array} surrounding DEPRECATED list of game entities
+ * @param {float} delta frame time delta
+ * @param {int} frameCount number of frames elapsed since game start
+ */
+export function tick(surrounding, delta, frameCount) {
+	let i = 0, len = MAX_MOTES, mote;
+	for(; i < len; ++i) if(ACTIVE_LIST.get(i)) {
+		mote = POOL[i];	
+		mote.tick(surrounding, delta, frameCount);
+		if(mote.injured) {
+			if(frameCount % ~~(TARGET_FPS*0.1) === 0) {
+				mote.bleed();
+			}
+		}
+		// mark dead for removal
+		if(mote.dying === DEATH_THRESHOLD) {
+			mote.die();
+		}
+		else if(mote.pregnant === PREGNANT_TIME) {
+			mote.split();
+		}
+	}
+}
+
+/**
+ * Loops through currently active motes, calling the callback function.
+ * @param {function} cb callback in the standard Array.forEach form 
+ */
+export function forEach(cb) {
+	let i = 0, len = MAX_MOTES;
+	for(; i < len; ++i) if(ACTIVE_LIST.get(i)) {
+		cb(POOL[i], i, POOL);
+	}
+}
+
+/**
+ * Generates mote with randomized position and photon values.
+ */
+export const createRandom = (function() {
+	const rpos = new Float32Array(2);
+	const rphotons = new Uint8ClampedArray(3);
+	return function() {
+		do {
+			rpos[0] = random()*posneg();
+			rpos[1] = random()*posneg();
+		}
+		while(magnitude(rpos) > 0.8); 
+		rphotons[0] = ~~(random()*64);
+		rphotons[1] = ~~(random()*64);
+		rphotons[2] = ~~(random()*64);
+		create(rphotons, rpos);
+	}
+})();

@@ -3,6 +3,7 @@ import * as vectrix from  "@nphyx/vectrix";
 import {TARGET_FPS, GLOBAL_DRAG, EMITTER_SIZE} from "../photonomix.constants";
 import {rotate, drag, gravitate, avoid, norm_ratio} from "../photonomix.util";
 import * as Photons from "./photons";
+import * as Motes from "./motes";
 import Ripple from "./Ripple";
 let {vec2, vec3, times, mut_times, distance} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
@@ -59,6 +60,14 @@ Emitter.prototype.tick = function(entities, delta, frameCount) {
 			1/photon.mass)
 		);
 	});
+
+	Motes.forEach((mote) => {
+		mut_plus(mote.vel, mut_times(
+			gravitate(mote.pos, this.pos, -this.mass*mote.mass, scratchVec1),
+			1/mote.mass)
+		);
+	});
+
 	for(i = 0, len = entities.length; i < len; ++i) {
 		entity = entities[i];
 		if(entity === this) continue;
