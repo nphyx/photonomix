@@ -4,7 +4,9 @@ An artificial photonic life simulation.
 
 Instructions
 ============
-For now, it only runs in simulation mode (no interactivity).
+As of 0.0.2, limited interaction via mouse is supported. Try clicking and 
+dragging! Touch support coming soon once I add it to pxene, but right now
+mobile devices are a little janky. Multitouch in the future?
 
 License
 =======
