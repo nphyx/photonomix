@@ -26,15 +26,16 @@ export function screenSpace(x) {
 }
 
 /**
- * Finds the screen space equivalent of the game space vector v.
+ * Finds the screen space equivalent of the game space vector v. Centering is handled
+ * at a higher level so it's not accounted for here.
  * @param {vec2} v game space vector
  * @param {vec2} out out parameter
  * @return {out}
  */
 
 export function screenSpaceVec(v, out) {
-	out[0] = (((v[0]+1)/2)*props.minDimension);
-	out[1] = (((v[1]+1)/2)*props.minDimension);
+	out[0] = ((v[0]+1)/2)*props.minDimension;
+	out[1] = ((v[1]+1)/2)*props.minDimension;
 	return out;
 }
 
@@ -45,8 +46,15 @@ export function screenSpaceVec(v, out) {
  * @return {out}
  */
 export function gameSpaceVec(v, out) {
-	out[0] = 2*((v[0])/props.minDimension)-1;
-	out[1] = 2*((v[1])/props.minDimension)-1;
+	if(props.orientation === 0) {
+		out[0] = (((v[0]-(props.width-props.height)/2)/props.minDimension)*2)-1;
+		out[1] = (((v[1])/props.minDimension)*2)-1;
+	}
+	else {
+		out[0] = (((v[0])/props.minDimension)*2)-1;
+		out[1] = (((v[1]-(props.height-props.width)/2)/props.minDimension)*2)-1;
+	}
+	return out;
 }
 
 /**
