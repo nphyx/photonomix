@@ -1,3 +1,4 @@
+export const AUTO_FULLSCREEN = true;
 export const TARGET_FPS = 30;
 export const WEIGHT_PRED_R = 1.3;
 export const WEIGHT_PRED_G = 0.7;

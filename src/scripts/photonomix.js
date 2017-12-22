@@ -16,7 +16,8 @@ const displayConfig = {
 
 	],
 	pixelRatio:1,
-	frameCallback:main
+	frameCallback:main,
+	fullscreen:constants.AUTO_FULLSCREEN
 }
 
 var photonomix = {
