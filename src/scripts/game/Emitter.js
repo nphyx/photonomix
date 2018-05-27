@@ -2,7 +2,7 @@
 import * as vectrix from  "@nphyx/vectrix";
 import {TARGET_FPS, GLOBAL_DRAG, EMITTER_SIZE} from "../photonomix.constants";
 import {rotate, drag, gravitate, avoid, norm_ratio} from "../photonomix.util";
-import * as Photons from "./photons";
+import * as photons from "./photons";
 import * as Motes from "./motes";
 import Ripple from "./Ripple";
 let {vec2, vec3, times, mut_times, distance} = vectrix.vectors;
@@ -27,7 +27,7 @@ export default function Emitter(ipos = vec2(), ivel = vec2(), mass = 1, arms = u
 }
 
 let scratchVec1 = vec2(), emissionsPerSecond = 0|0, emissionsPerFrame = 0|0, 
-		targetFrame = 0|0, i = 0|0, len = 0|0, entity, a_dist = 0.0, consume = 0|0;
+  targetFrame = 0|0, i = 0|0, len = 0|0, entity, a_dist = 0.0, consume = 0|0;
 Emitter.prototype.tick = function(entities, delta, frameCount) {
 	/* jshint unused:false */
 	if(this.birthMass > 0) {
@@ -54,7 +54,7 @@ Emitter.prototype.tick = function(entities, delta, frameCount) {
 	// avoid edge
 	mut_plus(this.vel, avoid(this.vel, this.pos, POS_C, 1.3, 0.001, scratchVec1));
 
-	Photons.forEach((photon) => {
+	photons.forEach((photon) => {
 		mut_plus(photon.vel, mut_times(
 			gravitate(photon.pos, this.pos, -this.mass*photon.mass, scratchVec1),
 			1/photon.mass)
@@ -99,7 +99,7 @@ Emitter.prototype.emitPhoton = (function() {
 		radians = radians + (mim%this.arms)*(2/this.arms); // split across arms
 		mut_plus(rotate(pos, this.pos, radians, pos), this.pos);
 		this.next = getColor(this.ratios);
-		Photons.create(pos, vel, color);
+		photons.pool.next(pos, vel, color);
 	}
 })();
 

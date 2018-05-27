@@ -1,14 +1,14 @@
 "use strict";
 let {random, max, min, floor, ceil, sin} = Math;
 import {TARGET_FPS, MOTE_BASE_SPEED, MOTE_BASE_SIZE, MOTE_BASE_SIGHT, PREGNANT_THRESHOLD, 
-				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG, MAX_MOTES/*, POSITIVE_ENERGY, NEGATIVE_ENERGY*/} from "../photonomix.constants";
+				DEATH_THRESHOLD, GLOBAL_DRAG, PREGNANT_TIME, DEBUG, MAX_MOTES/*, POSITIVE_ENERGY, NEGATIVE_ENERGY*/, TYPE_PHOTON} from "../photonomix.constants";
 import * as vectrix from "@nphyx/vectrix";
 import {BooleanArray} from "@nphyx/pxene";
 import {avoid, accelerate, drag, twiddleVec, adjRand, posneg, outOfBounds, rotate, norm_ratio} from "../photonomix.util";
 const {vec2, times, mut_clamp, magnitude, distance, mut_copy, mut_times} = vectrix.vectors;
 const {plus, mut_plus} = vectrix.matrices;
 import {BufferPool} from "../photonomix.bufferPools";
-import * as Photons from "./photons";
+import * as photons from "./photons";
 import {COLOR_R, COLOR_G, COLOR_B} from "./photons";
 import {emitPhoton, Void} from "./";
 const clamp = mut_clamp;
@@ -310,7 +310,7 @@ Mote.prototype.search = (function() {
 		}
 
 		// check out photons
-		Photons.forEach((photon) => {
+		photons.forEach((photon) => {
 			let dist = this.validateTarget(photon);
 			if(dist === -1) return;
 			if(photon.lifetime < 4) return;
@@ -413,7 +413,7 @@ Mote.prototype.tick = (function() {
 			break;
 			case ACT_ATTACK: // attacking a target
 				if(target instanceof Mote) this.discharge(target);
-				else if(target instanceof Photons.Photon) this.eatPhoton(target);
+				else if(target.type === TYPE_PHOTON) this.eatPhoton(target);
 			break;
 			case ACT_LINK: // linking with a target
 			break;
@@ -454,28 +454,28 @@ Mote.prototype.injure = function(by, strength) {
  * When motes are damaged they bleed out photons until the damage equalizes.
  */
 Mote.prototype.bleed = (function() {
-	let choice = 0|0, choiceVal = 0|0, pvel = vec2(), photons;
+	let choice = 0|0, choiceVal = 0|0, pvel = vec2(), colors;
 	return function bleed() {
-		photons = this.photons;
+		colors = this.photons;
 		do {
 			choice = ~~(random()*3);
 			switch(choice) {
-				case COLOR_R: choiceVal = photons[COLOR_R]; break;
-				case COLOR_G: choiceVal = photons[COLOR_G]; break;
-				case COLOR_B: choiceVal = photons[COLOR_B]; break;
+				case COLOR_R: choiceVal = colors[COLOR_R]; break;
+				case COLOR_G: choiceVal = colors[COLOR_G]; break;
+				case COLOR_B: choiceVal = colors[COLOR_B]; break;
 			}
 		} while (choiceVal === 0);
 		switch(choice) {
-			case COLOR_R: photons[COLOR_R] = photons[COLOR_R] - 1; break;
-			case COLOR_G: photons[COLOR_G] = photons[COLOR_G] - 1; break;
-			case COLOR_B: photons[COLOR_B] = photons[COLOR_B] - 1; break;
+			case COLOR_R: colors[COLOR_R] = colors[COLOR_R] - 1; break;
+			case COLOR_G: colors[COLOR_G] = colors[COLOR_G] - 1; break;
+			case COLOR_B: colors[COLOR_B] = colors[COLOR_B] - 1; break;
 		}
 		this.injured--;
 		mut_times(this.vel, 1+this.speed);
 		mut_copy(pvel, this.vel);
 		mut_times(pvel, -1);
 		this.needsUpdate = 1;
-		Photons.create(this.pos, pvel, choice);
+		photons.pool.next(this.pos, pvel, choice);
 		//return choice;
 	}
 })();

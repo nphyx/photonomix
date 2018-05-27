@@ -83,6 +83,6 @@ AntiGravitonCluster.prototype.emitPhoton = (function() {
 		mut_plus(pos, rot);
 		// introduce some jitter
 		mut_plus(vel, accelerate(this.pos, pos, this.size*2, scratch));
-		return(photons.create(pos, vel, color));
+		return(photons.pool.next(pos, vel, color));
 	}
 })();

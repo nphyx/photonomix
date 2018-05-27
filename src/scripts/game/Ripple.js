@@ -3,7 +3,7 @@ import * as vectrix from  "@nphyx/vectrix";
 import {gravitate} from "../photonomix.util";
 let {vec2, mut_times, distance} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
-import * as Photons from "./photons";
+import * as photons from "./photons";
 import * as Motes from "./motes";
 import Void from "./Void";
 
@@ -25,7 +25,7 @@ Ripple.prototype.tick = function(entities) {
 		this.storedMass = 0;
 	}
 	else this.mass--;
-	Photons.forEach((photon) => {
+	photons.forEach((photon) => {
 		a_dist = distance(this.pos, photon.pos);
 		if(a_dist < 0.01) photon.lifetime = 0;
 		else mut_plus(photon.vel, mut_times(

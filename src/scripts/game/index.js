@@ -3,11 +3,10 @@ import Void from "./Void";
 import Emitter from "./Emitter";
 import Marker from "./Marker";
 import * as Motes from "./motes";
-import * as Photons from "./photons";
+import * as photons from "./photons";
 import Ripple from "./Ripple";
 import {gameSpaceVec} from "../draw";
 import AntiGravitonCluster from "./AntiGravitonCluster";
-const Photon = Photons.Photon;
 const Mote = Motes.Mote;
 
 import {rotate, outOfBounds} from "../photonomix.util";
@@ -23,7 +22,7 @@ let mark = 0;
 
 const ENTITY_TYPES = {};
 
-export {Mote, Void, Emitter, Marker, Photon, AntiGravitonCluster, Ripple};
+export {Mote, Void, Emitter, Marker, photons, AntiGravitonCluster, Ripple};
 
 /**
  * TODO: change these functions out with proper factories.
@@ -41,8 +40,6 @@ registerType("ripple", Ripple);
 registerType("antiGravitonCluster", AntiGravitonCluster);
 
 export function Game() {
-	this.photons = Photons;
-	this.photons.init();
 	this.motes = Motes;
 	this.motes.init();
 	controls.map("ripple", "mouse0");
@@ -84,8 +81,14 @@ Game.prototype.tick = (function() {
 		this.stats.target = 0;
 		this.stats.pop = 0;
 		tick_delta = delta/TARGET_FPS;
-		this.photons.tick(this.entities, tick_delta, frameCount);
-		this.motes.tick(this.entities, tick_delta, frameCount);
+    try {
+      photons.tick(this.entities, tick_delta, frameCount);
+      this.motes.tick(this.entities, tick_delta, frameCount);
+    }
+    catch(e) {
+      console.error(e)
+      return
+    }
 		for(i = 0, len = entities.length; i < len; ++i) {
 			entity = entities[i];
 			entity.tick(this.entities, tick_delta, frameCount);
@@ -113,16 +116,6 @@ Game.prototype.tick = (function() {
 				}
 				*/
 				throw new Error("Motes should no longer end up in the general entity pool");
-			}
-			else if(entity instanceof Photons.Photon) {
-				/*
-				if(entity.lifetime <= 0) {
-					marks[markpos] = i;
-					STORED_PHOTONS[entity.color]++;
-					markpos++;
-				}
-				 */
-				throw new Error("Photon should no longer end up in the general entity pool");
 			}
 			else if(entity instanceof Ripple) {
 				if(entity.mass > 250) {
@@ -177,7 +170,7 @@ export const emitPhoton = (function() {
 		}
 		color = color||~~(random()*3);
 		mut_copy(pos, ipos);
-		Photons.create(pos, vel, color);
+		photons.pool.next(pos, vel, color);
 		p_c++;
 		return color;
 	}
