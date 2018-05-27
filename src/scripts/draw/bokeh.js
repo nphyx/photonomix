@@ -2,7 +2,7 @@
  * Derived from bokeh generator by Jack Rugile at [CodePen](http://codepen.io/jackrugile/pen/gaFub)
  */
 "use strict";
-import {shuffle, clamp} from "../photonomix.util.js";
+import {shuffle, clamp} from "../util";
 import {canvasRGBA as stackBlur} from "stackblur-canvas";
 let bgBuffer, bokehBuffer, bgCtx, bokehCtx, tau = Math.PI * 2, parts = [], displayProps;
 let colors1 = [

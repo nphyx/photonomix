@@ -1,6 +1,6 @@
 "use strict";
 import {drawCircle} from "./";
-import {DEBUG} from "../photonomix.constants";
+import {DEBUG} from "../constants";
 import {controls} from "@nphyx/pxene";
 
 let ctx, uiBuffer;

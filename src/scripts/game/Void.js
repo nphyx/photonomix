@@ -1,12 +1,12 @@
 "use strict";
 import * as vectrix from  "@nphyx/vectrix";
-import {gravitate, drag, outOfBounds, limitVecMut, avoid} from  "../photonomix.util";
+import {gravitate, drag, outOfBounds, limitVecMut, avoid} from  "../util";
 import {Emitter, AntiGravitonCluster} from "./";
 import * as Photons from "./photons";
 import * as Motes from "./motes";
 const {vec2, times, mut_times, distance} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
-import {VOID_SIZE, GLOBAL_DRAG} from "../photonomix.constants";
+import {VOID_SIZE, GLOBAL_DRAG} from "../constants";
 const {random, sqrt, PI, ceil, min} = Math;
 const POS_C = vec2(0,0);
 

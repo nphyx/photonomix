@@ -3,10 +3,10 @@
  * Manages the generic part of entities in one big buffer.
  */
 import vectors from "@nphyx/vectrix";
-import BufferPool from "../photonomix.bufferPool";
+import BufferPool from "../bufferPool";
 const {vec2} = vectors;
 
-import {BUFFER_TYPE, MAX_ENTITIES} from "../photonomix.constants";
+import {BUFFER_TYPE, MAX_ENTITIES} from "../constants";
 const F32 = Float32Array.BYTES_PER_ELEMENT;
 const I8 = Uint8ClampedArray.BYTES_PER_ELEMENT;
 const I32 = Int32Array.BYTES_PER_ELEMENT;

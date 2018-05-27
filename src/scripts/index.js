@@ -2,8 +2,8 @@
 import {controls, display} from "@nphyx/pxene";
 import * as draw from "./draw";
 import * as game from "./game";
-import * as constants from "./photonomix.constants";
-import * as util from "./photonomix.util";
+import * as constants from "./constants";
+import * as util from "./util";
 
 const displayConfig = {
 	container:"body",

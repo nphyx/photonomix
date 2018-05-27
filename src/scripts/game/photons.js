@@ -1,9 +1,9 @@
 "use strict";
 import * as vectrix from "@nphyx/vectrix";
 import * as valloc from "@nphyx/valloc";
-import {BufferPool} from "../photonomix.bufferPools";
-import {drag} from "../photonomix.util";
-import {TARGET_FPS, GLOBAL_DRAG, PHOTON_LIFETIME, PHOTON_BASE_SIZE, MAX_PHOTONS, TYPE_PHOTON} from "../photonomix.constants";
+import {BufferPool} from "../bufferPools";
+import {drag} from "../util";
+import {TARGET_FPS, GLOBAL_DRAG, PHOTON_LIFETIME, PHOTON_BASE_SIZE, MAX_PHOTONS, TYPE_PHOTON} from "../constants";
 let {vec2, times, mut_copy} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
 const {random} = Math;

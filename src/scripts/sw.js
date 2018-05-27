@@ -1,6 +1,6 @@
 const CACHE_NAME = "photonomix-v1";
 const cacheUrls = [
-	"/scripts/photonomix.js",
+	"/scripts/index.js",
 	"/styles/style.js"
 ];
 self.addEventListener("install", (ev) => {

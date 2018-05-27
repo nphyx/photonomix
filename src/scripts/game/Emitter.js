@@ -1,7 +1,7 @@
 "use strict";
 import * as vectrix from  "@nphyx/vectrix";
-import {TARGET_FPS, GLOBAL_DRAG, EMITTER_SIZE} from "../photonomix.constants";
-import {rotate, drag, gravitate, avoid, norm_ratio} from "../photonomix.util";
+import {TARGET_FPS, GLOBAL_DRAG, EMITTER_SIZE} from "../constants";
+import {rotate, drag, gravitate, avoid, norm_ratio} from "../util";
 import * as photons from "./photons";
 import * as Motes from "./motes";
 import Ripple from "./Ripple";

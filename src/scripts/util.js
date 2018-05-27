@@ -1,6 +1,6 @@
 "use strict";
 import * as vectrix from "@nphyx/vectrix";
-import {VALIDATE_VECTORS, VALIDATE_VECTORS_DEBUG, GRAVITY} from "./photonomix.constants";
+import {VALIDATE_VECTORS, VALIDATE_VECTORS_DEBUG, GRAVITY} from "./constants";
 const {vec2, magnitude, mut_normalize, distance, mut_times, mut_copy, mut_clamp} = vectrix.vectors;
 const {minus} = vectrix.matrices;
 const {sqrt, abs, E, pow, cos, sin, random, PI, max, min} = Math;

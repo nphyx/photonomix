@@ -1,6 +1,6 @@
 "use strict";
 
-import {PHOTON_BASE_SIZE} from "../../photonomix.constants.js";
+import {PHOTON_BASE_SIZE} from "../../constants";
 import {COLOR_R, COLOR_G, COLOR_B} from "../../game/photons";
 
 const sprites = Array(3);

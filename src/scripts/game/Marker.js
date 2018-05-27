@@ -1,5 +1,5 @@
 "use strict";
-import {TARGET_FPS} from "../photonomix.constants";
+import {TARGET_FPS} from "../constants";
 import * as vectrix from  "@nphyx/vectrix";
 
 export const MARKER_HIT = 0;

@@ -1,11 +1,11 @@
 "use strict";
 import * as vectrix from  "@nphyx/vectrix";
-import {rotate, drag, avoid, accelerate} from  "../photonomix.util";
+import {rotate, drag, avoid, accelerate} from  "../util";
 import {Void} from "./";
 import * as photons from "./photons";
 const {vec2, times, distance, mut_copy} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
-import {TARGET_FPS, MOTE_BASE_SIZE, GLOBAL_DRAG} from "../photonomix.constants";
+import {TARGET_FPS, MOTE_BASE_SIZE, GLOBAL_DRAG} from "../constants";
 const {random, sqrt, PI, ceil, min, max} = Math;
 const POS_C = vec2(0,0);
 

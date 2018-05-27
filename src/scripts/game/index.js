@@ -9,10 +9,10 @@ import {gameSpaceVec} from "../draw";
 import AntiGravitonCluster from "./AntiGravitonCluster";
 const Mote = Motes.Mote;
 
-import {rotate, outOfBounds} from "../photonomix.util";
+import {rotate, outOfBounds} from "../util";
 import * as vectrix from  "@nphyx/vectrix";
 import {controls} from "@nphyx/pxene";
-import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS} from "../photonomix.constants";
+import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS} from "../constants";
 const {minus} = vectrix.matrices;
 const {vec2, mut_copy} = vectrix.vectors;
 const marks = new Uint16Array(MAX_MOTES+MAX_PHOTONS+100);

@@ -4,10 +4,10 @@
  */
 import * as vectrix from  "@nphyx/vectrix";
 import * as sprites from "./sprites";
-import * as constants from "../photonomix.constants";
+import * as constants from "../constants";
 import * as photons from "../game/photons";
 import * as Motes from "../game/motes";
-import {rotate} from "../photonomix.util";
+import {rotate} from "../util";
 import {offscreen, screenSpace, updateCompositeOperation} from "./";
 const {vec2, lerp} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;

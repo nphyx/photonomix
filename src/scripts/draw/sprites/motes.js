@@ -1,5 +1,5 @@
 "use strict";
-import {MOTE_BASE_SIZE} from "../../photonomix.constants.js";
+import {MOTE_BASE_SIZE} from "../../constants";
 import {scaleSprite} from "./util";
 var moteSprites, moteMaskCanvas, moteCenter, moteSpriteSheetContext, 
     moteMaskContext, moteTmpCanvas, moteTmpContext, spriteScale, moteSpriteSize,

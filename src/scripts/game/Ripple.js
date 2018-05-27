@@ -1,6 +1,6 @@
 "use strict";
 import * as vectrix from  "@nphyx/vectrix";
-import {gravitate} from "../photonomix.util";
+import {gravitate} from "../util";
 let {vec2, mut_times, distance} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
 import * as photons from "./photons";
