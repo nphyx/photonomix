@@ -1,104 +1,82 @@
 "use strict"
 var gulp = require("gulp")
-var babel = require("gulp-babel")
 var pug = require("gulp-pug")
-var sass = require("gulp-sass")
 var webpack = require("webpack")
 var fsm = require("fs-magic")
 var path = require("path")
-//var appcache = require("gulp-appcache")
-var SWPrecacheWebpackPlugin = require("sw-precache-webpack-plugin")
-var UglifyJsPlugin = require("uglifyjs-webpack-plugin")
 var {exec, spawn} = require("child_process")
+const webpackConfig = require("./webpack.config.js");
 
-const webpackConfig = {
-  entry: {
-    "scripts/index":path.resolve(__dirname, "src/scripts/index.js")
-    //"sw":path.resolve(__dirname, "src/scripts/sw.js"),
-  },
-  devtool:"source-map",
-  output:{
-    path:path.resolve(__dirname, "dist/"),
-    filename:"[name].js",
-  },
-  plugins:[
-    new webpack.optimize.DedupePlugin(),
-    new UglifyJsPlugin({
-      sourceMap:true,
-      parallel:true,
-      uglifyOptions:{
-        ecma:8,
-        warnings:true
-      }
-    }),
-    new SWPrecacheWebpackPlugin({
-      cacheId: "photonomix-cache",
-      filename: "sw.js",
-      minify: true,
-      navigateFallback: "index.html",
-      staticFileGlobs: ["dist/**/*.{js,html,css,png,jpg,gif,svg,eot,ttf,woff,manifest}"],
-        stripPrefix:"dist/",
-        staticFileGlobsIgnorePatterns: [/\.map$/, /asset-manifest\.json$/],
-    })
-      ]
-}
+const distFolders = [
+  "dist/scripts",
+  "dist/styles",
+  "dist/assets"
+]
 
-gulp.task("manifest", function() {
-  gulp.src("./src/photonomix.manifest")
-  .pipe(gulp.dest("./dist"))
+const distFiles = [
+  "dist/index.html",
+  "dist/sw.js",
+  "dist/sw.map.js"
+]
+
+const distMask = 0o755
+
+/**
+ * Set up filesystem structure in dist.
+ */
+gulp.task("fs", async () => {
+  await Promise.all(distFolders.map(async (dir) => {
+    try {
+      console.log("creating", dir)
+      await fsm.mkdirp.call(null, dir, distMask, true)
+    }
+    catch(e) {
+      console.log(e.message)
+    }
+  }))
 })
 
-gulp.task("clean:scripts", function() {
-  return del(["target/scripts/*", "dist/scripts/*"])
+gulp.task("clean", async () => {
+  await Promise.all([...distFolders, ...distFiles].map(async (dir) => {
+    try {
+      console.log("cleaning ", dir)
+      await fsm.rmrf.call(null, dir)
+    }
+    catch(e) {
+      console.log(e.message)
+    }
+  }))
 })
 
-gulp.task("clean:styles", function() {
-  return del(["dist/styles/*"])
-})
-
-gulp.task("clean:markup", function() {
-  return del(["dist/*.html"])
-})
-
-gulp.task("clean:assets", function() {
-  return del(["target/assets/*", "dist/assets/*"])
-})
-
-gulp.task("scripts", ["clean:scripts"], function() {
-  return gulp.src(["src/scripts/*js", "src/scripts/*/*js"])
-  .pipe(babel())
-  .pipe(gulp.dest("target/scripts/"))
-})
-
-gulp.task("markup", ["clean:markup"], function() {
+gulp.task("markup", () => {
   return gulp.src(["src/markup/*pug"])
-  .pipe(pug())
-  .pipe(gulp.dest("dist"))
+    .pipe(pug())
+    .pipe(gulp.dest("dist"))
 })
 
-gulp.task("styles", ["clean:styles"], function() {
-    /*
-       return gulp.src(["src/styles/*scss"])
-       .pipe(sass().on("error", sass.logError))
-       .pipe(gulp.dest("dist/styles/"))
-       */
-})
-
-gulp.task("assets", ["clean:assets"], function() {
+gulp.task("assets", () => {
   return gulp.src("src/assets/*.*")
-  .pipe(gulp.dest("dist/assets/"))
+    .pipe(gulp.dest("dist/assets/"))
 })
 
-/* jshint unused:false */
-gulp.task("webpack", ["clean:scripts", "markup", "manifest", "assets"], function(callback) {
-  webpack(webpackConfig, function(err, stats) {
+gulp.task("styles", () => {
+  return gulp.src("src/styles/*.*")
+    .pipe(gulp.dest("dist/styles/"))
+})
+
+gulp.task("webpack", (cb) => {
+  webpack(webpackConfig, function(err) {
     if(err) console.log(err)
-      callback()
+    cb()
   })
 })
 
+gulp.task("manifest", async () => {
+  await fsm.copy("src/photonomix.manifest", "dist/photonomix.manifest")
+})
+
 gulp.task("deploy", function(cb) {
-  exec("git subtree push --prefix dist hub gh-pages", function(err, stdout, stderr) {
+  exec("git subtree push --prefix dist hub gh-pages", (err, stdout, stderr) => {
     console.log(stdout)
     console.log(stderr)
     cb(err)
@@ -107,11 +85,11 @@ gulp.task("deploy", function(cb) {
 
 gulp.task("local-server", function(cb) {
   const server = spawn("python", ["-m","http.server"], {
-    cwd:"dist",
-    detached:true
+    cwd: "dist",
+    detached: true
   })
   server.unref()
   cb()
 })
 
-gulp.task("default", ["webpack"])
+gulp.task("default", gulp.series("clean", "fs", "manifest", "webpack", "assets", "markup", "styles"))
