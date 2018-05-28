@@ -14,13 +14,13 @@ export const DEATH_THRESHOLD = 18;
 export const GRAVITY = 6.67408e-8;
 export const GLOBAL_DRAG = 0.1;
 export const PHOTON_BASE_SIZE = 0.015;
-export const PHOTON_LIFETIME = TARGET_FPS*10;
+export const PHOTON_LIFETIME = TARGET_FPS * 10;
 export const MARKER_HIT_LIFETIME = ~~(TARGET_FPS);
 export const MARKER_HIT_SIZE = 0.1;
 export const VOID_SIZE = 0.01;
 export const EMITTER_SIZE = 0.01;
 export const MAX_MOTES = 300;
-export const MAX_PHOTONS = ~~((MAX_MOTES * PREGNANT_THRESHOLD)/2);
+export const MAX_PHOTONS = ~~((MAX_MOTES * PREGNANT_THRESHOLD) / 2);
 export const MAX_VOIDS = 5;
 export const MAX_EMITTERS = 5;
 export const MAX_ENTITIES = MAX_MOTES + MAX_PHOTONS + MAX_VOIDS + MAX_EMITTERS;
@@ -38,11 +38,11 @@ export const VALIDATE_VECTORS_DEBUG = DEBUG;// || true;
 
 let type;
 if(typeof(SharedArrayBuffer) !== "undefined") {
-	/* global SharedArrayBuffer */
-	type = SharedArrayBuffer;
+  /* global SharedArrayBuffer */
+  type = SharedArrayBuffer;
 }
 else {
-	type = ArrayBuffer;
+  type = ArrayBuffer;
 }
 
 export const BUFFER_TYPE = type;

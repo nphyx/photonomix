@@ -14,7 +14,7 @@ let props; // display properties
  * which theoretically saves a little time.
  */
 export function updateCompositeOperation(ctx, op) {
-	if(ctx.globalCompositeOperation !== op) ctx.globalCompositeOperation = op;
+  if(ctx.globalCompositeOperation !== op) ctx.globalCompositeOperation = op;
 }
 
 /**
@@ -22,7 +22,7 @@ export function updateCompositeOperation(ctx, op) {
  * range used in game position vectors.
  */
 export function screenSpace(x) {
-	return ((x+1)/2) * props.minDimension;
+  return ((x + 1) / 2) * props.minDimension;
 }
 
 /**
@@ -34,9 +34,9 @@ export function screenSpace(x) {
  */
 
 export function screenSpaceVec(v, out) {
-	out[0] = ((v[0]+1)/2)*props.minDimension;
-	out[1] = ((v[1]+1)/2)*props.minDimension;
-	return out;
+  out[0] = ((v[0] + 1) / 2) * props.minDimension;
+  out[1] = ((v[1] + 1) / 2) * props.minDimension;
+  return out;
 }
 
 /**
@@ -46,42 +46,42 @@ export function screenSpaceVec(v, out) {
  * @return {out}
  */
 export function gameSpaceVec(v, out) {
-	if(props.orientation === 0) {
-		out[0] = (((v[0]-(props.width-props.height)/2)/props.minDimension)*2)-1;
-		out[1] = (((v[1])/props.minDimension)*2)-1;
-	}
-	else {
-		out[0] = (((v[0])/props.minDimension)*2)-1;
-		out[1] = (((v[1]-(props.height-props.width)/2)/props.minDimension)*2)-1;
-	}
-	return out;
+  if(props.orientation === 0) {
+    out[0] = (((v[0] - (props.width - props.height) / 2) / props.minDimension) * 2) - 1;
+    out[1] = (((v[1]) / props.minDimension) * 2) - 1;
+  }
+  else {
+    out[0] = (((v[0]) / props.minDimension) * 2) - 1;
+    out[1] = (((v[1] - (props.height - props.width) / 2) / props.minDimension) * 2) - 1;
+  }
+  return out;
 }
 
 /**
  * Checks if entity is out of screen space by more than 50%.
  */
 export function offscreen(x, y) {
-	return (
-		x < (props.width  * -0.5) || x >props.width   * 1.5 ||
+  return (
+    x < (props.width  * -0.5) || x > props.width   * 1.5 ||
 		y < (props.height * -0.5) || y > props.height * 1.5
-	)
+  )
 }
 
 /**
  * Draws a colored circle.
  */
 export function drawCircle(ctx, x, y, size, fillStyle, lineWidth = 0, strokeStyle = undefined) {
-	ctx.globalCompositeOperation = "source-over";
-	ctx.beginPath();
-	ctx.arc(x, y, size, 2 * Math.PI, false);
-	ctx.fillStyle = fillStyle;
-	ctx.fill();
-	if(strokeStyle) {
-		ctx.strokeStyle = strokeStyle;
-		ctx.lineWidth = lineWidth;
-		ctx.stroke();
-	}
-	ctx.closePath();
+  ctx.globalCompositeOperation = "source-over";
+  ctx.beginPath();
+  ctx.arc(x, y, size, 2 * Math.PI, false);
+  ctx.fillStyle = fillStyle;
+  ctx.fill();
+  if(strokeStyle) {
+    ctx.strokeStyle = strokeStyle;
+    ctx.lineWidth = lineWidth;
+    ctx.stroke();
+  }
+  ctx.closePath();
 }
 
 
@@ -89,19 +89,19 @@ export function drawCircle(ctx, x, y, size, fillStyle, lineWidth = 0, strokeStyl
  * Main animation loop.
  */
 export function tick() {
-	if(!animating) animating = true;
-	bokeh.draw();
-	entities.draw(game);
-	ui.draw(game);
+  if(!animating) animating = true;
+  bokeh.draw();
+  entities.draw(game);
+  ui.draw(game);
 }
 
 /**
  * Initializes game environment.
  */
 export function init(state, display) {
-	game = state.game;
-	props = display.props;
-	bokeh.init(display);
-	entities.init(display);
-	ui.init(display);
+  game = state.game;
+  props = display.props;
+  bokeh.init(display);
+  entities.init(display);
+  ui.init(display);
 }
