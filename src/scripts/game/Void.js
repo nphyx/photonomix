@@ -2,11 +2,12 @@
 import * as vectrix from  "@nphyx/vectrix";
 import {gravitate, drag, outOfBounds, limitVecMut, avoid} from  "../util";
 import {Emitter, AntiGravitonCluster} from "./";
-import * as Photons from "./photons";
-import * as Motes from "./motes";
+import * as photons from "./photons";
+import * as motes from "./motes";
+import {VOID_SIZE, GLOBAL_DRAG} from "../constants";
+
 const {vec2, times, mut_times, distance} = vectrix.vectors;
 const {mut_plus} = vectrix.matrices;
-import {VOID_SIZE, GLOBAL_DRAG} from "../constants";
 const {random, sqrt, PI, ceil, min} = Math;
 const POS_C = vec2(0,0);
 
@@ -44,7 +45,7 @@ Void.prototype.tick = function(entities, delta) {
   mut_plus(this.vel, drag(this.vel, GLOBAL_DRAG));
   limitVecMut(this.vel, 0, 1);
 
-  Photons.forEach((photon) => {
+  photons.eachActive((photon) => {
     a_dist = distance(this.pos, photon.pos);
     if(a_dist < this.size) {
       photon.lifetime = photon.lifetime - 1;
@@ -61,7 +62,7 @@ Void.prototype.tick = function(entities, delta) {
     );
   });
 
-  Motes.forEach((mote) => {
+  motes.eachActive((mote) => {
     a_dist = distance(this.pos, mote.pos);
     if(a_dist < this.size * 0.6) {
       // probablistic injury, so they don't get shredded instantly

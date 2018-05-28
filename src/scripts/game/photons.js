@@ -43,9 +43,7 @@ export const pool = valloc.create(MAX_PHOTONS, {
   }
 })
 
-export function forEach(cb) {
-  pool.eachActive(cb)
-}
+export const eachActive = pool.eachActive
 
 export function tick(surrounding, delta) {
   let tmpvec = vec2()

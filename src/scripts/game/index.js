@@ -2,27 +2,27 @@
 import Void from "./Void";
 import Emitter from "./Emitter";
 import Marker from "./Marker";
-import * as Motes from "./motes";
+import * as motes from "./motes";
 import * as photons from "./photons";
 import Ripple from "./Ripple";
 import {gameSpaceVec} from "../draw";
 import AntiGravitonCluster from "./AntiGravitonCluster";
-const Mote = Motes.Mote;
-
 import {rotate, outOfBounds} from "../util";
 import * as vectrix from  "@nphyx/vectrix";
 import {controls} from "@nphyx/pxene";
-import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS} from "../constants";
+import {TARGET_FPS, START_POP, MAX_MOTES, MAX_PHOTONS, TYPE_MOTE} from "../constants";
+
 const {minus} = vectrix.matrices;
 const {vec2, mut_copy} = vectrix.vectors;
 const marks = new Uint16Array(MAX_MOTES + MAX_PHOTONS + 100);
+
 let {random} = Math;
 let markpos = 0;
 let mark = 0;
 
 const ENTITY_TYPES = {};
 
-export {Mote, Void, Emitter, Marker, photons, AntiGravitonCluster, Ripple};
+export {Void, Emitter, Marker, motes, photons, AntiGravitonCluster, Ripple};
 
 /**
  * TODO: change these functions out with proper factories.
@@ -40,8 +40,6 @@ registerType("ripple", Ripple);
 registerType("antiGravitonCluster", AntiGravitonCluster);
 
 export function Game() {
-  this.motes = Motes;
-  this.motes.init();
   controls.map("ripple", "mouse0");
   this.entities = [];
   this.stats = {
@@ -59,7 +57,7 @@ export function Game() {
 
 Game.prototype.start = function() {
   for(let i = 0; i < START_POP; ++i) {
-    Motes.createRandom();
+    motes.createRandom();
   }
   this.started = Date.now();
 }
@@ -83,7 +81,7 @@ Game.prototype.tick = (function() {
     tick_delta = delta / TARGET_FPS;
     try {
       photons.tick(this.entities, tick_delta, frameCount);
-      this.motes.tick(this.entities, tick_delta, frameCount);
+      motes.tick(this.entities, tick_delta, frameCount);
     }
     catch(e) {
       console.error(e)
@@ -93,7 +91,7 @@ Game.prototype.tick = (function() {
       entity = entities[i];
       entity.tick(this.entities, tick_delta, frameCount);
       // do mote-specific stuff
-      if(entity instanceof Motes.Mote) {
+      if(entity.type === TYPE_MOTE) {
         /*
 				this.stats.pop++;
 				if(entity.target) this.stats.target++;

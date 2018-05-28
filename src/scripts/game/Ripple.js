@@ -4,7 +4,7 @@ import {gravitate} from "../util";
 let {vec2, mut_times, distance} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
 import * as photons from "./photons";
-import * as Motes from "./motes";
+import * as motes from "./motes";
 import Void from "./Void";
 
 /**
@@ -25,14 +25,14 @@ Ripple.prototype.tick = function(entities) {
     this.storedMass = 0;
   }
   else this.mass--;
-  photons.forEach((photon) => {
+  photons.eachActive((photon) => {
     a_dist = distance(this.pos, photon.pos);
     if(a_dist < 0.01) photon.lifetime = 0;
     else mut_plus(photon.vel, mut_times(
       gravitate(photon.pos, this.pos, this.mass * 20, scratchVec1),
       1 / photon.mass));
   });
-  Motes.forEach((mote) => {
+  motes.eachActive((mote) => {
     mut_plus(mote.vel, mut_times(
       gravitate(mote.pos, this.pos, -this.mass * mote.mass, scratchVec1),
       1 / mote.mass));

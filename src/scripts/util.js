@@ -319,4 +319,34 @@ export const shuffle = (function() {
 export function evenNumber(n) {
   return n >> 1 << 1;
 }
-
+/**
+ * Tool for generating byte offsets.
+ */
+export const offsetter = (() => {
+  const I8 = 1
+  const F32 = 4
+  let offset = 0
+  let tmp = 0
+  let obj = {
+    i8: (length) => {
+      tmp = offset
+      offset += length * I8
+      return tmp
+    },
+    f32: (length) => {
+      tmp = offset
+      offset += length * F32
+      return tmp
+    },
+    round32: () => {
+      return offset += (F32 - (offset % F32))
+    }
+  }
+  Object.defineProperties(obj, {
+    offset: {get: () => offset},
+    I8_LENGTH: {get: () => I8},
+    F32_LENGTH: {get: () => F32}
+  })
+  Object.freeze(obj)
+  return obj
+})()

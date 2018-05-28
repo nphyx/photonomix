@@ -3,11 +3,13 @@ import * as vectrix from  "@nphyx/vectrix";
 import {TARGET_FPS, GLOBAL_DRAG, EMITTER_SIZE} from "../constants";
 import {rotate, drag, gravitate, avoid, norm_ratio} from "../util";
 import * as photons from "./photons";
-import * as Motes from "./motes";
+import * as motes from "./motes";
 import Ripple from "./Ripple";
-let {vec2, vec3, times, mut_times, distance} = vectrix.vectors;
+
+let {vec2, vec3, times, mut_times} = vectrix.vectors;
 let {mut_plus} = vectrix.matrices;
 let {random, sqrt, ceil, min, PI} = Math;
+
 const POS_C = vec2(0,0);
 
 /**
@@ -27,7 +29,7 @@ export default function Emitter(ipos = vec2(), ivel = vec2(), mass = 1, arms = u
 }
 
 let scratchVec1 = vec2(), emissionsPerSecond = 0 | 0, emissionsPerFrame = 0 | 0,
-  targetFrame = 0 | 0, i = 0 | 0, len = 0 | 0, entity, a_dist = 0.0, consume = 0 | 0;
+  targetFrame = 0 | 0, i = 0 | 0, len = 0 | 0, entity, consume = 0 | 0;
 Emitter.prototype.tick = function(entities, delta, frameCount) {
   /* jshint unused:false */
   if(this.birthMass > 0) {
@@ -54,14 +56,14 @@ Emitter.prototype.tick = function(entities, delta, frameCount) {
   // avoid edge
   mut_plus(this.vel, avoid(this.vel, this.pos, POS_C, 1.3, 0.001, scratchVec1));
 
-  photons.forEach((photon) => {
+  photons.eachActive((photon) => {
     mut_plus(photon.vel, mut_times(
       gravitate(photon.pos, this.pos, -this.mass * photon.mass, scratchVec1),
       1 / photon.mass)
     );
   });
 
-  Motes.forEach((mote) => {
+  motes.eachActive((mote) => {
     mut_plus(mote.vel, mut_times(
       gravitate(mote.pos, this.pos, -this.mass * mote.mass, scratchVec1),
       1 / mote.mass)
@@ -71,7 +73,6 @@ Emitter.prototype.tick = function(entities, delta, frameCount) {
   for(i = 0, len = entities.length; i < len; ++i) {
     entity = entities[i];
     if(entity === this) continue;
-    a_dist = distance(this.pos, entity.pos);
     if(entity instanceof Emitter) {
       mut_plus(entity.vel, mut_times(
         gravitate(entity.pos, this.pos, this.mass * entity.mass, scratchVec1),

@@ -26,7 +26,10 @@ export const MAX_EMITTERS = 5;
 export const MAX_ENTITIES = MAX_MOTES + MAX_PHOTONS + MAX_VOIDS + MAX_EMITTERS;
 export const POSITIVE_ENERGY = 0.01; // chance a dead mote will produce an emitter
 export const NEGATIVE_ENERGY = 0.01; // chance a dead mote will produce a void
+
+// type identifiers
 export const TYPE_PHOTON = 0
+export const TYPE_MOTE = 0
 
 // general debug switch
 export const DEBUG = false;

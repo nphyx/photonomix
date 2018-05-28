@@ -6,17 +6,18 @@ import * as vectrix from  "@nphyx/vectrix"
 import * as sprites from "./sprites"
 import * as constants from "../constants"
 import * as photons from "../game/photons"
-import * as Motes from "../game/motes"
+import * as motes from "../game/motes"
+import * as mote_actions from "../game/motes.actions"
 import {rotate} from "../util"
 import {offscreen, screenSpace, updateCompositeOperation} from "./"
-const {vec2, lerp} = vectrix.vectors
-const {mut_plus} = vectrix.matrices
 import {Void, Emitter, AntiGravitonCluster, Ripple} from "../game"
 import {COLOR_R, COLOR_G, COLOR_B} from "../game/photons"
 
-let {min, cos, sin, sqrt, tan, round, PI} = Math
-const tf = constants.TARGET_FPS
+const {vec2, lerp} = vectrix.vectors
+const {mut_plus} = vectrix.matrices
+// const tf = constants.TARGET_FPS
 
+let {min, cos, sin, sqrt, tan, round, PI} = Math
 let lightBuffer, darkBuffer, lightCtx, darkCtx, frameCount, timing, displayProps
 
 /**
@@ -86,36 +87,35 @@ const drawPlasmaLine = (function() {
  * Draw a mote.
  */
 const drawMote = (function() {
-  let pulse = 0 | 0, pregnant = 0 | 0, injured = 0 | 0, lastMeal = 0 | 0, size = 0.0,
-    plasmaSource = vec2(), plasmaTarget = vec2(), sc = 0.0, sw = 0.0, sch = 0.0,
-    swh = 0.0, colorIndex = 0 | 0, px = 0.0, py = 0.0, sprite
+  let pulse = 0 | 0, pregnant = 0 | 0, injured = 0 | 0, size = 0.0,
+    plasmaSource = vec2(), plasmaTarget = vec2(), sc = 0.0, sch = 0.0,
+    colorIndex = 0 | 0, px = 0.0, py = 0.0, sprite
   return function drawMote(entity) {
     lightCtx.globalCompositeOperation = "lighter"
     px = screenSpace(entity.pos[0])
     py = screenSpace(entity.pos[1])
 
-    ;({pulse, pregnant, injured, lastMeal} = entity)
+    ;({pulse, pregnant, injured} = entity)
     size = entity.size * displayProps.minDimension
     if(pregnant) {
       sc = size * cos((frameCount + pulse) * 0.2) * (sqrt(pregnant) + 1)
-      sw = size * sin((frameCount + pulse + tf) * 0.2) * (sqrt(pregnant) + 1) * 0.1
+      // sw = size * sin((frameCount + pulse + tf) * 0.2) * (sqrt(pregnant) + 1) * 0.1
     }
     else if(injured) {
       sc = size * cos((frameCount + pulse) * (0.2 + (1 - 1 / injured)))
-      sw = size * sin((frameCount + pulse + tf) * 0.2) * 0.1; //* (0.2+(1-1/injured)))*0.25
+      // sw = size * sin((frameCount + pulse + tf) * 0.2) * 0.1; //* (0.2+(1-1/injured)))*0.25
     }
     else {
       sc = size * cos((frameCount + pulse) * 0.2)
-      sw = size * sin((frameCount + pulse + tf) * 0.2) * 0.1
+      // sw = size * sin((frameCount + pulse + tf) * 0.2) * 0.1
     }
     sch = sc * 0.5
-    swh = sw * 0.5
     colorIndex = sprites.util.colorIndex(entity.color[COLOR_R], entity.color[COLOR_G], entity.color[COLOR_B])
     sprite = sprites.motes.get(colorIndex)
     lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px - sch, py - sch, sc, sc)
     sprite = sprites.motes.getCenter()
     lightCtx.drawImage(sprite.canvas, sprite.sx, sprite.sy, sprite.sw, sprite.sh, px - sch, py - sch, sc, sc)
-    if(entity.target && entity.action == Motes.ACT_ATTACK) {
+    if(entity.target && entity.action == mote_actions.ACT_ATTACK) {
       // need vectors but in screen space, not absolute space
       plasmaSource[0] = px
       plasmaSource[1] = py
@@ -337,13 +337,13 @@ export const draw = (function() {
     frameCount = timing.frameCount
     let mask = sprites.ui.get("mask")
     try {
-      photons.forEach(drawPhoton)
+      photons.eachActive(drawPhoton)
     }
     catch(e) {
       console.error(e)
       return
     }
-    Motes.forEach(drawMote)
+    motes.eachActive(drawMote)
     for(i = 0, l = state.entities.length; i < l; ++i) {
       entity = state.entities[i]
       px = screenSpace(entity.pos[0])
