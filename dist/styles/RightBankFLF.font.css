@@ -1,0 +1,9 @@
+@font-face {
+	font-family: 'RightBankFLF';
+	src:
+		url('./assets/RightBankFLF.svg#RightBankFLF') format('svg'),
+		url('./assets/RightBankFLF.woff') format('woff'),
+		url('./assets/RightBankFLF.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}

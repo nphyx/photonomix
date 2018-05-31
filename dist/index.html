@@ -12,12 +12,12 @@ canvas {display:block;position:absolute;border:0; padding:0; margin:0; cursor:no
 </style><script src="scripts/index.js" type="text/javascript" defer="defer"></script><script type="text/javascript">/* this gets inlined into the header of the index */
 "use strict";
 if("serviceWorker" in navigator) {
-	window.addEventListener("load", () => {
-		navigator.serviceWorker.register("./sw.js")
-		.then(
-			(registration) => console.log("worker registered", registration.scope),
-			(err) => console.log("worker registration failed", err)
-		);
-	});
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .then(
+        (registration) => console.log("worker registered", registration.scope),
+        (err) => console.log("worker registration failed", err)
+      );
+  });
 }
 </script></head><body class="start"><noscript><h1>Javascript Required</h1><p>Photonomix is a game. Games run on code. Browser code is javascript.</p>You must enable javascript.</noscript></body></html>
